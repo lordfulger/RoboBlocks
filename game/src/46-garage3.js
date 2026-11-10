@@ -27,7 +27,7 @@ function buildHangar() {
   const r = mulberry32(77);
   for (let i = 0; i < 9; i++) { const a = r() * Math.PI * 2, d = 32 + r() * 9, k = 1.2 + r() * 1.6; const m = new T.Mesh(new T.BoxGeometry(k, k, k), r() < .3 ? hazard : crate); m.position.set(Math.sin(a) * d, -.5 + k / 2, Math.cos(a) * d); m.rotation.y = r() * 3; m.castShadow = m.receiveShadow = true; s.add(m); }
   for (const a of [.8, -2.2]) { const g = new T.Group(); g.position.set(Math.sin(a) * 40, -.5, Math.cos(a) * 40); g.rotation.y = a + Math.PI;
-    for (const y of [0, 2.2, 4.4]) { const sh = new T.Mesh(new T.BoxGeometry(8, .2, 2), steel); sh.position.y = y + .6; g.add(sh); for (let j = 0; j < 4; j++) { const b = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ color: COLORS[(j * 3 + y) % COLORS.length], roughness: .5, metalness: .3 })); b.position.set(-3 + j * 2, y + 1.2, 0); g.add(b); } }
+    for (const y of [0, 2.2, 4.4]) { const sh = new T.Mesh(new T.BoxGeometry(8, .2, 2), steel); sh.position.y = y + .6; g.add(sh); for (let j = 0; j < 4; j++) { const b = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ color: COLORS[(j * 3 + Math.round(y * 2)) % COLORS.length], roughness: .5, metalness: .3 })); b.position.set(-3 + j * 2, y + 1.2, 0); g.add(b); } }
     for (const x of [-4, 4]) { const p = new T.Mesh(new T.BoxGeometry(.2, 6, .2), steel); p.position.set(x, 3, -.9); g.add(p); }
     s.add(g); }
   // build pad: a raised turntable with a glowing rim

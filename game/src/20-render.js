@@ -1,7 +1,7 @@
 // ================= RENDERER =================
 const renderer = HEADLESS ? { setPixelRatio() { }, setSize() { }, getPixelRatio: () => 1, render() { }, setRenderTarget() { }, setClearColor() { }, clear() { }, dispose() { }, shadowMap: {}, domElement: document.createElement('canvas') }
   : new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-const pixelRatio = () => Math.min(devicePixelRatio, settings.quality === 'high' ? 1.5 : 1);
+const pixelRatio = () => Math.min(devicePixelRatio, ultraQ() ? 2 : hiQ() ? 1.5 : 1);
 renderer.setPixelRatio(pixelRatio());
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -10,13 +10,15 @@ renderer.toneMapping = T.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 $('#view').appendChild(renderer.domElement);
 const canvas = renderer.domElement;
-const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2000);
+const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 3000);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); post.resize(); });
 
+const _sunP = new T.Vector3(), _sunD = new T.Vector3();
+const GRADE_NONE = { sat: 1, con: 1, tS: [1, 1, 1], tH: [1, 1, 1] };
 // ---------- post-processing: HDR scene -> bright pass -> two-level blur -> bloom composite + vignette ----------
 const post = (() => {
   const mk = (samples) => new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: samples || 0, depthBuffer: !!samples });
-  const sceneRT = mk(4), half = [mk(), mk()], quarter = [mk(), mk()], aoRT = [mk(), mk()];
+  const sceneRT = mk(4), half = [mk(), mk()], quarter = [mk(), mk()], aoRT = [mk(), mk()], rayRT = [mk(), mk()];
   // the scene's depth, resolved from the multisampled buffer, feeds the ambient occlusion pass
   sceneRT.depthTexture = new T.DepthTexture(1, 1); sceneRT.depthTexture.type = T.UnsignedIntType;
   const cam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1), quad = new T.Mesh(new T.PlaneGeometry(2, 2)), sc = new T.Scene();
@@ -52,13 +54,36 @@ const post = (() => {
         occ *= fade;
         gl_FragColor = vec4(vec3(clamp(1.0 - occ / 12.0 * 1.3, 0.0, 1.0)), 1.0);
       }` });
-  const compMat = new T.ShaderMaterial({ ...base, uniforms: { tex: { value: null }, b1: { value: null }, b2: { value: null }, strength: { value: .55 }, vig: { value: .35 }, ao: { value: null }, aoK: { value: 0 } },
-    fragmentShader: 'uniform sampler2D tex; uniform sampler2D b1; uniform sampler2D b2; uniform sampler2D ao; uniform float aoK; uniform float strength; uniform float vig; varying vec2 vUv; void main(){ if (aoK > 1.5) { gl_FragColor = vec4(texture2D(ao, vUv).rrr, 1.0); return; } vec3 c = texture2D(tex, vUv).rgb * mix(1.0, texture2D(ao, vUv).r, aoK); c += (texture2D(b1, vUv).rgb * 0.6 + texture2D(b2, vUv).rgb * 0.9) * strength; float d = length(vUv - 0.5) * 1.35; c *= mix(1.0, smoothstep(1.15, 0.3, d), vig); gl_FragColor = vec4(c, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}' });
+  // light shafts: bright sky around the sun, blurred outward from the sun's spot on screen
+  const rayMaskMat = new T.ShaderMaterial({ ...base, uniforms: { tex: { value: null }, dep: { value: null }, sun: { value: new T.Vector2() }, asp: { value: 1 } },
+    fragmentShader: 'uniform sampler2D tex; uniform sampler2D dep; uniform vec2 sun; uniform float asp; varying vec2 vUv; void main(){ float sky = step(0.99995, texture2D(dep, vUv).x); vec2 d = (vUv - sun) * vec2(asp, 1.0); float k = exp(-dot(d, d) * 7.0); vec3 c = min(texture2D(tex, vUv).rgb, vec3(3.0)); gl_FragColor = vec4(c * sky * k, 1.0); }' });
+  const rayBlurMat = new T.ShaderMaterial({ ...base, uniforms: { tex: { value: null }, sun: { value: new T.Vector2() }, len: { value: .6 } },
+    fragmentShader: 'uniform sampler2D tex; uniform vec2 sun; uniform float len; varying vec2 vUv; void main(){ vec2 st = (vUv - sun) * len / 32.0; vec2 uv = vUv; vec3 c = vec3(0.0); float w = 1.0, tw = 0.0; for (int i = 0; i < 32; i++) { c += texture2D(tex, uv).rgb * w; tw += w; w *= 0.955; uv -= st; } gl_FragColor = vec4(c / tw * 2.2, 1.0); }' });
+  // final composite: ambient occlusion, bloom, light shafts, colour grade (contrast, saturation, split toning), vignette, film grain
+  const compMat = new T.ShaderMaterial({ ...base, uniforms: { tex: { value: null }, b1: { value: null }, b2: { value: null }, strength: { value: .55 }, vig: { value: .35 }, ao: { value: null }, aoK: { value: 0 },
+      rays: { value: null }, raysK: { value: 0 }, raysCol: { value: new T.Color(1, 1, 1) }, sat: { value: 1 }, con: { value: 1 }, tS: { value: new T.Vector3(1, 1, 1) }, tH: { value: new T.Vector3(1, 1, 1) }, grain: { value: 0 }, time: { value: 0 } },
+    fragmentShader: `uniform sampler2D tex; uniform sampler2D b1; uniform sampler2D b2; uniform sampler2D ao; uniform sampler2D rays; uniform float aoK; uniform float strength; uniform float vig; uniform float raysK; uniform vec3 raysCol;
+      uniform float sat; uniform float con; uniform vec3 tS; uniform vec3 tH; uniform float grain; uniform float time; varying vec2 vUv;
+      void main(){
+        if (aoK > 1.5) { gl_FragColor = vec4(texture2D(ao, vUv).rrr, 1.0); return; }
+        vec3 c = texture2D(tex, vUv).rgb * mix(1.0, texture2D(ao, vUv).r, aoK);
+        c += (texture2D(b1, vUv).rgb * 0.6 + texture2D(b2, vUv).rgb * 0.9) * strength;
+        if (raysK > 0.0) c += texture2D(rays, vUv).rgb * raysCol * raysK;
+        float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        c = mix(vec3(l), c, sat);
+        c *= mix(tS, tH, smoothstep(0.05, 0.9, l));
+        c = max(vec3(0.0), (c - 0.18) * con + 0.18);
+        float d = length(vUv - 0.5) * 1.35; c *= mix(1.0, smoothstep(1.15, 0.3, d), vig);
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        if (grain > 0.0) { float n = fract(sin(dot(gl_FragCoord.xy + fract(time * 7.13) * 91.7, vec2(12.9898, 78.233))) * 43758.5453); gl_FragColor.rgb += (n - 0.5) * grain; }
+      }` });
   const pass = (mat, target) => { quad.material = mat; renderer.setRenderTarget(target); renderer.render(sc, cam); };
   let W = 1, H = 1;
   function resize() {
     W = Math.max(2, Math.floor(innerWidth * renderer.getPixelRatio())); H = Math.max(2, Math.floor(innerHeight * renderer.getPixelRatio()));
-    sceneRT.setSize(W, H); for (const t of half) t.setSize(W >> 1, H >> 1); for (const t of quarter) t.setSize(W >> 2, H >> 2); for (const t of aoRT) t.setSize(W >> 1, H >> 1);
+    sceneRT.setSize(W, H); for (const t of half) t.setSize(W >> 1, H >> 1); for (const t of quarter) t.setSize(W >> 2, H >> 2); for (const t of aoRT) t.setSize(W >> 1, H >> 1); for (const t of rayRT) t.setSize(W >> 2, H >> 2);
   }
   function blur(pair, w, h) {
     blurMat.uniforms.tex.value = pair[0].texture; blurMat.uniforms.dir.value.set(1 / w, 0); pass(blurMat, pair[1]);
@@ -67,7 +92,7 @@ const post = (() => {
   function render(scene, cam3, opts = {}) {
     if (HEADLESS) return;
     renderMirrors(scene, cam3);
-    if (settings.quality !== 'high') { renderer.setRenderTarget(null); renderer.render(scene, cam3); return; }
+    if (!hiQ()) { renderer.setRenderTarget(null); renderer.render(scene, cam3); return; }
     renderer.setRenderTarget(sceneRT); renderer.render(scene, cam3);
     brightMat.uniforms.tex.value = sceneRT.texture; brightMat.uniforms.th.value = opts.threshold || 1.0; pass(brightMat, half[0]);
     blur(half, W >> 1, H >> 1);
@@ -78,6 +103,23 @@ const post = (() => {
       aoMat.uniforms.dep.value = sceneRT.depthTexture; aoMat.uniforms.pInv.value.copy(cam3.projectionMatrixInverse); aoMat.uniforms.proj.value.copy(cam3.projectionMatrix);
       aoMat.uniforms.rad.value = opts.aoRadius || .7; aoMat.uniforms.px.value.set(2 / W, 2 / H); pass(aoMat, aoRT[0]); blur(aoRT, W >> 1, H >> 1); blur(aoRT, W >> 1, H >> 1);
     }
+    // light shafts (High and Ultra) when the sun is on screen or just off it
+    let raysK = 0;
+    if (opts.sun && opts.rays !== 0) {
+      _sunP.copy(cam3.position).addScaledVector(opts.sun, 900).project(cam3);
+      const sx = _sunP.x * .5 + .5, sy = _sunP.y * .5 + .5, facing = _sunP.z < 1 && cam3.getWorldDirection(_sunD).dot(opts.sun) > 0;
+      const edge = Math.max(Math.abs(_sunP.x), Math.abs(_sunP.y));
+      raysK = facing ? (opts.rays || .35) * (1 - smoothstep(1, 1.6, edge)) * (ultraQ() ? 1.25 : 1) : 0;
+      if (raysK > .01) {
+        rayMaskMat.uniforms.tex.value = sceneRT.texture; rayMaskMat.uniforms.dep.value = sceneRT.depthTexture; rayMaskMat.uniforms.sun.value.set(sx, sy); rayMaskMat.uniforms.asp.value = W / H; pass(rayMaskMat, rayRT[0]);
+        rayBlurMat.uniforms.sun.value.set(sx, sy);
+        rayBlurMat.uniforms.tex.value = rayRT[0].texture; rayBlurMat.uniforms.len.value = .7; pass(rayBlurMat, rayRT[1]);
+        rayBlurMat.uniforms.tex.value = rayRT[1].texture; rayBlurMat.uniforms.len.value = .25; pass(rayBlurMat, rayRT[0]);
+      } else raysK = 0;
+    }
+    post.raysK = raysK; compMat.uniforms.rays.value = rayRT[0].texture; compMat.uniforms.raysK.value = raysK; if (opts.sunCol) compMat.uniforms.raysCol.value.copy(opts.sunCol);
+    const gr = opts.grade || GRADE_NONE; compMat.uniforms.sat.value = gr.sat; compMat.uniforms.con.value = gr.con; compMat.uniforms.tS.value.set(...gr.tS); compMat.uniforms.tH.value.set(...gr.tH);
+    compMat.uniforms.grain.value = ultraQ() && opts.grain !== 0 ? (opts.grain || .028) : 0; compMat.uniforms.time.value = performance.now() / 1000;
     compMat.uniforms.ao.value = aoRT[0].texture; compMat.uniforms.aoK.value = useAo ? (window.__aoDebug ? 2 : opts.ao != null ? opts.ao : .85) : 0;
     compMat.uniforms.tex.value = sceneRT.texture; compMat.uniforms.b1.value = half[0].texture; compMat.uniforms.b2.value = quarter[0].texture;
     compMat.uniforms.strength.value = opts.bloom != null ? opts.bloom : .55; compMat.uniforms.vig.value = opts.vignette != null ? opts.vignette : .35;

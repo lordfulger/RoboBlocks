@@ -1,0 +1,105 @@
+# Release RoboBlocks: push a tag like v2.8.0 and this builds everything and publishes a GitHub Release with
+#   roboblocks-server.tar.gz   the dedicated server (Pterodactyl eggs install and update from this file)
+#   egg-roboblocks.json        the Pterodactyl egg
+#   RoboBlocks-* installers    the desktop app for Windows, macOS and Linux, plus the latest*.yml update feeds
+# Run it by hand (Actions > Release > Run workflow) to build without publishing; the files appear as workflow artifacts.
+name: Release
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build the game
+        run: bash game/build.sh
+      - name: Check the version matches the tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          GAME=$(grep -o "const BC_VERSION = '[^']*'" server/public/index.html | cut -d"'" -f2)
+          echo "game ${GAME}, tag ${GITHUB_REF_NAME}"
+          if [ "v${GAME}" != "${GITHUB_REF_NAME}" ]; then echo "::warning::BC_VERSION (${GAME}) does not match the tag (${GITHUB_REF_NAME})"; fi
+      - name: Smoke-test the server
+        working-directory: server
+        run: |
+          SERVER_PORT=8790 timeout 25 node server/index.js > ../server.log 2>&1 &
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:8790/status && break; sleep 1; done
+          curl -fsS http://127.0.0.1:8790/status | grep -q '"version"'
+          curl -fsS -o /dev/null http://127.0.0.1:8790/
+      - name: Package the server
+        run: |
+          mkdir -p stage/roboblocks-server
+          tar -C server --exclude=./data --exclude=./backups --exclude=./downloads --exclude=./servers.json --exclude=./balance.json --exclude=./.update-stage -cf - . | tar -C stage/roboblocks-server -xf -
+          tar -C stage -czf roboblocks-server.tar.gz roboblocks-server
+          cp server/egg-roboblocks.json .
+          ls -la roboblocks-server.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roboblocks-server
+          path: |
+            roboblocks-server.tar.gz
+            egg-roboblocks.json
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: RoboBlocks ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            roboblocks-server.tar.gz
+            egg-roboblocks.json
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build the game
+        shell: bash
+        run: bash game/build.sh
+      - name: Install
+        working-directory: desktop
+        run: npm ci
+      - name: Bundle the game into the app
+        working-directory: desktop
+        run: npm run bundle
+      - name: Build the installers
+        working-directory: desktop
+        run: npx electron-builder -p never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: roboblocks-desktop-${{ matrix.os }}
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.zip
+            desktop/dist/*.dmg
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+            desktop/dist/*.blockmap
+            desktop/dist/latest*.yml
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/dist/*.exe
+            desktop/dist/*.zip
+            desktop/dist/*.dmg
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
+            desktop/dist/*.blockmap
+            desktop/dist/latest*.yml

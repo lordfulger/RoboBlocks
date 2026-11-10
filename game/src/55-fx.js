@@ -13,7 +13,7 @@ function startWeather() {
   // weather thickens the air
   world.scene.fog.near = M.fogNear * (1 - .5 * k * (kind === 'sand' ? 1 : kind === 'none' ? 0 : .55)); world.scene.fog.far = M.fogFar * (1 - .45 * k * (kind === 'sand' ? 1 : kind === 'none' ? 0 : .5));
   if (kind === 'none' || k <= 0) return;
-  const N = Math.round((settings.quality === 'high' ? 3600 : 1600) * k), box = { x: 110, y: 55, z: 110 };
+  const N = Math.round((ultraQ() ? 5200 : hiQ() ? 3600 : 1600) * k), box = { x: 110, y: 55, z: 110 };
   const pos = new Float32Array(N * (kind === 'rain' ? 6 : 3)), vel = new Float32Array(N * 3), col = new Float32Array(N * (kind === 'rain' ? 6 : 3));
   const c1 = new T.Color(kind === 'sand' ? 0xd9b98c : kind === 'snow' ? 0xffffff : kind === 'ash' ? 0x5a5250 : 0xb8c6d4), c2 = new T.Color(kind === 'ash' ? 0xff7a2a : kind === 'sand' ? 0xbf9b72 : c1.getHex());
   for (let i = 0; i < N; i++) {
@@ -123,7 +123,7 @@ function updateGlow() {
 // ---------- grass tufts near the camera ----------
 function grassSetup(rnd) {
   FX.grass = [];
-  if (HEADLESS || !['dust', 'city'].includes(world.mapId) || settings.quality !== 'high') return;
+  if (HEADLESS || !['dust', 'city'].includes(world.mapId) || !hiQ()) return;
   const blade = new T.PlaneGeometry(.9, .8); blade.translate(0, .4, 0);
   const tuft = new T.BufferGeometry(), parts = [0, Math.PI / 3, -Math.PI / 3].map(a => blade.clone().rotateY(a));
   const merged = parts.reduce((acc, g) => { const p = g.attributes.position.array, uv = g.attributes.uv.array; acc.p.push(...p); acc.uv.push(...uv); return acc; }, { p: [], uv: [] });

@@ -104,15 +104,12 @@ async function showLobby() {
     <div id="lobbyList"></div>
     <div id="lobbyPilots"></div>
     <h3>HOST A CUSTOM GAME</h3>
-    ${optButtons('oMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), setupSel.mode)}
-    ${optButtons('oMap', MAP_ORDER.map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', 'Pick one for me.']]), setupSel.map)}
-    ${optButtons('oSize', [[5, '5 v 5', 'AI fills empty slots.'], [10, '10 v 10', 'AI fills empty slots.'], [20, '20 v 20', 'AI fills empty slots.']], setupSel.n)}
+    ${setupOptsHtml(true)}
     <div class="btns"><button class="primary" id="ovHost">Host custom game</button><button id="ovBack">Back</button></div>`, true);
   $('#callsign').value = NET.name;
   $('#callsign').addEventListener('keydown', e => e.stopPropagation());
   $('#callsign').addEventListener('change', () => { NET.name = cleanName($('#callsign').value) || NET.name; $('#callsign').value = NET.name; store.set('sfa.callsign', NET.name); lobbyPresence(); });
-  const wire = (id, key, num) => document.querySelectorAll(`#${id} .opt`).forEach(b => b.onclick = () => { setupSel[key] = num ? +b.dataset.k : b.dataset.k; document.querySelectorAll(`#${id} .opt`).forEach(x => x.classList.toggle('sel', x === b)); SFX.ui(); });
-  wire('oMode', 'mode'); wire('oMap', 'map'); wire('oSize', 'n', true);
+  wireSetupOpts();
   $('#ovHost').onclick = () => { if (!canDeploy()) return; store.set('sfa.setup', setupSel); joinGame('c' + Math.random().toString(36).slice(2, 7), null, { ...setupSel }); };
   $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
   renderLobbyList(); renderParty();
@@ -197,17 +194,26 @@ function ensureShards(k) {
     NET.room.join('g' + code + 'a' + i).then(r => { if (!NET.game || NET.game.code !== code) { r.leave().catch(() => { }); return; } NET.shards[i] = r; r.onPeers(ch => { NET.shardPeers[i] = ch.peers; }); }).catch(() => { NET.shards[i] = null; });
   }
 }
+// the host settles the map and its size before each match, so every client builds the same arena
+function resolveMap(mode, map) { return mode === 'space' ? (MAPS[map] && MAPS[map].space ? map : pickMap(SPACE_ORDER)) : (MAPS[map] && !MAPS[map].space ? map : pickMap(MAP_ORDER)); }
 function freshInfo() {
   const g = NET.game, sv = g.server, s = g.setup || setupSel;
-  const first = sv ? sv.rot[0] : [s.mode, s.map];
-  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: first[1] === 'random' ? MAP_ORDER[Math.random() * MAP_ORDER.length | 0] : first[1], n: sv ? sv.n : s.n, roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
+  const first = sv ? sv.rot[0] : [s.mode, s.mode === 'space' ? s.smap : s.map, s.size], n = sv ? sv.n : s.n;
+  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: resolveMap(first[0], first[1]), size: mapSizeOf(first[2], n), n, roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
 }
 function slowPresence(withDesign) {
   if (!NET.slow || !NET.game) return;
   const g = NET.game, patch = { name: NET.name, lv: level(), sr: HEADLESS ? null : mySR(), since: g.since, spec: g.spec ? 1 : 0, pg: NET.ping || null, pt: NET.party ? NET.party.id : null, bd: HEADLESS ? null : myBadge() || null, clan: HEADLESS ? null : myClan() };
-  if (withDesign) { patch.d = encodeDesign(gSerialize()); patch.dn = cleanName(design.name || ''); }
+  if (withDesign) { const d = presenceDesign(); patch.d = NET.sentD = encodeDesign(d); patch.dn = cleanName(d.name || ''); }
   patch.g = g.isHost ? g.info : null;
   NET.slow.presence(patch).catch(e => { if (e && e.code === 'invalid_argument') toast('Your bot is too large to send online. Remove some blocks.'); });
+}
+// loadouts: send just the design you will respawn with
+function slowPresenceDesign(d) { if (!NET.slow || !NET.game) return; const code = encodeDesign(d); if (code === NET.sentD) return; NET.sentD = code; NET.slow.presence({ d: code, dn: cleanName(d.name || '') }).catch(e => { if (e && e.code === 'invalid_argument') toast('That bot is too large to send online.'); }); }
+// a remote pilot picked another bay: rebuild them with the design in their presence (checked like any other)
+function netLoadout(b) {
+  const p = NET.slowPeers.find(x => x.peer === b.netId); if (!p || !p.presence || !p.presence.d || p.presence.d === b.dcode) return false;
+  b.dcode = p.presence.d; const rd = remoteDesign(p, b.team); if (!rd) return false; b.design = rd; return true;
 }
 const hostPeer = () => NET.slowPeers.find(p => p.presence && p.presence.g && !p.sameTab) || null;
 const senior = (a, b) => (a.presence.since || 9e15) - (b.presence.since || 9e15) || (a.peer < b.peer ? -1 : 1);
@@ -302,7 +308,7 @@ function serverTick() {
 }
 function launchMatch() {
   const g = NET.game, info = g.info;
-  if (g.server) { const [m, mp] = g.server.rot[info.rot % g.server.rot.length]; info.mode = m; info.map = mp; info.n = g.server.n; }
+  if (g.server) { const [m, mp, sz] = g.server.rot[info.rot % g.server.rot.length]; info.mode = m; info.map = resolveMap(m, mp); info.n = g.server.n; info.size = mapSizeOf(sz, info.n); }
   // rebalance: alternate pilots by seniority so teams stay even
   const pilots = NET.slowPeers.filter(p => p.presence && p.presence.since && !(HEADLESS && p.sameTab)).sort(senior).map(p => p.peer);
   if (!pilots.includes(NET.me) && !HEADLESS) pilots.unshift(NET.me);
@@ -332,12 +338,12 @@ function renderWaiting() {
   const info = g.info;
   if ($('#nextIn')) {
     $('#nextIn').textContent = !info ? 'Connecting to the server…' : info.phase === 'warmup' ? `Warmup: next match starts in ${Math.max(0, Math.ceil(info.cd))}s`
-      : info.phase === 'post' ? `Next match: ${(MODES[nextRot(g, info)[0]] || MODES.tdm).name} on ${(MAPS[nextRot(g, info)[1]] || MAPS.dust).name} in ${Math.max(0, Math.ceil(info.cd))}s`
+      : info.phase === 'post' ? `Next match: ${(MODES[nextRot(g, info)[0]] || MODES.tdm).name} on ${MAPS[nextRot(g, info)[1]] ? MAPS[nextRot(g, info)[1]].name : 'a random map'} in ${Math.max(0, Math.ceil(info.cd))}s`
       : info.phase === 'lobby' ? (g.isHost ? 'Start when everyone is in.' : 'Waiting for the host to start.') : 'Match in progress. Joining…';
   }
   if ($('#ovStart')) $('#ovStart').hidden = !(g.isHost && info && info.phase === 'lobby');
   if (!$('#wroster')) return;
-  $('#wsub').textContent = info ? `${(MODES[info.mode] || MODES.tdm).name} on ${(MAPS[info.map] || MAPS.dust).name}, ${info.n}v${info.n}.` : '';
+  $('#wsub').textContent = info ? `${(MODES[info.mode] || MODES.tdm).name} on ${(MAPS[info.map] || MAPS.dust).name} (${(MAP_SIZES[info.size] || MAP_SIZES.medium).name.toLowerCase()}), ${info.n}v${info.n}.` : '';
   const cols = [$('#wroster'), $('#wroster2')]; cols.forEach(c => c.innerHTML = '');
   for (const p of NET.slowPeers) {
     let t = info && info.roster ? info.roster[p.peer] : undefined; if (typeof t !== 'number') continue; if (t > 1) t = Object.keys(info.roster).indexOf(p.peer) % 2;
@@ -359,7 +365,7 @@ function startNetBattle() {
     humans.push({ id: p.peer, team: t, name: pilotTag(p.presence), design: rd });
   }
   if (!$('#overlay').hidden) hideOverlay();
-  startBattle({ mode: info.mode, map: info.map, n: info.n, net: { isHost: g.isHost, spectator: HEADLESS || g.spec, me: NET.me, myTeam: info.roster[NET.me] | 0, seed: info.seed, lv: info.lv, ai: info.ai, brawl: info.brawl, humans } });
+  startBattle({ mode: info.mode, map: info.map, size: info.size, n: info.n, net: { isHost: g.isHost, spectator: HEADLESS || g.spec, me: NET.me, myTeam: info.roster[NET.me] | 0, seed: info.seed, lv: info.lv, ai: info.ai, brawl: info.brawl, humans } });
   if (!match || !match.net) { g.inBattle = false; return; }
   ensureShards(Math.ceil((info.ai[0] + info.ai[1] + (info.mode === 'horde' ? HORDE.pool : 0)) / 13));
 }
@@ -486,7 +492,10 @@ function applyState(b, s, now) {
   if (s.length < 23) return;
   if (b.netSpawns !== spawns) { // a (re)spawn: rebuild the full bot where the owner put it
     if (!b.dead && b.group) { world.scene.remove(b.group); b.dead = true; }
+    if (b.human) netLoadout(b);
     b.netSpawns = spawns; b.spawn(_np.set(+s[4] || 0, +s[5] || 0, +s[6] || 0), +s[7] || 0); b.pos.set(+s[4] || 0, +s[5] || 0, +s[6] || 0);
+  } else if (b.human && !b.dead && b.spawnT < 2 && netLoadout(b)) { // their new design arrived just after they respawned
+    world.scene.remove(b.group); b.dead = true; const yaw = b.yaw; b.spawn(_np.set(+s[4] || 0, +s[5] || 0, +s[6] || 0), yaw); b.pos.set(+s[4] || 0, +s[5] || 0, +s[6] || 0);
   }
   if (b.dead) return;
   b.net = { x: +s[4], y: +s[5], z: +s[6], yaw: +s[7], pitch: +s[8], roll: +s[9], vx: +s[10], vy: +s[11], vz: +s[12], t: now };

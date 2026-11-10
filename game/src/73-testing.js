@@ -98,11 +98,11 @@ function perfTick(dt) {
   const now = performance.now(), real = Math.min(1, (now - (PERF.last || now)) / 1000) || dt; PERF.last = now; PERF.fr.push(real); // real time: the game clamps dt on slow frames if (PERF.fr.length > 60) PERF.fr.shift();
   const avg = PERF.fr.reduce((s, v) => s + v, 0) / PERF.fr.length; PERF.ms = avg * 1000; PERF.fps = Math.round(1 / Math.max(.001, avg));
   // first battle on High: if it runs under ~28 fps for a while, switch to Fast once
-  if (state === 'battle' && settings.quality === 'high' && !store.get('sfa.autoQ', false) && !paused) {
+  if (state === 'battle' && hiQ() && !store.get('sfa.autoQ', false) && !paused) {
     PERF.autoT += real; if (PERF.autoT > 3) { PERF.autoN++; PERF.autoSum += real; }
     if (PERF.autoN >= 240 || PERF.autoSum >= 5) {
       store.set('sfa.autoQ', true);
-      if (PERF.autoSum / PERF.autoN > 1 / 28) { settings.quality = 'low'; saveSettings(); applyQuality(); toast('Graphics switched to Fast for smoother play. You can change this in Settings.'); }
+      if (PERF.autoSum / PERF.autoN > 1 / 28) { const was = settings.quality; settings.quality = was === 'ultra' ? 'high' : 'low'; saveSettings(); applyQuality(); toast(`Graphics switched to ${was === 'ultra' ? 'High' : 'Fast'} for smoother play. You can change this in Settings.`); if (was === 'ultra') { store.set('sfa.autoQ', false); PERF.autoN = PERF.autoSum = PERF.autoT = 0; } }
     }
   }
   if (!PERF.show) return;

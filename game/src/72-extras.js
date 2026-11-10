@@ -69,7 +69,7 @@ function recStart() {
   if (HEADLESS || !match || match.mode === 'test') { REC.on = false; return; }
   REC.on = true; REC.t = 0; REC.acc = 0; REC.frames = []; REC.shots = [];
   REC.bots = world.bots.map(b => ({ design: b.design, team: b.team, name: b.isPlayer ? 'You' : b.name, me: b.isPlayer }));
-  REC.meta = { map: world.mapId, tod: world.tod, wx: world.wxK, mode: match.mode, n: match.n };
+  REC.meta = { map: world.mapId, tod: world.tod, wx: world.wxK, mode: match.mode, n: match.n, size: world.mapSize };
 }
 function recTick(dt) {
   if (!REC.on || !match) return;
@@ -83,7 +83,7 @@ const RP = { on: false, t: 0, speed: 1, playing: true, bots: [], si: 0, follow: 
 function startReplay() {
   const R = LAST_REPLAY.data; if (!R) { toast('No replay yet. Finish a battle first.'); return; }
   hideOverlay(); leaveBattle(); clearBattle();
-  setupArena(R.meta.map, R.meta.tod); world.wxK = R.meta.wx; startWeather();
+  setupArena(R.meta.map, R.meta.tod, R.meta.size || "medium"); world.wxK = R.meta.wx; startWeather();
   match = { mode: R.meta.mode, mapId: R.meta.map, n: R.meta.n, score: [0, 0], limit: 0, time: 0, over: false, net: false, isHost: false, spectator: true, replay: true, dmgScale: 1, rx: [1, 1], rxMax: 1, player: null };
   RP.bots = R.bots.map((b, i) => { const bot = new Bot(b.design, b.team, b.name, { remote: true, netId: 'r' + i }); bot.build(); bot.dead = true; return bot; });
   match.player = new Bot(R.bots[0].design, 0, 'You', { player: true }); match.player.build(); match.player.dead = true; match.player.respawnT = Infinity;

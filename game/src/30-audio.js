@@ -315,7 +315,7 @@ const SFX = {
     else if (mapId === 'ash') { bed('lowpass', 140, 1, 1, .05, 50); hum(38, .25); bed('highpass', 3000, .5, .05); }
     else if (mapId === 'city') { bed('lowpass', 220, .8, .5, .04, 60); bed('bandpass', 700, 1, .15, .06, 300); hum(58, .06); }
     else if (mapId === 'moon') { hum(55, .12); hum(82.5, .05); bed('lowpass', 180, .7, .25); }
-    else if (mapId === 'space') { hum(41, .14); hum(61.7, .07); bed('bandpass', 2500, 2, .06, .2, 1200); }
+    else if (MAPS[mapId] && MAPS[mapId].space) { hum(41, .14); hum(61.7, .07); bed('bandpass', 2500, 2, .06, .2, 1200); }
     else bed('bandpass', 450, 1, .4, .06, 300);
     a.g.gain.setTargetAtTime(mapId === 'ash' ? .3 : .16, c.currentTime, 1.5);
   },
@@ -326,7 +326,7 @@ const SFX = {
     if (m === 'ash') { for (let i = 0; i < 3; i++) this.tone(rand(60, 120), 30, .25, 'sine', .08, { pos: far(), delay: i * rand(.05, .2) }); a.evT = 1 + Math.random() * 2; }
     else if (m === 'frost') this.tone(rand(180, 320), rand(90, 140), .5, 'triangle', .03, { pos: far() }); // ice creak
     else if (m === 'city') { if (Math.random() < .4) this.play('metal', far(), { g: .5, rate: .5 }); else this.tone(620, 780, 1.2, 'sine', .015, { pos: far() }); }
-    else if (m === 'moon' || m === 'space') { for (let i = 0; i < 3; i++) this.tone(rand(1200, 2400), rand(1200, 2400), .06, 'square', .012, { delay: i * .09, wet: .6 }); }
+    else if (m === 'moon' || (MAPS[m] && MAPS[m].space)) { for (let i = 0; i < 3; i++) this.tone(rand(1200, 2400), rand(1200, 2400), .06, 'square', .012, { delay: i * .09, wet: .6 }); }
     else if (m === 'dust') this.play('jet', far(), { g: .5, rate: .4 }); // a gust
   },
   ambientStop() { const a = this.amb; if (!a) return; this.amb = null; const t = this.ctx.currentTime; a.g.gain.setTargetAtTime(0, t, .3); for (const n of a.nodes) n.stop(t + 1.5); },

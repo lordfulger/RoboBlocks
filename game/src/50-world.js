@@ -15,7 +15,7 @@ function valueNoise(seed) {
 }
 function fbm(n, x, z, oct) { let a = 1, f = 1, s = 0, norm = 0; for (let o = 0; o < oct; o++) { s += n(x * f, z * f) * a; norm += a; a *= .5; f *= 2.03; } return s / norm; }
 function buildHeights(M) {
-  const R = 256, S = M.size, cell = S / R, half = S / 2, H = new Float32Array((R + 1) * (R + 1));
+  const R = M.size > 1000 ? 320 : 256, S = M.size, cell = S / R, half = S / 2, H = new Float32Array((R + 1) * (R + 1));
   const n = valueNoise(M.seed), n2 = valueNoise(M.seed + 7), n3 = valueNoise(M.seed + 13);
   const play = half - 50, spawnZ = half - 110;
   const flats = [[0, -spawnZ, 60, 115], [0, spawnZ, 60, 115], ...capturePoints(half).map(p => [p.x, p.z, 20, 42])], craters = mapCraters(M);
@@ -85,8 +85,11 @@ function skyMaterial(M, sunDir) {
       }`,
   });
 }
-function setupArena(mapId, tod = 'day') {
-  const M = todMap(MAPS[mapId], tod);
+// size: 'small' | 'medium' | 'large' scales the arena; obstacle and decoration counts follow the area
+function setupArena(mapId, tod = 'day', size = 'medium') {
+  const M = todMap(MAPS[mapId], tod), sk = (MAP_SIZES[size] || MAP_SIZES.medium).k, area = sk * sk;
+  M.size = Math.round(M.size * sk / 4) * 4; M.area = area; M.mesas = Math.round(M.mesas * area); M.rocks = Math.round(M.rocks * area);
+  M.fogNear *= Math.sqrt(sk); M.fogFar *= Math.sqrt(sk); world.mapSize = MAP_SIZES[size] ? size : 'medium'; world.grade = gradeFor(mapId, tod);
   if (world.scene) clearMirrors(world.scene);
   world.tod = tod; GRAV = M.grav != null ? M.grav : 22; world.space = !!M.space; world.spheres = null; world.buildings = null; world.pads = null; world.planet = null;
   if (world.scene) { world.scene.traverse(o => { if (o.userData.own) { o.geometry.dispose(); } }); if (world.scene.environment) world.scene.environment.dispose(); }
@@ -146,7 +149,7 @@ function setupArena(mapId, tod = 'day') {
   const free = (x, z, r) => world.rocks.every(o => Math.hypot(o.x - x, o.z - z) > o.cr + r + 4);
   const rockMat = M.rockCol.map(c => new T.MeshStandardMaterial({ color: c, roughness: .92, flatShading: true }));
   const groundMin = (x, z, r) => Math.min(bedH(x - r * .6, z), bedH(x + r * .6, z), bedH(x, z - r * .6), bedH(x, z + r * .6), bedH(x, z));
-  for (let i = 0, tries = 0; i < M.mesas && tries < 400; tries++) {
+  for (let i = 0, tries = 0; i < M.mesas && tries < 400 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * (B - 40), z = (rnd() * 2 - 1) * (B - 40), r = 9 + rnd() * 13, h = 9 + rnd() * 16;
     if (!clearOf(x, z, r) || wet(x, z) || !free(x, z, r)) continue; i++;
     const gy = groundMin(x, z, r);
@@ -162,7 +165,7 @@ function setupArena(mapId, tod = 'day') {
     }
   }
   const boulderGeo = jitterGeo(new T.IcosahedronGeometry(1, 1), .35, M.seed);
-  for (let i = 0, tries = 0; i < M.rocks && tries < 1500; tries++) {
+  for (let i = 0, tries = 0; i < M.rocks && tries < 1500 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * B, z = (rnd() * 2 - 1) * B, r = 2.5 + rnd() * 5, h = 2 + rnd() * 4.5;
     if (!clearOf(x, z, 0) || wet(x, z) || !free(x, z, r)) continue; i++;
     const gy = groundMin(x, z, r);
@@ -171,7 +174,7 @@ function setupArena(mapId, tod = 'day') {
   }
   // wrecked hulks: old bots half-buried in the ground
   const rust = new T.MeshStandardMaterial({ color: mapId === 'frost' ? 0x5a6066 : 0x6b4a36, roughness: .75, metalness: .5 });
-  for (let i = 0, tries = 0; i < (M.moon || M.space ? 0 : 12) && tries < 300; tries++) {
+  for (let i = 0, tries = 0; i < (M.moon || M.space ? 0 : Math.round(12 * M.area)) && tries < 300 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * (B - 30), z = (rnd() * 2 - 1) * (B - 60);
     if (!clearOf(x, z, 10) || wet(x, z) || !free(x, z, 7)) continue; i++;
     const g = new T.Group(), gy = bedH(x, z);
@@ -187,12 +190,12 @@ function setupArena(mapId, tod = 'day') {
   if (M.moon) buildMoon(s, M, rnd);
   // trees on Frostline
   if (mapId === 'frost') {
-    const N = 320, trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
+    const N = Math.round(320 * M.area), trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
     const lo = new T.InstancedMesh(new T.ConeGeometry(2.4, 5, 7), new T.MeshStandardMaterial({ color: 0x2d4a3a, roughness: .85 }), N);
     const hi = new T.InstancedMesh(new T.ConeGeometry(1.6, 3.6, 7), new T.MeshStandardMaterial({ color: 0xdfe9ee, roughness: .8 }), N);
     let n = 0; const m4 = new T.Matrix4(), q = new T.Quaternion(), sv = new T.Vector3();
     const tn = valueNoise(M.seed + 5);
-    for (let tries = 0; n < N && tries < 6000; tries++) {
+    for (let tries = 0; n < N && tries < 6000 * M.area; tries++) {
       const x = (rnd() * 2 - 1) * B, z = (rnd() * 2 - 1) * B;
       if (tn(x / 60, z / 60) < .1 || !clearOf(x, z, 0) || wet(x, z) || bedH(x, z) > 18) continue;
       if (rocksAt(x, z).some(o => Math.hypot(o.x - x, o.z - z) < o.cr + 2.5)) continue;
@@ -208,7 +211,7 @@ function setupArena(mapId, tod = 'day') {
   if (M.space) buildSpace(s, M, rnd);
   // ground scatter (no collision)
   if (!M.space) {
-    const N = 2200, kind = M.decor;
+    const N = Math.round(2200 * M.area), kind = M.decor;
     const pebbles = new T.InstancedMesh(new T.IcosahedronGeometry(.5, 0), new T.MeshStandardMaterial({ color: M.rockCol[0], roughness: .95, flatShading: true }), N);
     const extraGeo = kind === 'desert' ? new T.DodecahedronGeometry(.7, 0) : kind === 'pines' ? new T.SphereGeometry(1, 8, 5) : new T.TetrahedronGeometry(.6, 0);
     const extraMat = kind === 'desert' ? new T.MeshStandardMaterial({ color: 0x6b6a3a, roughness: .9, flatShading: true }) : kind === 'pines' ? new T.MeshStandardMaterial({ color: 0xf2f6f9, roughness: .85 }) : kind === 'rubble' ? new T.MeshStandardMaterial({ color: 0x8a857c, roughness: .9, flatShading: true }) : kind === 'moon' ? new T.MeshStandardMaterial({ color: 0x5c5c60, roughness: .95, flatShading: true }) : new T.MeshStandardMaterial({ color: 0x2a0c04, emissive: 0xff6a1a, emissiveIntensity: 2.4 });

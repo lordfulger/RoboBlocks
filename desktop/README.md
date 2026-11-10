@@ -26,7 +26,7 @@ Each player's settings and offline saves live in the app's data folder (`%APPDAT
 **A new launcher version** (only when this app's own code changes):
 
 1. Bump `version` in `package.json`.
-2. Build: `npm run dist:win`, `npm run dist:mac`, `npm run dist:linux`, or push a `v*` tag and let the GitHub workflow in `.github/workflows/build.yml` build all three.
+2. Build: `npm run dist:win`, `npm run dist:mac`, `npm run dist:linux`, or push a `v*` tag and let the repository's release workflow (`.github/workflows/release.yml`) build all three and attach them to the GitHub release.
 3. Copy the installers, their `.blockmap` files and the `latest.yml`, `latest-mac.yml` and `latest-linux.yml` files into the game server's `downloads/` folder (create it next to `server/` in the File Manager). The server rewrites the yml files with its own address, and lists the installers at `/download`.
 
 ## Building

@@ -25,7 +25,7 @@ function clearMirrors(scene) { for (let i = MIRRORS.length - 1; i >= 0; i--) { c
 const _mN = new T.Vector3(0, 1, 0), _mP = new T.Vector3(), _mC = new T.Vector3(), _mR = new T.Matrix4(), _mL = new T.Vector3(), _mV = new T.Vector3(), _mT = new T.Vector3(), _mPl = new T.Plane(), _mQ = new T.Vector4(), _mCl = new T.Vector4();
 function renderMirrors(scene, camera) {
   if (HEADLESS || !MIRRORS.length) return;
-  const on = settings.quality === 'high' && settings.reflections !== false;
+  const on = hiQ() && settings.reflections !== false;
   for (const m of MIRRORS) {
     let root = m.mesh; while (root.parent) root = root.parent; if (root !== scene) continue;
     if (m.uni) m.uni.reflOn.value = on ? 1 : 0; if (!on) continue;

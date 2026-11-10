@@ -165,6 +165,14 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .wslot.off{opacity:.35}
 #minimap{position:absolute;right:max(14px,env(safe-area-inset-right,0px));bottom:calc(14px + env(safe-area-inset-bottom,0px));width:180px;height:180px;border:1px solid var(--line);background:#0d1114cc}
 #centerMsg{position:absolute;left:50%;top:30%;transform:translateX(-50%);text-align:center;font-family:var(--display);font-weight:700;font-size:30px;text-shadow:0 2px 6px #000;white-space:nowrap}
+#loadoutBar{position:absolute;left:50%;bottom:118px;transform:translateX(-50%);display:flex;gap:8px;flex-wrap:wrap;justify-content:center;max-width:92vw;pointer-events:auto}
+#loadoutBar .lh{flex-basis:100%;text-align:center;font-family:var(--display);font-size:12px;letter-spacing:.16em;color:#cfd8de;text-shadow:0 1px 4px #000}
+#loadoutBar .lc{min-width:116px;padding:7px 10px 8px;background:rgba(12,16,20,.78);border:1px solid rgba(255,255,255,.14);border-radius:6px;cursor:pointer;display:grid;grid-template-columns:auto 1fr;column-gap:8px;align-items:center}
+#loadoutBar .lc i{grid-row:span 2;font-style:normal;font-family:var(--display);font-weight:700;font-size:20px;color:#7fdcff}
+#loadoutBar .lc b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+#loadoutBar .lc span{font-size:11px;color:#9aa6ae}
+#loadoutBar .lc.sel{border-color:#5fe8ff;box-shadow:0 0 0 1px #5fe8ff inset,0 0 18px rgba(95,232,255,.25)}
+#loadoutBar .lc.bad{opacity:.45;cursor:not-allowed}
 #centerMsg .kc{font-size:15px;letter-spacing:.14em;color:#ffd36a;margin-bottom:4px}
 #hud.killcam::before,#hud.killcam::after{content:'';position:absolute;left:0;right:0;height:9vh;background:#000c;pointer-events:none}
 #hud.killcam::before{top:0}#hud.killcam::after{bottom:0}
@@ -755,7 +763,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.7.0';
+const BC_VERSION = '2.8.0';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -764,6 +772,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.0', ['Loadouts: your garage bays are your loadout. Pick which bot to deploy, and while wrecked press 1–5 (LB/RB on a gamepad, or tap a card) to rebuild as a different bot. Works online.', 'Map sizes: Small, Medium and Large arenas, or Auto to match the team size. Obstacles, trees and craters scale with the map.', 'Three new space maps: Crimson Nebula (glowing gas and ice shards), Dry Dock (a half-built cruiser inside a scaffold) and Ring Belt (bands of rock with clear lanes). Choose one in Battle setup.', 'Painted nebula skies, ringed planets with glowing atmospheres, and work lights in space.', 'New Ultra graphics: full-resolution rendering, light shafts from the sun, film grain, and wider, sharper shadows.', 'Every map has its own colour grade on High and Ultra.', 'RoboBlocks is now on GitHub: servers install and update from the latest release.']],
   ['2.7.0', ['Weapon balance pass, tested with thousands of AI duels: every weapon now wins its fair share in its own range.', 'Splash damage is capped per blast (1.8 times its damage to one bot), so tightly packed bots no longer take ten times the damage from mortars and plasma.', 'Flak shells now burst right next to ground bots instead of short of them.', 'Arc Lance: each extra lance now adds damage. Gravity mines snap shut when they land near an enemy. Tesla blades are cheaper, tougher, hit harder and pull you onto nearby enemies.', 'Blaster, chain gun, plasma, rail and Rail Lancer toned down slightly; seeker, flak and mines buffed.']],
   ['2.6.0', ['New desktop app: RoboBlocks runs in its own window and updates itself from your server.', 'Far more detailed robots: armored turret mounts, cooling rings, ammo boxes, coil rails, tread links, rotor blades and bevelled armor blocks.', 'Barrels kick back when they fire.', 'Speeds show in mph (switch to km/h in Settings). Settings also has a Simple robot detail option for older computers.']],
   ['2.5.0', ['Tech Tree: earn tech points by levelling up (and every 2,000 XP past level 10) and from achievements, then spend them on a hex map of parts, armor tiers, materials and CPU Cores. Open it from the main menu or the garage.', 'Pilots who played before keep everything their level already gave them, for free, plus all their points.']],
@@ -816,7 +825,25 @@ const MAPS = {
     name: 'Orbital Wreckfield', blurb: 'Open space, an asteroid field and a wrecked station. Used by Space Battle.', size: 900, seed: 83, amp: 0, space: true, grav: 0,
     sky: [0x1a1030, 0x020208], fog: 0x0a0814, fogNear: 260, fogFar: 1100, sun: [.6, .35, -.5], sunCol: 0xfff4e8, sunI: 2.8,
     hemi: [0x7a88b0, 0x2a1830, .5], ground: [0x222222, 0x333333, 0x111111], pad: 0x333333,
-    mesas: 0, rocks: 0, rockCol: [0x6a625c, 0x544c48], decor: 'none', clouds: 0, dust: 0x8a8078, liquid: null,
+    mesas: 0, rocks: 0, rockCol: [0x6a625c, 0x544c48], decor: 'none', clouds: 0, dust: 0x8a8078, liquid: null, layout: 'wreck', nebula: [0x6a3cff, 0x2a8cff],
+  },
+  nebula: {
+    name: 'Crimson Nebula', blurb: 'Glowing gas clouds that hide you from far away, ice shards and a derelict relay.', size: 900, seed: 91, amp: 0, space: true, grav: 0,
+    sky: [0x3a0c22, 0x08020a], fog: 0x2a0a1c, fogNear: 140, fogFar: 620, sun: [-.5, .3, .55], sunCol: 0xffc0a8, sunI: 2.4,
+    hemi: [0xff8aa8, 0x2a0a30, .62], ground: [0x222222, 0x333333, 0x111111], pad: 0x333333,
+    mesas: 0, rocks: 0, rockCol: [0x8a6a78, 0x5a4458], decor: 'none', clouds: 0, dust: 0xc07a90, liquid: null, layout: 'nebula', nebula: [0xff3a6a, 0xff9a3c],
+  },
+  shipyard: {
+    name: 'Dry Dock', blurb: 'An orbital shipyard: girder scaffolds, a half-built cruiser and cargo containers to fight around.', size: 900, seed: 103, amp: 0, space: true, grav: 0,
+    sky: [0x0c1626, 0x010206], fog: 0x08101c, fogNear: 300, fogFar: 1200, sun: [.3, .55, .6], sunCol: 0xfff8ee, sunI: 3.0,
+    hemi: [0x9ab4d8, 0x1a2230, .55], ground: [0x222222, 0x333333, 0x111111], pad: 0x333333,
+    mesas: 0, rocks: 0, rockCol: [0x6a6e74, 0x50545a], decor: 'none', clouds: 0, dust: 0x8a9098, liquid: null, layout: 'shipyard', nebula: [0x2a6cff, 0x22d0c0],
+  },
+  rings: {
+    name: 'Ring Belt', blurb: 'Inside a gas giant\'s rings: bands of ice and rock with clear lanes between them.', size: 900, seed: 117, amp: 0, space: true, grav: 0,
+    sky: [0x1c1a10, 0x030302], fog: 0x14120a, fogNear: 240, fogFar: 1050, sun: [-.65, .25, -.4], sunCol: 0xffe6b8, sunI: 2.9,
+    hemi: [0xe0c890, 0x2a2218, .55], ground: [0x222222, 0x333333, 0x111111], pad: 0x333333,
+    mesas: 0, rocks: 0, rockCol: [0xb8ac98, 0x8a7e6c], decor: 'none', clouds: 0, dust: 0xc8b89a, liquid: null, layout: 'rings', nebula: [0xffb05a, 0x8a5aff],
   },
   moon: {
     name: 'Lunar Outpost', blurb: 'Low gravity, deep craters and jump pads. Everything flies farther here.', size: 900, seed: 67, amp: 4, moon: true, grav: 9,
@@ -826,9 +853,16 @@ const MAPS = {
   },
 };
 const MAP_ORDER = ['dust', 'frost', 'ash', 'city', 'moon'];
+// Space Battle has its own maps
+const SPACE_ORDER = ['space', 'nebula', 'shipyard', 'rings'];
+const pickMap = (list, r = Math.random) => list[r() * list.length | 0];
+// map sizes scale the whole arena; Auto picks by team size (5v5 small, 10v10 medium, 20v20 large)
+const MAP_SIZES = { small: { k: .72, name: 'Small', blurb: 'Tight and fast. Fights start in seconds.' }, medium: { k: 1, name: 'Medium', blurb: 'The standard arena.' }, large: { k: 1.4, name: 'Large', blurb: 'Room to flank, long sightlines.' } };
+const autoMapSize = n => n <= 5 ? 'small' : n >= 20 ? 'large' : 'medium';
+const mapSizeOf = (sz, n) => MAP_SIZES[sz] ? sz : autoMapSize(n || 10);
 // each match picks a time of day and weather (from the match seed, so every player sees the same)
-const MAP_TOD = { dust: ['day', 'dusk', 'dawn'], frost: ['day', 'dawn', 'dusk'], ash: ['day', 'night'], city: ['day', 'dusk', 'night'], moon: ['day'], space: ['day'] };
-const MAP_WX = { dust: 'sand', frost: 'snow', ash: 'ash', city: 'rain', moon: 'none', space: 'none' };
+const MAP_TOD = { dust: ['day', 'dusk', 'dawn'], frost: ['day', 'dawn', 'dusk'], ash: ['day', 'night'], city: ['day', 'dusk', 'night'], moon: ['day'], space: ['day'], nebula: ['day'], shipyard: ['day'], rings: ['day'] };
+const MAP_WX = { dust: 'sand', frost: 'snow', ash: 'ash', city: 'rain', moon: 'none', space: 'none', nebula: 'none', shipyard: 'none', rings: 'none' };
 
 let progress = Object.assign({ xp: 0, matches: 0, wins: 0, kills: 0 }, store.get('sfa.progress', {}));
 // HEADLESS: this copy runs inside the Node dedicated server (no screen, no audio); it hosts one official server.
@@ -1064,6 +1098,8 @@ let design = bays[bayIdx] || { name: 'Bay ' + (bayIdx + 1), v: 3, blocks: [] };
 if (!design.name || design.name === 'Bot') design.name = 'Bay ' + (bayIdx + 1);
 const saveBays = () => { bays[bayIdx] = design; store.set('sfa.bays', bays); store.set('sfa.bay', bayIdx); cloudDirty(); };
 let settings = Object.assign({ master: .8, music: .55, sfx: .9, quality: 'high', sens: 1, invertY: false }, store.get('sfa.settings', {}));
+// graphics presets: ultra (sharper shadows, full resolution, light shafts, film grain), high, low ('Fast')
+const hiQ = () => settings.quality === 'high' || settings.quality === 'ultra', ultraQ = () => settings.quality === 'ultra';
 // speeds are shown in mph unless the player picks km/h (game units are metres per second)
 // the desktop app (window.ROBOBLOCKS) names its server; a page served by a server uses that server
 const HOST = (typeof window !== 'undefined' && window.ROBOBLOCKS) || null;
@@ -1074,7 +1110,7 @@ const saveSettings = () => { store.set('sfa.settings', settings); cloudDirty(); 
 // ================= RENDERER =================
 const renderer = HEADLESS ? { setPixelRatio() { }, setSize() { }, getPixelRatio: () => 1, render() { }, setRenderTarget() { }, setClearColor() { }, clear() { }, dispose() { }, shadowMap: {}, domElement: document.createElement('canvas') }
   : new T.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-const pixelRatio = () => Math.min(devicePixelRatio, settings.quality === 'high' ? 1.5 : 1);
+const pixelRatio = () => Math.min(devicePixelRatio, ultraQ() ? 2 : hiQ() ? 1.5 : 1);
 renderer.setPixelRatio(pixelRatio());
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = true;
@@ -1083,13 +1119,15 @@ renderer.toneMapping = T.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 $('#view').appendChild(renderer.domElement);
 const canvas = renderer.domElement;
-const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 2000);
+const camera = new T.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 3000);
 addEventListener('resize', () => { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); post.resize(); });
 
+const _sunP = new T.Vector3(), _sunD = new T.Vector3();
+const GRADE_NONE = { sat: 1, con: 1, tS: [1, 1, 1], tH: [1, 1, 1] };
 // ---------- post-processing: HDR scene -> bright pass -> two-level blur -> bloom composite + vignette ----------
 const post = (() => {
   const mk = (samples) => new T.WebGLRenderTarget(1, 1, { type: T.HalfFloatType, samples: samples || 0, depthBuffer: !!samples });
-  const sceneRT = mk(4), half = [mk(), mk()], quarter = [mk(), mk()], aoRT = [mk(), mk()];
+  const sceneRT = mk(4), half = [mk(), mk()], quarter = [mk(), mk()], aoRT = [mk(), mk()], rayRT = [mk(), mk()];
   // the scene's depth, resolved from the multisampled buffer, feeds the ambient occlusion pass
   sceneRT.depthTexture = new T.DepthTexture(1, 1); sceneRT.depthTexture.type = T.UnsignedIntType;
   const cam = new T.OrthographicCamera(-1, 1, 1, -1, 0, 1), quad = new T.Mesh(new T.PlaneGeometry(2, 2)), sc = new T.Scene();
@@ -1125,13 +1163,36 @@ const post = (() => {
         occ *= fade;
         gl_FragColor = vec4(vec3(clamp(1.0 - occ / 12.0 * 1.3, 0.0, 1.0)), 1.0);
       }` });
-  const compMat = new T.ShaderMaterial({ ...base, uniforms: { tex: { value: null }, b1: { value: null }, b2: { value: null }, strength: { value: .55 }, vig: { value: .35 }, ao: { value: null }, aoK: { value: 0 } },
-    fragmentShader: 'uniform sampler2D tex; uniform sampler2D b1; uniform sampler2D b2; uniform sampler2D ao; uniform float aoK; uniform float strength; uniform float vig; varying vec2 vUv; void main(){ if (aoK > 1.5) { gl_FragColor = vec4(texture2D(ao, vUv).rrr, 1.0); return; } vec3 c = texture2D(tex, vUv).rgb * mix(1.0, texture2D(ao, vUv).r, aoK); c += (texture2D(b1, vUv).rgb * 0.6 + texture2D(b2, vUv).rgb * 0.9) * strength; float d = length(vUv - 0.5) * 1.35; c *= mix(1.0, smoothstep(1.15, 0.3, d), vig); gl_FragColor = vec4(c, 1.0);\n#include <tonemapping_fragment>\n#include <colorspace_fragment>\n}' });
+  // light shafts: bright sky around the sun, blurred outward from the sun's spot on screen
+  const rayMaskMat = new T.ShaderMaterial({ ...base, uniforms: { tex: { value: null }, dep: { value: null }, sun: { value: new T.Vector2() }, asp: { value: 1 } },
+    fragmentShader: 'uniform sampler2D tex; uniform sampler2D dep; uniform vec2 sun; uniform float asp; varying vec2 vUv; void main(){ float sky = step(0.99995, texture2D(dep, vUv).x); vec2 d = (vUv - sun) * vec2(asp, 1.0); float k = exp(-dot(d, d) * 7.0); vec3 c = min(texture2D(tex, vUv).rgb, vec3(3.0)); gl_FragColor = vec4(c * sky * k, 1.0); }' });
+  const rayBlurMat = new T.ShaderMaterial({ ...base, uniforms: { tex: { value: null }, sun: { value: new T.Vector2() }, len: { value: .6 } },
+    fragmentShader: 'uniform sampler2D tex; uniform vec2 sun; uniform float len; varying vec2 vUv; void main(){ vec2 st = (vUv - sun) * len / 32.0; vec2 uv = vUv; vec3 c = vec3(0.0); float w = 1.0, tw = 0.0; for (int i = 0; i < 32; i++) { c += texture2D(tex, uv).rgb * w; tw += w; w *= 0.955; uv -= st; } gl_FragColor = vec4(c / tw * 2.2, 1.0); }' });
+  // final composite: ambient occlusion, bloom, light shafts, colour grade (contrast, saturation, split toning), vignette, film grain
+  const compMat = new T.ShaderMaterial({ ...base, uniforms: { tex: { value: null }, b1: { value: null }, b2: { value: null }, strength: { value: .55 }, vig: { value: .35 }, ao: { value: null }, aoK: { value: 0 },
+      rays: { value: null }, raysK: { value: 0 }, raysCol: { value: new T.Color(1, 1, 1) }, sat: { value: 1 }, con: { value: 1 }, tS: { value: new T.Vector3(1, 1, 1) }, tH: { value: new T.Vector3(1, 1, 1) }, grain: { value: 0 }, time: { value: 0 } },
+    fragmentShader: `uniform sampler2D tex; uniform sampler2D b1; uniform sampler2D b2; uniform sampler2D ao; uniform sampler2D rays; uniform float aoK; uniform float strength; uniform float vig; uniform float raysK; uniform vec3 raysCol;
+      uniform float sat; uniform float con; uniform vec3 tS; uniform vec3 tH; uniform float grain; uniform float time; varying vec2 vUv;
+      void main(){
+        if (aoK > 1.5) { gl_FragColor = vec4(texture2D(ao, vUv).rrr, 1.0); return; }
+        vec3 c = texture2D(tex, vUv).rgb * mix(1.0, texture2D(ao, vUv).r, aoK);
+        c += (texture2D(b1, vUv).rgb * 0.6 + texture2D(b2, vUv).rgb * 0.9) * strength;
+        if (raysK > 0.0) c += texture2D(rays, vUv).rgb * raysCol * raysK;
+        float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+        c = mix(vec3(l), c, sat);
+        c *= mix(tS, tH, smoothstep(0.05, 0.9, l));
+        c = max(vec3(0.0), (c - 0.18) * con + 0.18);
+        float d = length(vUv - 0.5) * 1.35; c *= mix(1.0, smoothstep(1.15, 0.3, d), vig);
+        gl_FragColor = vec4(c, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+        if (grain > 0.0) { float n = fract(sin(dot(gl_FragCoord.xy + fract(time * 7.13) * 91.7, vec2(12.9898, 78.233))) * 43758.5453); gl_FragColor.rgb += (n - 0.5) * grain; }
+      }` });
   const pass = (mat, target) => { quad.material = mat; renderer.setRenderTarget(target); renderer.render(sc, cam); };
   let W = 1, H = 1;
   function resize() {
     W = Math.max(2, Math.floor(innerWidth * renderer.getPixelRatio())); H = Math.max(2, Math.floor(innerHeight * renderer.getPixelRatio()));
-    sceneRT.setSize(W, H); for (const t of half) t.setSize(W >> 1, H >> 1); for (const t of quarter) t.setSize(W >> 2, H >> 2); for (const t of aoRT) t.setSize(W >> 1, H >> 1);
+    sceneRT.setSize(W, H); for (const t of half) t.setSize(W >> 1, H >> 1); for (const t of quarter) t.setSize(W >> 2, H >> 2); for (const t of aoRT) t.setSize(W >> 1, H >> 1); for (const t of rayRT) t.setSize(W >> 2, H >> 2);
   }
   function blur(pair, w, h) {
     blurMat.uniforms.tex.value = pair[0].texture; blurMat.uniforms.dir.value.set(1 / w, 0); pass(blurMat, pair[1]);
@@ -1140,7 +1201,7 @@ const post = (() => {
   function render(scene, cam3, opts = {}) {
     if (HEADLESS) return;
     renderMirrors(scene, cam3);
-    if (settings.quality !== 'high') { renderer.setRenderTarget(null); renderer.render(scene, cam3); return; }
+    if (!hiQ()) { renderer.setRenderTarget(null); renderer.render(scene, cam3); return; }
     renderer.setRenderTarget(sceneRT); renderer.render(scene, cam3);
     brightMat.uniforms.tex.value = sceneRT.texture; brightMat.uniforms.th.value = opts.threshold || 1.0; pass(brightMat, half[0]);
     blur(half, W >> 1, H >> 1);
@@ -1151,6 +1212,23 @@ const post = (() => {
       aoMat.uniforms.dep.value = sceneRT.depthTexture; aoMat.uniforms.pInv.value.copy(cam3.projectionMatrixInverse); aoMat.uniforms.proj.value.copy(cam3.projectionMatrix);
       aoMat.uniforms.rad.value = opts.aoRadius || .7; aoMat.uniforms.px.value.set(2 / W, 2 / H); pass(aoMat, aoRT[0]); blur(aoRT, W >> 1, H >> 1); blur(aoRT, W >> 1, H >> 1);
     }
+    // light shafts (High and Ultra) when the sun is on screen or just off it
+    let raysK = 0;
+    if (opts.sun && opts.rays !== 0) {
+      _sunP.copy(cam3.position).addScaledVector(opts.sun, 900).project(cam3);
+      const sx = _sunP.x * .5 + .5, sy = _sunP.y * .5 + .5, facing = _sunP.z < 1 && cam3.getWorldDirection(_sunD).dot(opts.sun) > 0;
+      const edge = Math.max(Math.abs(_sunP.x), Math.abs(_sunP.y));
+      raysK = facing ? (opts.rays || .35) * (1 - smoothstep(1, 1.6, edge)) * (ultraQ() ? 1.25 : 1) : 0;
+      if (raysK > .01) {
+        rayMaskMat.uniforms.tex.value = sceneRT.texture; rayMaskMat.uniforms.dep.value = sceneRT.depthTexture; rayMaskMat.uniforms.sun.value.set(sx, sy); rayMaskMat.uniforms.asp.value = W / H; pass(rayMaskMat, rayRT[0]);
+        rayBlurMat.uniforms.sun.value.set(sx, sy);
+        rayBlurMat.uniforms.tex.value = rayRT[0].texture; rayBlurMat.uniforms.len.value = .7; pass(rayBlurMat, rayRT[1]);
+        rayBlurMat.uniforms.tex.value = rayRT[1].texture; rayBlurMat.uniforms.len.value = .25; pass(rayBlurMat, rayRT[0]);
+      } else raysK = 0;
+    }
+    post.raysK = raysK; compMat.uniforms.rays.value = rayRT[0].texture; compMat.uniforms.raysK.value = raysK; if (opts.sunCol) compMat.uniforms.raysCol.value.copy(opts.sunCol);
+    const gr = opts.grade || GRADE_NONE; compMat.uniforms.sat.value = gr.sat; compMat.uniforms.con.value = gr.con; compMat.uniforms.tS.value.set(...gr.tS); compMat.uniforms.tH.value.set(...gr.tH);
+    compMat.uniforms.grain.value = ultraQ() && opts.grain !== 0 ? (opts.grain || .028) : 0; compMat.uniforms.time.value = performance.now() / 1000;
     compMat.uniforms.ao.value = aoRT[0].texture; compMat.uniforms.aoK.value = useAo ? (window.__aoDebug ? 2 : opts.ao != null ? opts.ao : .85) : 0;
     compMat.uniforms.tex.value = sceneRT.texture; compMat.uniforms.b1.value = half[0].texture; compMat.uniforms.b2.value = quarter[0].texture;
     compMat.uniforms.strength.value = opts.bloom != null ? opts.bloom : .55; compMat.uniforms.vig.value = opts.vignette != null ? opts.vignette : .35;
@@ -1946,7 +2024,7 @@ function clearMirrors(scene) { for (let i = MIRRORS.length - 1; i >= 0; i--) { c
 const _mN = new T.Vector3(0, 1, 0), _mP = new T.Vector3(), _mC = new T.Vector3(), _mR = new T.Matrix4(), _mL = new T.Vector3(), _mV = new T.Vector3(), _mT = new T.Vector3(), _mPl = new T.Plane(), _mQ = new T.Vector4(), _mCl = new T.Vector4();
 function renderMirrors(scene, camera) {
   if (HEADLESS || !MIRRORS.length) return;
-  const on = settings.quality === 'high' && settings.reflections !== false;
+  const on = hiQ() && settings.reflections !== false;
   for (const m of MIRRORS) {
     let root = m.mesh; while (root.parent) root = root.parent; if (root !== scene) continue;
     if (m.uni) m.uni.reflOn.value = on ? 1 : 0; if (!on) continue;
@@ -2287,7 +2365,7 @@ const SFX = {
     else if (mapId === 'ash') { bed('lowpass', 140, 1, 1, .05, 50); hum(38, .25); bed('highpass', 3000, .5, .05); }
     else if (mapId === 'city') { bed('lowpass', 220, .8, .5, .04, 60); bed('bandpass', 700, 1, .15, .06, 300); hum(58, .06); }
     else if (mapId === 'moon') { hum(55, .12); hum(82.5, .05); bed('lowpass', 180, .7, .25); }
-    else if (mapId === 'space') { hum(41, .14); hum(61.7, .07); bed('bandpass', 2500, 2, .06, .2, 1200); }
+    else if (MAPS[mapId] && MAPS[mapId].space) { hum(41, .14); hum(61.7, .07); bed('bandpass', 2500, 2, .06, .2, 1200); }
     else bed('bandpass', 450, 1, .4, .06, 300);
     a.g.gain.setTargetAtTime(mapId === 'ash' ? .3 : .16, c.currentTime, 1.5);
   },
@@ -2298,7 +2376,7 @@ const SFX = {
     if (m === 'ash') { for (let i = 0; i < 3; i++) this.tone(rand(60, 120), 30, .25, 'sine', .08, { pos: far(), delay: i * rand(.05, .2) }); a.evT = 1 + Math.random() * 2; }
     else if (m === 'frost') this.tone(rand(180, 320), rand(90, 140), .5, 'triangle', .03, { pos: far() }); // ice creak
     else if (m === 'city') { if (Math.random() < .4) this.play('metal', far(), { g: .5, rate: .5 }); else this.tone(620, 780, 1.2, 'sine', .015, { pos: far() }); }
-    else if (m === 'moon' || m === 'space') { for (let i = 0; i < 3; i++) this.tone(rand(1200, 2400), rand(1200, 2400), .06, 'square', .012, { delay: i * .09, wet: .6 }); }
+    else if (m === 'moon' || (MAPS[m] && MAPS[m].space)) { for (let i = 0; i < 3; i++) this.tone(rand(1200, 2400), rand(1200, 2400), .06, 'square', .012, { delay: i * .09, wet: .6 }); }
     else if (m === 'dust') this.play('jet', far(), { g: .5, rate: .4 }); // a gust
   },
   ambientStop() { const a = this.amb; if (!a) return; this.amb = null; const t = this.ctx.currentTime; a.g.gain.setTargetAtTime(0, t, .3); for (const n of a.nodes) n.stop(t + 1.5); },
@@ -2992,7 +3070,7 @@ function buildHangar() {
   const r = mulberry32(77);
   for (let i = 0; i < 9; i++) { const a = r() * Math.PI * 2, d = 32 + r() * 9, k = 1.2 + r() * 1.6; const m = new T.Mesh(new T.BoxGeometry(k, k, k), r() < .3 ? hazard : crate); m.position.set(Math.sin(a) * d, -.5 + k / 2, Math.cos(a) * d); m.rotation.y = r() * 3; m.castShadow = m.receiveShadow = true; s.add(m); }
   for (const a of [.8, -2.2]) { const g = new T.Group(); g.position.set(Math.sin(a) * 40, -.5, Math.cos(a) * 40); g.rotation.y = a + Math.PI;
-    for (const y of [0, 2.2, 4.4]) { const sh = new T.Mesh(new T.BoxGeometry(8, .2, 2), steel); sh.position.y = y + .6; g.add(sh); for (let j = 0; j < 4; j++) { const b = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ color: COLORS[(j * 3 + y) % COLORS.length], roughness: .5, metalness: .3 })); b.position.set(-3 + j * 2, y + 1.2, 0); g.add(b); } }
+    for (const y of [0, 2.2, 4.4]) { const sh = new T.Mesh(new T.BoxGeometry(8, .2, 2), steel); sh.position.y = y + .6; g.add(sh); for (let j = 0; j < 4; j++) { const b = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({ color: COLORS[(j * 3 + Math.round(y * 2)) % COLORS.length], roughness: .5, metalness: .3 })); b.position.set(-3 + j * 2, y + 1.2, 0); g.add(b); } }
     for (const x of [-4, 4]) { const p = new T.Mesh(new T.BoxGeometry(.2, 6, .2), steel); p.position.set(x, 3, -.9); g.add(p); }
     s.add(g); }
   // build pad: a raised turntable with a glowing rim
@@ -3161,7 +3239,7 @@ function valueNoise(seed) {
 }
 function fbm(n, x, z, oct) { let a = 1, f = 1, s = 0, norm = 0; for (let o = 0; o < oct; o++) { s += n(x * f, z * f) * a; norm += a; a *= .5; f *= 2.03; } return s / norm; }
 function buildHeights(M) {
-  const R = 256, S = M.size, cell = S / R, half = S / 2, H = new Float32Array((R + 1) * (R + 1));
+  const R = M.size > 1000 ? 320 : 256, S = M.size, cell = S / R, half = S / 2, H = new Float32Array((R + 1) * (R + 1));
   const n = valueNoise(M.seed), n2 = valueNoise(M.seed + 7), n3 = valueNoise(M.seed + 13);
   const play = half - 50, spawnZ = half - 110;
   const flats = [[0, -spawnZ, 60, 115], [0, spawnZ, 60, 115], ...capturePoints(half).map(p => [p.x, p.z, 20, 42])], craters = mapCraters(M);
@@ -3231,8 +3309,11 @@ function skyMaterial(M, sunDir) {
       }`,
   });
 }
-function setupArena(mapId, tod = 'day') {
-  const M = todMap(MAPS[mapId], tod);
+// size: 'small' | 'medium' | 'large' scales the arena; obstacle and decoration counts follow the area
+function setupArena(mapId, tod = 'day', size = 'medium') {
+  const M = todMap(MAPS[mapId], tod), sk = (MAP_SIZES[size] || MAP_SIZES.medium).k, area = sk * sk;
+  M.size = Math.round(M.size * sk / 4) * 4; M.area = area; M.mesas = Math.round(M.mesas * area); M.rocks = Math.round(M.rocks * area);
+  M.fogNear *= Math.sqrt(sk); M.fogFar *= Math.sqrt(sk); world.mapSize = MAP_SIZES[size] ? size : 'medium'; world.grade = gradeFor(mapId, tod);
   if (world.scene) clearMirrors(world.scene);
   world.tod = tod; GRAV = M.grav != null ? M.grav : 22; world.space = !!M.space; world.spheres = null; world.buildings = null; world.pads = null; world.planet = null;
   if (world.scene) { world.scene.traverse(o => { if (o.userData.own) { o.geometry.dispose(); } }); if (world.scene.environment) world.scene.environment.dispose(); }
@@ -3292,7 +3373,7 @@ function setupArena(mapId, tod = 'day') {
   const free = (x, z, r) => world.rocks.every(o => Math.hypot(o.x - x, o.z - z) > o.cr + r + 4);
   const rockMat = M.rockCol.map(c => new T.MeshStandardMaterial({ color: c, roughness: .92, flatShading: true }));
   const groundMin = (x, z, r) => Math.min(bedH(x - r * .6, z), bedH(x + r * .6, z), bedH(x, z - r * .6), bedH(x, z + r * .6), bedH(x, z));
-  for (let i = 0, tries = 0; i < M.mesas && tries < 400; tries++) {
+  for (let i = 0, tries = 0; i < M.mesas && tries < 400 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * (B - 40), z = (rnd() * 2 - 1) * (B - 40), r = 9 + rnd() * 13, h = 9 + rnd() * 16;
     if (!clearOf(x, z, r) || wet(x, z) || !free(x, z, r)) continue; i++;
     const gy = groundMin(x, z, r);
@@ -3308,7 +3389,7 @@ function setupArena(mapId, tod = 'day') {
     }
   }
   const boulderGeo = jitterGeo(new T.IcosahedronGeometry(1, 1), .35, M.seed);
-  for (let i = 0, tries = 0; i < M.rocks && tries < 1500; tries++) {
+  for (let i = 0, tries = 0; i < M.rocks && tries < 1500 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * B, z = (rnd() * 2 - 1) * B, r = 2.5 + rnd() * 5, h = 2 + rnd() * 4.5;
     if (!clearOf(x, z, 0) || wet(x, z) || !free(x, z, r)) continue; i++;
     const gy = groundMin(x, z, r);
@@ -3317,7 +3398,7 @@ function setupArena(mapId, tod = 'day') {
   }
   // wrecked hulks: old bots half-buried in the ground
   const rust = new T.MeshStandardMaterial({ color: mapId === 'frost' ? 0x5a6066 : 0x6b4a36, roughness: .75, metalness: .5 });
-  for (let i = 0, tries = 0; i < (M.moon || M.space ? 0 : 12) && tries < 300; tries++) {
+  for (let i = 0, tries = 0; i < (M.moon || M.space ? 0 : Math.round(12 * M.area)) && tries < 300 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * (B - 30), z = (rnd() * 2 - 1) * (B - 60);
     if (!clearOf(x, z, 10) || wet(x, z) || !free(x, z, 7)) continue; i++;
     const g = new T.Group(), gy = bedH(x, z);
@@ -3333,12 +3414,12 @@ function setupArena(mapId, tod = 'day') {
   if (M.moon) buildMoon(s, M, rnd);
   // trees on Frostline
   if (mapId === 'frost') {
-    const N = 320, trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
+    const N = Math.round(320 * M.area), trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
     const lo = new T.InstancedMesh(new T.ConeGeometry(2.4, 5, 7), new T.MeshStandardMaterial({ color: 0x2d4a3a, roughness: .85 }), N);
     const hi = new T.InstancedMesh(new T.ConeGeometry(1.6, 3.6, 7), new T.MeshStandardMaterial({ color: 0xdfe9ee, roughness: .8 }), N);
     let n = 0; const m4 = new T.Matrix4(), q = new T.Quaternion(), sv = new T.Vector3();
     const tn = valueNoise(M.seed + 5);
-    for (let tries = 0; n < N && tries < 6000; tries++) {
+    for (let tries = 0; n < N && tries < 6000 * M.area; tries++) {
       const x = (rnd() * 2 - 1) * B, z = (rnd() * 2 - 1) * B;
       if (tn(x / 60, z / 60) < .1 || !clearOf(x, z, 0) || wet(x, z) || bedH(x, z) > 18) continue;
       if (rocksAt(x, z).some(o => Math.hypot(o.x - x, o.z - z) < o.cr + 2.5)) continue;
@@ -3354,7 +3435,7 @@ function setupArena(mapId, tod = 'day') {
   if (M.space) buildSpace(s, M, rnd);
   // ground scatter (no collision)
   if (!M.space) {
-    const N = 2200, kind = M.decor;
+    const N = Math.round(2200 * M.area), kind = M.decor;
     const pebbles = new T.InstancedMesh(new T.IcosahedronGeometry(.5, 0), new T.MeshStandardMaterial({ color: M.rockCol[0], roughness: .95, flatShading: true }), N);
     const extraGeo = kind === 'desert' ? new T.DodecahedronGeometry(.7, 0) : kind === 'pines' ? new T.SphereGeometry(1, 8, 5) : new T.TetrahedronGeometry(.6, 0);
     const extraMat = kind === 'desert' ? new T.MeshStandardMaterial({ color: 0x6b6a3a, roughness: .9, flatShading: true }) : kind === 'pines' ? new T.MeshStandardMaterial({ color: 0xf2f6f9, roughness: .85 }) : kind === 'rubble' ? new T.MeshStandardMaterial({ color: 0x8a857c, roughness: .9, flatShading: true }) : kind === 'moon' ? new T.MeshStandardMaterial({ color: 0x5c5c60, roughness: .95, flatShading: true }) : new T.MeshStandardMaterial({ color: 0x2a0c04, emissive: 0xff6a1a, emissiveIntensity: 2.4 });
@@ -3593,10 +3674,33 @@ function todMap(M, tod) {
   return out;
 }
 // ---------- heightfield extras ----------
+// colour grade per map (and a cooler, darker take at night): saturation, contrast, shadow tint, highlight tint
+const MAP_GRADE = {
+  dust: { sat: 1.08, con: 1.06, tS: [1.0, .96, .9], tH: [1.05, 1.0, .93] },
+  frost: { sat: .94, con: 1.05, tS: [.92, .98, 1.07], tH: [1.0, 1.0, 1.03] },
+  ash: { sat: 1.1, con: 1.1, tS: [.96, .9, .92], tH: [1.08, .98, .9] },
+  city: { sat: .9, con: 1.08, tS: [.95, .98, 1.03], tH: [1.03, 1.0, .96] },
+  moon: { sat: .82, con: 1.12, tS: [.96, .98, 1.04], tH: [1.0, 1.0, 1.0] },
+  space: { sat: 1.12, con: 1.06, tS: [.92, .94, 1.08], tH: [1.03, 1.0, .97] },
+  nebula: { sat: 1.18, con: 1.05, tS: [1.06, .9, 1.0], tH: [1.02, .98, .97] },
+  shipyard: { sat: 1.05, con: 1.08, tS: [.92, .97, 1.06], tH: [1.04, 1.01, .96] },
+  rings: { sat: 1.1, con: 1.06, tS: [.98, .95, .98], tH: [1.06, 1.0, .9] },
+};
+function gradeFor(mapId, tod) {
+  const g = MAP_GRADE[mapId] || GRADE_NONE, out = { sat: g.sat, con: g.con, tS: g.tS.slice(), tH: g.tH.slice() };
+  if (tod === 'night') { out.sat *= .85; out.tS = [out.tS[0] * .9, out.tS[1] * .96, out.tS[2] * 1.1]; }
+  else if (tod === 'dusk' || tod === 'dawn') { out.sat *= 1.06; out.tH = [out.tH[0] * 1.05, out.tH[1], out.tH[2] * .94]; }
+  return out;
+}
+// what the battle camera hands the post-processing: bloom, vignette, sun for light shafts, colour grade
+function battleLook() {
+  const night = world.tod === 'night', sunUp = world.sunDir && world.sunDir.y > .02;
+  return { bloom: .6, vignette: .3, sun: sunUp && !night ? world.sunDir : null, sunCol: world.sun ? world.sun.color : null, rays: world.space ? .5 : world.tod === 'dusk' || world.tod === 'dawn' ? .5 : .32, grade: hiQ() ? world.grade : null };
+}
 function mapCraters(M) {
   if (!M.moon) return null;
   const r = mulberry32(M.seed * 3), list = [], half = M.size / 2;
-  for (let i = 0; i < 46; i++) {
+  for (let i = 0; i < Math.round(46 * (M.area || 1)); i++) {
     const x = (r() * 2 - 1) * (half - 70), z = (r() * 2 - 1) * (half - 70), R = 10 + Math.pow(r(), 2) * 46;
     if (Math.abs(z) > half - 190 && Math.abs(x) < 90) continue; // keep the bases flat
     list.push([x, z, R, .25 + r() * .2]);
@@ -3768,56 +3872,203 @@ function drawMapExtras(g, mx, my, S) {
   if (world.buildings) { g.fillStyle = 'rgba(30,30,32,.75)'; for (const b of world.buildings) g.fillRect(mx(b.x + b.w / 2), my(b.z + b.d / 2), b.w * S, b.d * S); }
   if (world.pads) { g.strokeStyle = '#5df0ff'; g.lineWidth = 2; for (const p of world.pads) { g.beginPath(); g.arc(mx(p.x), my(p.z), 5, 0, 7); g.stroke(); } }
 }
-// ---------- Orbital Wreckfield (Space Battle) ----------
-// Asteroids and the wrecked station are spheres: bots, shots and beams collide with them in 3D.
-function buildSpace(s, M, rnd) {
-  world.spheres = [];
-  const B = world.bound, rock = new T.MeshStandardMaterial({ color: 0x6a625c, roughness: .95, flatShading: true }), rock2 = new T.MeshStandardMaterial({ color: 0x4f4844, roughness: .95, flatShading: true });
-  const geo = jitterGeo(new T.IcosahedronGeometry(1, 1), .28, M.seed);
-  const ims = [new T.InstancedMesh(geo, rock, 200), new T.InstancedMesh(geo, rock2, 200)], cnt = [0, 0];
-  const m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
-  const free = (x, y, z, r) => Math.abs(z) < world.spawnZ - 70 - r && world.spheres.every(o => Math.hypot(o.x - x, o.y - y, o.z - z) > o.r + r + 6);
-  for (let i = 0, tries = 0; i < 150 && tries < 3000; tries++) {
-    const r = 2.5 + Math.pow(rnd(), 2.2) * 18, x = (rnd() * 2 - 1) * (B - 20), z = (rnd() * 2 - 1) * (B - 20), y = -25 + rnd() * 180;
-    if (!free(x, y, z, r)) continue; i++;
-    const k = i % 2; q.setFromEuler(e.set(rnd() * 6, rnd() * 6, rnd() * 6));
-    m4.compose(v.set(x, y, z), q, sc.set(r, r * (.75 + rnd() * .4), r * (.8 + rnd() * .4))); ims[k].setMatrixAt(cnt[k]++, m4);
-    world.spheres.push({ x, y, z, r: r * .92 });
+// ---------- Space maps (Space Battle) ----------
+// Every obstacle out here is a sphere: bots, shots and beams collide with them in 3D. Four layouts share the helpers below.
+const spaceFree = (x, y, z, r) => Math.abs(z) < world.spawnZ - 70 - r && world.spheres.every(o => Math.hypot(o.x - x, o.y - y, o.z - z) > o.r + r + 6);
+// a field of instanced rocks; place() returns { x, y, z, r } or null
+function spaceRocks(s, M, rnd, n, place, cols, o = {}) {
+  const geo = jitterGeo(new T.IcosahedronGeometry(1, o.detail == null ? 1 : o.detail), o.jitter || .28, M.seed + (o.seed || 0));
+  const mats = cols.map(c => new T.MeshStandardMaterial({ color: c, roughness: o.rough == null ? .95 : o.rough, metalness: o.metal || 0, flatShading: true, emissive: o.emissive || 0, emissiveIntensity: o.ei || 0 }));
+  const per = Math.ceil(n / mats.length) + 1, ims = mats.map(m => new T.InstancedMesh(geo, m, per)), cnt = mats.map(() => 0);
+  const m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3(), st = o.stretch || [1, 1];
+  for (let i = 0, tries = 0; i < n && tries < n * 20; tries++) {
+    const p = place(); if (!p || !spaceFree(p.x, p.y, p.z, p.r)) continue;
+    const k = i % mats.length; i++; if (cnt[k] >= per) continue;
+    q.setFromEuler(e.set(rnd() * 6, rnd() * 6, rnd() * 6));
+    const sy = st[0] + rnd() * (st[1] - st[0]);
+    m4.compose(v.set(p.x, p.y, p.z), q, sc.set(p.r, p.r * sy, p.r * (.8 + rnd() * .4))); ims[k].setMatrixAt(cnt[k]++, m4);
+    world.spheres.push({ x: p.x, y: p.y, z: p.z, r: p.r * Math.min(1, sy) * .92 });
   }
   ims.forEach((im, k) => { im.count = cnt[k]; im.castShadow = im.receiveShadow = true; s.add(im); });
-  // the wrecked station: a broken ring around a hub, high in the middle of the field
-  const metal = new T.MeshStandardMaterial({ color: 0x8a929a, roughness: .45, metalness: .75 }), dark = new T.MeshStandardMaterial({ color: 0x2c3238, roughness: .6, metalness: .6 });
-  const glow = new T.MeshStandardMaterial({ color: 0x102030, emissive: 0x5fe8ff, emissiveIntensity: 2 });
-  const st = new T.Group(); st.position.set(0, 70, 0); st.rotation.set(.35, .4, .15); s.add(st);
-  const hub = new T.Mesh(new T.SphereGeometry(11, 24, 16), metal); st.add(hub);
-  const band = new T.Mesh(new T.TorusGeometry(11.2, 1, 8, 32).rotateX(HALF_PI), glow); st.add(band);
-  for (let i = 0; i < 4; i++) { const sp = new T.Mesh(new T.BoxGeometry(1.6, 1.6, 34), dark); sp.rotation.y = i * HALF_PI / 2 * 2; sp.position.set(0, 0, 0); st.add(sp); }
-  const ringR = 42, segs = 20;
-  for (let i = 0; i < segs; i++) {
-    if (i === 6 || i === 7 || i === 15) continue; // blown-out sections
-    const a = i / segs * Math.PI * 2, seg = new T.Mesh(new T.BoxGeometry(9, 5, 13.5), i % 3 ? metal : dark);
-    seg.position.set(Math.cos(a) * ringR, 0, Math.sin(a) * ringR); seg.rotation.y = -a; st.add(seg);
-    const win = new T.Mesh(new T.BoxGeometry(9.2, 1, 6), glow); win.position.copy(seg.position); win.rotation.y = -a; st.add(win);
-  }
-  st.traverse(o => { if (o.isMesh) { o.castShadow = o.receiveShadow = true; } });
-  st.updateMatrixWorld(true);
-  const wp = new T.Vector3(); world.spheres.push({ x: st.position.x, y: st.position.y, z: st.position.z, r: 11.5 });
-  for (let i = 0; i < segs * 2; i++) { const seg = Math.floor(i / 2); if (seg === 6 || seg === 7 || seg === 15) continue; const a = i / (segs * 2) * Math.PI * 2; wp.set(Math.cos(a) * ringR, 0, Math.sin(a) * ringR).applyMatrix4(st.matrixWorld); world.spheres.push({ x: wp.x, y: wp.y, z: wp.z, r: 4.2 }); }
-  world.station = st;
-  // launch gates where each team arrives
+}
+// collision spheres along a line from a to b
+function spaceChain(a, b, r, step = r * 1.4) { const L = a.distanceTo(b), n = Math.max(1, Math.round(L / step)); for (let i = 0; i <= n; i++) { const p = a.clone().lerp(b, i / n); world.spheres.push({ x: p.x, y: p.y, z: p.z, r }); } }
+function spaceGates(s) {
   for (const [team, sz] of [[0, -world.spawnZ], [1, world.spawnZ]]) {
     const col = team === 0 ? 0x4fb0ff : 0xff5444;
     const gate = new T.Mesh(new T.TorusGeometry(30, 1.2, 10, 48), new T.MeshStandardMaterial({ color: 0x111111, emissive: col, emissiveIntensity: 2.2 }));
     gate.position.set(0, 55, sz + (team === 0 ? -25 : 25)); s.add(gate);
+    // marker beacons that pulse along the gate
+    for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2, b = new T.Mesh(new T.SphereGeometry(1.1, 10, 8), new T.MeshBasicMaterial({ color: new T.Color(col).multiplyScalar(2.2) })); b.position.set(Math.cos(a) * 30, 55 + Math.sin(a) * 30, gate.position.z); s.add(b); }
   }
-  // a planet and a sun disk far away
-  if (!HEADLESS) {
-    const c = document.createElement('canvas'); c.width = 256; c.height = 128; const g = c.getContext('2d'), r = mulberry32(19);
-    const gr = g.createLinearGradient(0, 0, 0, 128); gr.addColorStop(0, '#c9874a'); gr.addColorStop(.5, '#e8b07a'); gr.addColorStop(1, '#9a5a32'); g.fillStyle = gr; g.fillRect(0, 0, 256, 128);
-    for (let i = 0; i < 26; i++) { g.fillStyle = `rgba(${120 + r() * 80 | 0},${70 + r() * 40 | 0},${40 + r() * 30 | 0},.5)`; g.fillRect(0, r() * 128, 256, 2 + r() * 8); }
-    const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
-    const planet = new T.Mesh(new T.SphereGeometry(140, 40, 24), new T.MeshBasicMaterial({ map: tex, fog: false })); planet.position.set(520, -160, -700); planet.rotation.z = .3; planet.renderOrder = -1; world.planet = planet; s.add(planet);
-    const rings = new T.Mesh(new T.RingGeometry(170, 250, 64), new T.MeshBasicMaterial({ color: 0xd8b48a, transparent: true, opacity: .35, side: T.DoubleSide, fog: false, depthWrite: false })); rings.position.copy(planet.position); rings.rotation.set(1.2, .2, .3); s.add(rings);
+}
+// a far planet: banded colours, optional rings
+function spacePlanet(s, o) {
+  if (HEADLESS) return;
+  const c = document.createElement('canvas'); c.width = 512; c.height = 256; const g = c.getContext('2d'), r = mulberry32(o.seed || 19);
+  const gr = g.createLinearGradient(0, 0, 0, 256); o.cols.forEach((col, i) => gr.addColorStop(i / (o.cols.length - 1), col)); g.fillStyle = gr; g.fillRect(0, 0, 512, 256);
+  for (let i = 0; i < 46; i++) { const k = r(); g.fillStyle = `rgba(${o.band[0] + k * 60 | 0},${o.band[1] + k * 40 | 0},${o.band[2] + k * 30 | 0},${.18 + r() * .35})`; const y = r() * 256, h = 2 + r() * 12; g.beginPath(); g.moveTo(0, y); for (let x = 0; x <= 512; x += 32) g.lineTo(x, y + Math.sin(x / 40 + i) * 2); g.lineTo(512, y + h); g.lineTo(0, y + h); g.fill(); }
+  if (o.storm) { g.fillStyle = 'rgba(255,240,220,.35)'; g.beginPath(); g.ellipse(180, 150, 30, 12, 0, 0, 7); g.fill(); }
+  const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
+  const planet = new T.Mesh(new T.SphereGeometry(o.r, 48, 32), new T.MeshStandardMaterial({ map: tex, roughness: 1, metalness: 0, fog: false, envMapIntensity: 0 }));
+  planet.position.set(...o.pos); planet.rotation.z = o.tilt || .3; planet.renderOrder = -1; world.planet = planet; s.add(planet);
+  // a thin glowing atmosphere
+  const atm = new T.Mesh(new T.SphereGeometry(o.r * 1.04, 48, 32), new T.ShaderMaterial({ transparent: true, depthWrite: false, fog: false, side: T.BackSide, blending: T.AdditiveBlending,
+    uniforms: { c: { value: new T.Color(o.atm || 0x88aaff) } },
+    vertexShader: 'varying vec3 vN; varying vec3 vV; void main(){ vN = normalize(normalMatrix * normal); vec4 mv = modelViewMatrix * vec4(position,1.0); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }',
+    fragmentShader: 'uniform vec3 c; varying vec3 vN; varying vec3 vV; void main(){ float f = pow(1.0 - abs(dot(vN, vV)), 3.0); gl_FragColor = vec4(c * f * 1.4, f); }' }));
+  atm.position.copy(planet.position); atm.renderOrder = -1; s.add(atm);
+  if (o.ring) {
+    const rc = document.createElement('canvas'); rc.width = 512; rc.height = 4; const rg = rc.getContext('2d');
+    for (let x = 0; x < 512; x++) { const a = (.25 + .75 * Math.abs(Math.sin(x * .07) * Math.sin(x * .013 + 1))) * (x < 30 || x > 490 ? 0 : 1) * (r() < .08 ? .2 : 1); rg.fillStyle = `rgba(${o.ring[0]},${o.ring[1]},${o.ring[2]},${a.toFixed(3)})`; rg.fillRect(x, 0, 1, 4); }
+    const rt = new T.CanvasTexture(rc); rt.colorSpace = T.SRGBColorSpace;
+    const inner = o.r * 1.25, outer = o.r * 2.1, rgeo = new T.RingGeometry(inner, outer, 128, 1), uv = rgeo.attributes.uv, p = rgeo.attributes.position, v3 = new T.Vector3();
+    for (let i = 0; i < p.count; i++) { v3.fromBufferAttribute(p, i); uv.setXY(i, (v3.length() - inner) / (outer - inner), .5); }
+    const rings = new T.Mesh(rgeo, new T.MeshBasicMaterial({ map: rt, transparent: true, side: T.DoubleSide, fog: false, depthWrite: false })); rings.position.copy(planet.position); rings.rotation.set(o.ringTilt || 1.2, .2, .1); rings.renderOrder = -1; s.add(rings);
+  }
+}
+// the nebula sky: painted gas clouds and stars, wrapped around the sky dome (so it follows the camera)
+function spaceSky(M) {
+  if (HEADLESS || !world.sky) return;
+  const W = 2048, H = 1024, c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), r = mulberry32(M.seed * 13 + 5);
+  g.fillStyle = '#000'; g.fillRect(0, 0, W, H); g.globalCompositeOperation = 'lighter';
+  const cols = (M.nebula || [0x6a3cff, 0x2a8cff]).map(h => new T.Color(h)), rgba = (cl, a) => `rgba(${cl.r * 255 | 0},${cl.g * 255 | 0},${cl.b * 255 | 0},${a})`;
+  // a band of gas across the sky, built from many soft blobs
+  const bandY = H * (.35 + r() * .3), tilt = (r() - .5) * .5;
+  for (let i = 0; i < 260; i++) {
+    const x = r() * W, y = bandY + (x - W / 2) * tilt + (r() - .5) * H * .32 * (r() < .3 ? 2 : 1), rad = 30 + Math.pow(r(), 2) * 220, cl = cols[r() * cols.length | 0].clone().lerp(new T.Color(1, 1, 1), r() * .15);
+    for (const dx of [0, -W, W]) { if (x + dx + rad < 0 || x + dx - rad > W) continue; const gr = g.createRadialGradient(x + dx, y, 0, x + dx, y, rad); gr.addColorStop(0, rgba(cl, .085)); gr.addColorStop(1, rgba(cl, 0)); g.fillStyle = gr; g.fillRect(x + dx - rad, y - rad, rad * 2, rad * 2); }
+  }
+  // dark dust lanes
+  g.globalCompositeOperation = 'source-over';
+  for (let i = 0; i < 70; i++) { const x = r() * W, y = bandY + (x - W / 2) * tilt + (r() - .5) * H * .12, rad = 20 + r() * 70, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, 'rgba(0,0,0,.35)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - rad, y - rad, rad * 2, rad * 2); }
+  // stars: many faint, a few bright with a soft halo; denser along the band
+  g.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 5200; i++) {
+    const inBand = r() < .45, x = r() * W, y = inBand ? bandY + (x - W / 2) * tilt + (r() - .5) * H * .25 : r() * H, b = Math.pow(r(), 3), t = r();
+    const col = t < .15 ? [180, 200, 255] : t < .25 ? [255, 220, 180] : [255, 255, 255];
+    g.fillStyle = `rgba(${col[0]},${col[1]},${col[2]},${(.25 + b * .75).toFixed(2)})`; const sz = b > .8 ? 2 : 1; g.fillRect(x, y, sz, sz);
+    if (b > .93) { const gr = g.createRadialGradient(x, y, 0, x, y, 7); gr.addColorStop(0, `rgba(${col[0]},${col[1]},${col[2]},.5)`); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(x - 7, y - 7, 14, 14); }
+  }
+  const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace; tex.anisotropy = 4;
+  const dome = new T.Mesh(new T.SphereGeometry(990, 64, 32), new T.MeshBasicMaterial({ map: tex, side: T.BackSide, blending: T.AdditiveBlending, depthWrite: false, fog: false }));
+  dome.renderOrder = -1; dome.rotation.y = r() * 6.28; world.sky.renderOrder = -2; world.sky.add(dome);
+}
+// soft glowing gas clouds you fly through (visual only)
+function spaceGas(s, M, rnd, n) {
+  if (HEADLESS) return;
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64); gr.addColorStop(0, 'rgba(255,255,255,.55)'); gr.addColorStop(.45, 'rgba(255,255,255,.18)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+  const tex = new T.CanvasTexture(c), B = world.bound, cols = M.nebula.map(h => new T.Color(h));
+  for (let i = 0; i < n; i++) {
+    const sp = new T.Sprite(new T.SpriteMaterial({ map: tex, color: cols[i % cols.length].clone().multiplyScalar(.9 + rnd() * .6), transparent: true, opacity: .1 + rnd() * .14, depthWrite: false, blending: T.AdditiveBlending, fog: true }));
+    sp.position.set((rnd() * 2 - 1) * B, -20 + rnd() * 200, (rnd() * 2 - 1) * B); sp.scale.setScalar(60 + rnd() * 160); sp.material.rotation = rnd() * 6.28; s.add(sp);
+  }
+}
+const spaceMetal = () => new T.MeshStandardMaterial({ color: 0x8a929a, roughness: .42, metalness: .78 }), spaceDark = () => new T.MeshStandardMaterial({ color: 0x2c3238, roughness: .6, metalness: .6 });
+const spaceGlow = (c = 0x5fe8ff, k = 2) => new T.MeshStandardMaterial({ color: 0x102030, emissive: c, emissiveIntensity: k });
+function buildSpace(s, M, rnd) {
+  world.spheres = [];
+  const B = world.bound, A = M.area || 1, L = M.layout || 'wreck';
+  spaceSky(M); spaceGates(s);
+  if (L === 'wreck') {
+    spaceRocks(s, M, rnd, Math.round(150 * A), () => ({ r: 2.5 + Math.pow(rnd(), 2.2) * 18, x: (rnd() * 2 - 1) * (B - 20), z: (rnd() * 2 - 1) * (B - 20), y: -25 + rnd() * 180 }), [0x6a625c, 0x4f4844]);
+    // the wrecked station: a broken ring around a hub, high in the middle of the field
+    const metal = spaceMetal(), dark = spaceDark(), glow = spaceGlow();
+    const st = new T.Group(); st.position.set(0, 70, 0); st.rotation.set(.35, .4, .15); s.add(st);
+    st.add(new T.Mesh(new T.SphereGeometry(11, 24, 16), metal));
+    st.add(new T.Mesh(new T.TorusGeometry(11.2, 1, 8, 32).rotateX(HALF_PI), glow));
+    for (let i = 0; i < 4; i++) { const sp = new T.Mesh(new T.BoxGeometry(1.6, 1.6, 34), dark); sp.rotation.y = i * HALF_PI; st.add(sp); }
+    const ringR = 42, segs = 20, gone = [6, 7, 15];
+    for (let i = 0; i < segs; i++) {
+      if (gone.includes(i)) continue; // blown-out sections
+      const a = i / segs * Math.PI * 2, seg = new T.Mesh(new T.BoxGeometry(9, 5, 13.5), i % 3 ? metal : dark);
+      seg.position.set(Math.cos(a) * ringR, 0, Math.sin(a) * ringR); seg.rotation.y = -a; st.add(seg);
+      const win = new T.Mesh(new T.BoxGeometry(9.2, 1, 6), glow); win.position.copy(seg.position); win.rotation.y = -a; st.add(win);
+    }
+    st.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); st.updateMatrixWorld(true);
+    world.spheres.push({ x: st.position.x, y: st.position.y, z: st.position.z, r: 11.5 });
+    const wp = new T.Vector3();
+    for (let i = 0; i < segs * 2; i++) { if (gone.includes(Math.floor(i / 2))) continue; const a = i / (segs * 2) * Math.PI * 2; wp.set(Math.cos(a) * ringR, 0, Math.sin(a) * ringR).applyMatrix4(st.matrixWorld); world.spheres.push({ x: wp.x, y: wp.y, z: wp.z, r: 4.6 }); }
+    world.station = st;
+    spacePlanet(s, { r: 140, pos: [520, -160, -700], cols: ['#c9874a', '#e8b07a', '#9a5a32'], band: [120, 70, 40], ring: [216, 180, 138], atm: 0xffb07a, seed: 19 });
+  } else if (L === 'nebula') {
+    // ice shards: long glassy crystals that glint in the nebula light
+    spaceRocks(s, M, rnd, Math.round(90 * A), () => ({ r: 2 + Math.pow(rnd(), 2) * 10, x: (rnd() * 2 - 1) * (B - 20), z: (rnd() * 2 - 1) * (B - 20), y: -20 + rnd() * 190 }), [0xb8d8ff, 0xd8a8ff], { detail: 0, jitter: .2, rough: .15, metal: .3, emissive: 0x401838, ei: .6, stretch: [1.6, 2.6], seed: 4 });
+    spaceRocks(s, M, rnd, Math.round(50 * A), () => ({ r: 4 + Math.pow(rnd(), 2) * 14, x: (rnd() * 2 - 1) * (B - 20), z: (rnd() * 2 - 1) * (B - 20), y: -20 + rnd() * 190 }), [0x4a3640, 0x3a2a34]);
+    spaceGas(s, M, rnd, Math.round(46 * A));
+    // a derelict relay mast in the middle, dishes hanging off it at three levels
+    const metal = spaceMetal(), dark = spaceDark(), glow = spaceGlow(0xff4a7a, 2.4), relay = new T.Group(); relay.position.set(0, 0, 0); relay.rotation.z = .12; s.add(relay);
+    const mast = new T.Mesh(new T.CylinderGeometry(3.2, 4.2, 170, 12), dark); mast.position.y = 75; relay.add(mast);
+    for (const [y, rr] of [[30, 16], [80, 22], [130, 13]]) {
+      const ring = new T.Mesh(new T.TorusGeometry(rr, 1.4, 8, 36).rotateX(HALF_PI), metal); ring.position.y = y; relay.add(ring);
+      const lit = new T.Mesh(new T.TorusGeometry(rr, .5, 6, 36).rotateX(HALF_PI), glow); lit.position.y = y + 1.2; relay.add(lit);
+      for (let i = 0; i < 3; i++) { const a = i / 3 * Math.PI * 2 + y, arm = new T.Mesh(new T.BoxGeometry(rr, 1.2, 1.2), dark); arm.position.set(Math.cos(a) * rr / 2, y, Math.sin(a) * rr / 2); arm.rotation.y = -a; relay.add(arm); }
+      const dish = new T.Mesh(new T.SphereGeometry(7, 18, 8, 0, Math.PI * 2, 0, 1.0), metal); dish.material = metal; dish.position.set(rr, y + 4, 0); dish.rotation.z = -1.1; relay.add(dish);
+    }
+    const tip = new T.Mesh(new T.SphereGeometry(2.4, 12, 8), new T.MeshBasicMaterial({ color: new T.Color(0xff4a7a).multiplyScalar(3) })); tip.position.y = 162; relay.add(tip);
+    relay.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); relay.updateMatrixWorld(true);
+    spaceChain(new T.Vector3(0, -10, 0).applyMatrix4(relay.matrixWorld), new T.Vector3(0, 160, 0).applyMatrix4(relay.matrixWorld), 5);
+    world.station = relay;
+    spacePlanet(s, { r: 90, pos: [-480, 140, -620], cols: ['#5a2a4a', '#a04a5a', '#3a1a2a'], band: [140, 60, 80], atm: 0xff6a8a, seed: 31, storm: true });
+  } else if (L === 'shipyard') {
+    const metal = spaceMetal(), dark = spaceDark(), hullM = new T.MeshStandardMaterial({ color: 0xb8bcc2, roughness: .5, metalness: .6 }), glow = spaceGlow(0xffb84a, 2.2), stripe = new T.MeshStandardMaterial({ color: 0xd8a020, roughness: .6, metalness: .3 });
+    // the half-built cruiser: finished bow, open rib cage amidships you can fly through, engines at the stern
+    const ship = new T.Group(); ship.position.set(0, 60, 0); ship.rotation.y = .18; s.add(ship);
+    const R = 15, bow = new T.Mesh(new T.CylinderGeometry(R, R, 70, 24).rotateZ(HALF_PI), hullM); bow.position.x = 50; ship.add(bow);
+    const nose = new T.Mesh(new T.ConeGeometry(R, 34, 24).rotateZ(-HALF_PI), hullM); nose.position.x = 102; ship.add(nose);
+    const bridge = new T.Mesh(new T.BoxGeometry(18, 8, 12), hullM); bridge.position.set(40, R + 3, 0); ship.add(bridge);
+    const bw = new T.Mesh(new T.BoxGeometry(18.2, 1.4, 12.2), glow); bw.position.set(40, R + 4, 0); ship.add(bw);
+    for (const x of [22, 78]) { const s2 = new T.Mesh(new T.CylinderGeometry(R + .2, R + .2, 3, 24).rotateZ(HALF_PI), stripe); s2.position.x = x; ship.add(s2); }
+    const spine = new T.Mesh(new T.BoxGeometry(80, 3, 3), dark); spine.position.set(-25, -R + 2, 0); ship.add(spine);
+    for (let i = 0; i < 7; i++) { const rib = new T.Mesh(new T.TorusGeometry(R, 1.1, 6, 28, Math.PI * 1.6).rotateY(HALF_PI), metal); rib.position.x = 8 - i * 11; rib.rotation.x = -Math.PI * .3 + (i % 2) * .2; ship.add(rib); }
+    const stern = new T.Mesh(new T.CylinderGeometry(R * 1.1, R * .9, 22, 24).rotateZ(HALF_PI), hullM); stern.position.x = -76; ship.add(stern);
+    for (const [y, z] of [[6, 6], [6, -6], [-6, 6], [-6, -6]]) { const eng = new T.Mesh(new T.CylinderGeometry(4.5, 5.5, 10, 16).rotateZ(HALF_PI), dark); eng.position.set(-91, y, z); ship.add(eng); const fl = new T.Mesh(new T.CircleGeometry(4, 16).rotateY(-HALF_PI), new T.MeshBasicMaterial({ color: new T.Color(0x6ab8ff).multiplyScalar(2.5) })); fl.position.set(-96.1, y, z); ship.add(fl); }
+    ship.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; }); ship.updateMatrixWorld(true);
+    const W = (x, y = 0, z = 0) => new T.Vector3(x, y, z).applyMatrix4(ship.matrixWorld);
+    spaceChain(W(18), W(98), R, 9); { const b = W(40, R + 3); world.spheres.push({ x: b.x, y: b.y, z: b.z, r: 8 }); }
+    spaceChain(W(-66), W(-92), R, 8); spaceChain(W(-65, -R + 2), W(15, -R + 2), 2.5, 4);
+    // scaffold: a girder frame around the ship (joints collide, the open bays do not)
+    const gm = new T.MeshStandardMaterial({ color: 0x6a6e74, roughness: .55, metalness: .7 }), X0 = -110, X1 = 120, Y0 = 60 - 34, Y1 = 60 + 34, Z = 34;
+    const beam = (a, b) => { const L = a.distanceTo(b), m = new T.Mesh(new T.BoxGeometry(1.8, 1.8, L), gm); m.position.copy(a).lerp(b, .5); m.lookAt(b); m.castShadow = true; s.add(m); };
+    const P = (x, y, z) => new T.Vector3(x, y, z).applyAxisAngle(new T.Vector3(0, 1, 0), .18);
+    for (let x = X0; x <= X1; x += 46) for (const z of [-Z, Z]) {
+      beam(P(x, Y0, z), P(x, Y1, z)); world.spheres.push(...[Y0, Y1].map(y => { const p = P(x, y, z); return { x: p.x, y: p.y, z: p.z, r: 2.6 }; }));
+      if (x + 46 <= X1) { beam(P(x, Y0, z), P(x + 46, Y0, z)); beam(P(x, Y1, z), P(x + 46, Y1, z)); beam(P(x, Y0, z), P(x + 46, Y1, z)); }
+    }
+    for (let x = X0; x <= X1; x += 46) beam(P(x, Y1, -Z), P(x, Y1, Z));
+    // work lights on the scaffold
+    for (let x = X0; x <= X1; x += 46) for (const z of [-Z, Z]) { const p = P(x, Y1 + 1.5, z), l = new T.Mesh(new T.BoxGeometry(2.4, 1.2, 2.4), new T.MeshBasicMaterial({ color: new T.Color(0xffd27a).multiplyScalar(2.6) })); l.position.copy(p); s.add(l); }
+    // cargo containers drifting in loose stacks
+    const cc = [0xb8452e, 0x2e6ab8, 0xd8a020, 0x3a8a4a, 0x8a8a8a].map(c => new T.MeshStandardMaterial({ color: c, roughness: .7, metalness: .35 }));
+    const cgeo = new T.BoxGeometry(6, 6, 14), q = new T.Quaternion(), e = new T.Euler(), dir = new T.Vector3();
+    for (let i = 0, tries = 0; i < Math.round(46 * A) && tries < 900 * A; tries++) {
+      const x = (rnd() * 2 - 1) * (B - 30), y = -10 + rnd() * 170, z = (rnd() * 2 - 1) * (B - 30); if (!spaceFree(x, y, z, 8)) continue;
+      const stack = 1 + (rnd() * 3 | 0); e.set(rnd() * .6, rnd() * 6.28, rnd() * .6); q.setFromEuler(e);
+      for (let k = 0; k < stack; k++) {
+        const off = new T.Vector3(0, k * 6.2, 0).applyQuaternion(q), m = new T.Mesh(cgeo, cc[rnd() * cc.length | 0]); m.position.set(x + off.x, y + off.y, z + off.z); m.quaternion.copy(q); m.castShadow = m.receiveShadow = true; s.add(m);
+        dir.set(0, 0, 4.2).applyQuaternion(q); world.spheres.push({ x: m.position.x + dir.x, y: m.position.y + dir.y, z: m.position.z + dir.z, r: 4.2 }, { x: m.position.x - dir.x, y: m.position.y - dir.y, z: m.position.z - dir.z, r: 4.2 });
+      }
+      i++;
+    }
+    spaceRocks(s, M, rnd, Math.round(40 * A), () => ({ r: 2 + Math.pow(rnd(), 2) * 8, x: (rnd() * 2 - 1) * (B - 20), z: (rnd() * 2 - 1) * (B - 20), y: -20 + rnd() * 190 }), [0x5a5e64, 0x45484c], { metal: .4, rough: .6, seed: 9 });
+    world.station = ship;
+    spacePlanet(s, { r: 260, pos: [0, -420, -760], cols: ['#2a6ab8', '#4a9ad8', '#e8f0f8', '#3a7a4a', '#1a4a8a'], band: [200, 220, 240], atm: 0x6ab8ff, seed: 7, tilt: .05 });
+  } else if (L === 'rings') {
+    // bands of ice and rock across the arena, tilted like the planet's rings, with clear lanes between them
+    const span = world.spawnZ - 90, bands = [-.62, -.2, .2, .62].map(f => f * span), bw = 26 + 12 * (A - 1);
+    spaceRocks(s, M, rnd, Math.round(240 * A), () => { const zc = bands[rnd() * bands.length | 0], x = (rnd() * 2 - 1) * (B - 15); return { r: 1.8 + Math.pow(rnd(), 2.6) * 13, x, z: zc + (rnd() - .5) * bw * 2, y: 65 + x * .1 + (rnd() - .5) * 46 }; }, [0xd8d0c4, 0xb8ac98, 0x8a7e6c], { seed: 3 });
+    spaceRocks(s, M, rnd, Math.round(60 * A), () => { const zc = bands[rnd() * bands.length | 0], x = (rnd() * 2 - 1) * (B - 15); return { r: 2 + rnd() * 6, x, z: zc + (rnd() - .5) * bw * 2, y: 65 + x * .1 + (rnd() - .5) * 46 }; }, [0xc8e8ff], { detail: 0, rough: .12, metal: .25, emissive: 0x182838, ei: .5, stretch: [1.2, 1.9], seed: 6 });
+    // a few huge moonlets anchor the lanes
+    spaceRocks(s, M, rnd, 4, () => ({ r: 22 + rnd() * 12, x: (rnd() * 2 - 1) * (B - 80), z: bands[rnd() * bands.length | 0], y: 40 + rnd() * 60 }), [0x7a6e5c], { seed: 12 });
+    // fine dust glinting in each band
+    if (!HEADLESS) {
+      const n = Math.round(2600 * A), pos = new Float32Array(n * 3);
+      for (let i = 0; i < n; i++) { const zc = bands[i % bands.length], x = (rnd() * 2 - 1) * B; pos[i * 3] = x; pos[i * 3 + 1] = 65 + x * .1 + (rnd() - .5) * 60; pos[i * 3 + 2] = zc + (rnd() - .5) * bw * 2.4; }
+      const pg = new T.BufferGeometry(); pg.setAttribute('position', new T.BufferAttribute(pos, 3));
+      s.add(new T.Points(pg, new T.PointsMaterial({ color: 0xffe8c8, size: .6, transparent: true, opacity: .7, depthWrite: false })));
+    }
+    spacePlanet(s, { r: 300, pos: [-1250, -120, 250], cols: ['#d8b878', '#b88a4a', '#e8d0a0', '#a87a3a'], band: [180, 130, 70], ring: [232, 214, 180], atm: 0xffd8a0, seed: 41, tilt: .1, ringTilt: HALF_PI - .1, storm: true });
   }
 }
 // ---------- sphere obstacles (space) ----------
@@ -3855,7 +4106,7 @@ function startWeather() {
   // weather thickens the air
   world.scene.fog.near = M.fogNear * (1 - .5 * k * (kind === 'sand' ? 1 : kind === 'none' ? 0 : .55)); world.scene.fog.far = M.fogFar * (1 - .45 * k * (kind === 'sand' ? 1 : kind === 'none' ? 0 : .5));
   if (kind === 'none' || k <= 0) return;
-  const N = Math.round((settings.quality === 'high' ? 3600 : 1600) * k), box = { x: 110, y: 55, z: 110 };
+  const N = Math.round((ultraQ() ? 5200 : hiQ() ? 3600 : 1600) * k), box = { x: 110, y: 55, z: 110 };
   const pos = new Float32Array(N * (kind === 'rain' ? 6 : 3)), vel = new Float32Array(N * 3), col = new Float32Array(N * (kind === 'rain' ? 6 : 3));
   const c1 = new T.Color(kind === 'sand' ? 0xd9b98c : kind === 'snow' ? 0xffffff : kind === 'ash' ? 0x5a5250 : 0xb8c6d4), c2 = new T.Color(kind === 'ash' ? 0xff7a2a : kind === 'sand' ? 0xbf9b72 : c1.getHex());
   for (let i = 0; i < N; i++) {
@@ -3965,7 +4216,7 @@ function updateGlow() {
 // ---------- grass tufts near the camera ----------
 function grassSetup(rnd) {
   FX.grass = [];
-  if (HEADLESS || !['dust', 'city'].includes(world.mapId) || settings.quality !== 'high') return;
+  if (HEADLESS || !['dust', 'city'].includes(world.mapId) || !hiQ()) return;
   const blade = new T.PlaneGeometry(.9, .8); blade.translate(0, .4, 0);
   const tuft = new T.BufferGeometry(), parts = [0, Math.PI / 3, -Math.PI / 3].map(a => blade.clone().rotateY(a));
   const merged = parts.reduce((acc, g) => { const p = g.attributes.position.array, uv = g.attributes.uv.array; acc.p.push(...p); acc.uv.push(...uv); return acc; }, { p: [], uv: [] });
@@ -5503,15 +5754,12 @@ async function showLobby() {
     <div id="lobbyList"></div>
     <div id="lobbyPilots"></div>
     <h3>HOST A CUSTOM GAME</h3>
-    ${optButtons('oMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), setupSel.mode)}
-    ${optButtons('oMap', MAP_ORDER.map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', 'Pick one for me.']]), setupSel.map)}
-    ${optButtons('oSize', [[5, '5 v 5', 'AI fills empty slots.'], [10, '10 v 10', 'AI fills empty slots.'], [20, '20 v 20', 'AI fills empty slots.']], setupSel.n)}
+    ${setupOptsHtml(true)}
     <div class="btns"><button class="primary" id="ovHost">Host custom game</button><button id="ovBack">Back</button></div>`, true);
   $('#callsign').value = NET.name;
   $('#callsign').addEventListener('keydown', e => e.stopPropagation());
   $('#callsign').addEventListener('change', () => { NET.name = cleanName($('#callsign').value) || NET.name; $('#callsign').value = NET.name; store.set('sfa.callsign', NET.name); lobbyPresence(); });
-  const wire = (id, key, num) => document.querySelectorAll(`#${id} .opt`).forEach(b => b.onclick = () => { setupSel[key] = num ? +b.dataset.k : b.dataset.k; document.querySelectorAll(`#${id} .opt`).forEach(x => x.classList.toggle('sel', x === b)); SFX.ui(); });
-  wire('oMode', 'mode'); wire('oMap', 'map'); wire('oSize', 'n', true);
+  wireSetupOpts();
   $('#ovHost').onclick = () => { if (!canDeploy()) return; store.set('sfa.setup', setupSel); joinGame('c' + Math.random().toString(36).slice(2, 7), null, { ...setupSel }); };
   $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
   renderLobbyList(); renderParty();
@@ -5596,17 +5844,26 @@ function ensureShards(k) {
     NET.room.join('g' + code + 'a' + i).then(r => { if (!NET.game || NET.game.code !== code) { r.leave().catch(() => { }); return; } NET.shards[i] = r; r.onPeers(ch => { NET.shardPeers[i] = ch.peers; }); }).catch(() => { NET.shards[i] = null; });
   }
 }
+// the host settles the map and its size before each match, so every client builds the same arena
+function resolveMap(mode, map) { return mode === 'space' ? (MAPS[map] && MAPS[map].space ? map : pickMap(SPACE_ORDER)) : (MAPS[map] && !MAPS[map].space ? map : pickMap(MAP_ORDER)); }
 function freshInfo() {
   const g = NET.game, sv = g.server, s = g.setup || setupSel;
-  const first = sv ? sv.rot[0] : [s.mode, s.map];
-  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: first[1] === 'random' ? MAP_ORDER[Math.random() * MAP_ORDER.length | 0] : first[1], n: sv ? sv.n : s.n, roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
+  const first = sv ? sv.rot[0] : [s.mode, s.mode === 'space' ? s.smap : s.map, s.size], n = sv ? sv.n : s.n;
+  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: resolveMap(first[0], first[1]), size: mapSizeOf(first[2], n), n, roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
 }
 function slowPresence(withDesign) {
   if (!NET.slow || !NET.game) return;
   const g = NET.game, patch = { name: NET.name, lv: level(), sr: HEADLESS ? null : mySR(), since: g.since, spec: g.spec ? 1 : 0, pg: NET.ping || null, pt: NET.party ? NET.party.id : null, bd: HEADLESS ? null : myBadge() || null, clan: HEADLESS ? null : myClan() };
-  if (withDesign) { patch.d = encodeDesign(gSerialize()); patch.dn = cleanName(design.name || ''); }
+  if (withDesign) { const d = presenceDesign(); patch.d = NET.sentD = encodeDesign(d); patch.dn = cleanName(d.name || ''); }
   patch.g = g.isHost ? g.info : null;
   NET.slow.presence(patch).catch(e => { if (e && e.code === 'invalid_argument') toast('Your bot is too large to send online. Remove some blocks.'); });
+}
+// loadouts: send just the design you will respawn with
+function slowPresenceDesign(d) { if (!NET.slow || !NET.game) return; const code = encodeDesign(d); if (code === NET.sentD) return; NET.sentD = code; NET.slow.presence({ d: code, dn: cleanName(d.name || '') }).catch(e => { if (e && e.code === 'invalid_argument') toast('That bot is too large to send online.'); }); }
+// a remote pilot picked another bay: rebuild them with the design in their presence (checked like any other)
+function netLoadout(b) {
+  const p = NET.slowPeers.find(x => x.peer === b.netId); if (!p || !p.presence || !p.presence.d || p.presence.d === b.dcode) return false;
+  b.dcode = p.presence.d; const rd = remoteDesign(p, b.team); if (!rd) return false; b.design = rd; return true;
 }
 const hostPeer = () => NET.slowPeers.find(p => p.presence && p.presence.g && !p.sameTab) || null;
 const senior = (a, b) => (a.presence.since || 9e15) - (b.presence.since || 9e15) || (a.peer < b.peer ? -1 : 1);
@@ -5701,7 +5958,7 @@ function serverTick() {
 }
 function launchMatch() {
   const g = NET.game, info = g.info;
-  if (g.server) { const [m, mp] = g.server.rot[info.rot % g.server.rot.length]; info.mode = m; info.map = mp; info.n = g.server.n; }
+  if (g.server) { const [m, mp, sz] = g.server.rot[info.rot % g.server.rot.length]; info.mode = m; info.map = resolveMap(m, mp); info.n = g.server.n; info.size = mapSizeOf(sz, info.n); }
   // rebalance: alternate pilots by seniority so teams stay even
   const pilots = NET.slowPeers.filter(p => p.presence && p.presence.since && !(HEADLESS && p.sameTab)).sort(senior).map(p => p.peer);
   if (!pilots.includes(NET.me) && !HEADLESS) pilots.unshift(NET.me);
@@ -5731,12 +5988,12 @@ function renderWaiting() {
   const info = g.info;
   if ($('#nextIn')) {
     $('#nextIn').textContent = !info ? 'Connecting to the server…' : info.phase === 'warmup' ? `Warmup: next match starts in ${Math.max(0, Math.ceil(info.cd))}s`
-      : info.phase === 'post' ? `Next match: ${(MODES[nextRot(g, info)[0]] || MODES.tdm).name} on ${(MAPS[nextRot(g, info)[1]] || MAPS.dust).name} in ${Math.max(0, Math.ceil(info.cd))}s`
+      : info.phase === 'post' ? `Next match: ${(MODES[nextRot(g, info)[0]] || MODES.tdm).name} on ${MAPS[nextRot(g, info)[1]] ? MAPS[nextRot(g, info)[1]].name : 'a random map'} in ${Math.max(0, Math.ceil(info.cd))}s`
       : info.phase === 'lobby' ? (g.isHost ? 'Start when everyone is in.' : 'Waiting for the host to start.') : 'Match in progress. Joining…';
   }
   if ($('#ovStart')) $('#ovStart').hidden = !(g.isHost && info && info.phase === 'lobby');
   if (!$('#wroster')) return;
-  $('#wsub').textContent = info ? `${(MODES[info.mode] || MODES.tdm).name} on ${(MAPS[info.map] || MAPS.dust).name}, ${info.n}v${info.n}.` : '';
+  $('#wsub').textContent = info ? `${(MODES[info.mode] || MODES.tdm).name} on ${(MAPS[info.map] || MAPS.dust).name} (${(MAP_SIZES[info.size] || MAP_SIZES.medium).name.toLowerCase()}), ${info.n}v${info.n}.` : '';
   const cols = [$('#wroster'), $('#wroster2')]; cols.forEach(c => c.innerHTML = '');
   for (const p of NET.slowPeers) {
     let t = info && info.roster ? info.roster[p.peer] : undefined; if (typeof t !== 'number') continue; if (t > 1) t = Object.keys(info.roster).indexOf(p.peer) % 2;
@@ -5758,7 +6015,7 @@ function startNetBattle() {
     humans.push({ id: p.peer, team: t, name: pilotTag(p.presence), design: rd });
   }
   if (!$('#overlay').hidden) hideOverlay();
-  startBattle({ mode: info.mode, map: info.map, n: info.n, net: { isHost: g.isHost, spectator: HEADLESS || g.spec, me: NET.me, myTeam: info.roster[NET.me] | 0, seed: info.seed, lv: info.lv, ai: info.ai, brawl: info.brawl, humans } });
+  startBattle({ mode: info.mode, map: info.map, size: info.size, n: info.n, net: { isHost: g.isHost, spectator: HEADLESS || g.spec, me: NET.me, myTeam: info.roster[NET.me] | 0, seed: info.seed, lv: info.lv, ai: info.ai, brawl: info.brawl, humans } });
   if (!match || !match.net) { g.inBattle = false; return; }
   ensureShards(Math.ceil((info.ai[0] + info.ai[1] + (info.mode === 'horde' ? HORDE.pool : 0)) / 13));
 }
@@ -5885,7 +6142,10 @@ function applyState(b, s, now) {
   if (s.length < 23) return;
   if (b.netSpawns !== spawns) { // a (re)spawn: rebuild the full bot where the owner put it
     if (!b.dead && b.group) { world.scene.remove(b.group); b.dead = true; }
+    if (b.human) netLoadout(b);
     b.netSpawns = spawns; b.spawn(_np.set(+s[4] || 0, +s[5] || 0, +s[6] || 0), +s[7] || 0); b.pos.set(+s[4] || 0, +s[5] || 0, +s[6] || 0);
+  } else if (b.human && !b.dead && b.spawnT < 2 && netLoadout(b)) { // their new design arrived just after they respawned
+    world.scene.remove(b.group); b.dead = true; const yaw = b.yaw; b.spawn(_np.set(+s[4] || 0, +s[5] || 0, +s[6] || 0), yaw); b.pos.set(+s[4] || 0, +s[5] || 0, +s[6] || 0);
   }
   if (b.dead) return;
   b.net = { x: +s[4], y: +s[5], z: +s[6], yaw: +s[7], pitch: +s[8], roll: +s[9], vx: +s[10], vy: +s[11], vz: +s[12], t: now };
@@ -6537,7 +6797,7 @@ let state = 'boot', paused = false, match = null, clock = 0;
 const keys = {}; let mouseDown = false;
 const cam = { yaw: 0, pitch: -.12, shake: 0, target: new T.Vector3(), deathT: 0, spect: null };
 const hudFx = { dmg: 0 };
-let setupSel = Object.assign({ mode: 'tdm', map: 'dust', n: 20 }, store.get('sfa.setup', {}));
+let setupSel = Object.assign({ mode: 'tdm', map: 'dust', smap: 'random', size: 'auto', n: 20 }, store.get('sfa.setup', {}));
 function spawnPoint(team) {
   if (world.space) { const bz = team === 0 ? -world.spawnZ : world.spawnZ; for (let i = 0; i < 30; i++) { const p = new T.Vector3(rand(-40, 40), rand(35, 75), bz + rand(-20, 20)); if (!sphereAt(p, 8) && world.bots.every(b => b.dead || b.pos.distanceTo(p) > 10)) return p; } return new T.Vector3(rand(-40, 40), 55, bz); }
   if (match && match.mode === 'pit') { // anywhere, away from everyone else
@@ -6578,9 +6838,11 @@ function enemyArch(rnd, lv) {
 function startBattle(opts) {
   const mode = opts.mode, net = opts.net || null;
   leaveGarageTools();
-  const v = net && net.spectator ? { ok: true } : validateDesign(); if (!v.ok) { toast(v.msg); return; }
-  let mapId = mode === 'space' ? 'space' : mode === 'test' ? (world.mapId === 'space' ? 'dust' : world.mapId || 'dust') : opts.map === 'random' || opts.map === 'space' ? MAP_ORDER[Math.random() * MAP_ORDER.length | 0] : opts.map || 'dust';
-  if (mode === 'space' && !(net && net.spectator) && !canFlyInSpace(computeStats(gSerialize().blocks))) {
+  const v = net && net.spectator ? { ok: true } : deployBay(mode) !== bayIdx ? { ok: true } : validateDesign(); if (!v.ok) { toast(v.msg); return; }
+  const isSpace = id => !!(MAPS[id] && MAPS[id].space);
+  let mapId = mode === 'space' ? (isSpace(opts.map) ? opts.map : isSpace(opts.smap) ? opts.smap : pickMap(SPACE_ORDER)) : mode === 'test' ? (!world.mapId || isSpace(world.mapId) ? 'dust' : world.mapId) : opts.map === 'random' || !MAPS[opts.map] || isSpace(opts.map) ? pickMap(MAP_ORDER) : opts.map;
+  const mapSz = mode === 'test' ? (world.mapSize || 'medium') : mapSizeOf(opts.size, mode === 'test' ? 1 : opts.n || 20);
+  if (mode === 'space' && !(net && net.spectator) && !canFlyInSpace(computeStats(deployDesign(mode).blocks))) {
     if (!net) { toast('Space Battle is for flying bots. Add thrusters, jump jets, rotors, propellers or hover pads.'); return; }
     net.spectator = true; toast('Your bot cannot fly, so you are watching this Space Battle. Add thrusters, jets, rotors, propellers or hover pads to join in.');
   }
@@ -6589,7 +6851,7 @@ function startBattle(opts) {
   let tod = mode === 'test' ? (world.tod || 'day') : tods[wr() * tods.length | 0], wxK = mode === 'test' ? (world.wxK == null ? .5 : world.wxK) : [0, .5, .5, 1][wr() * 4 | 0];
   if (opts.tod) tod = opts.tod; if (opts.wx != null) wxK = opts.wx;
   if (mode === 'brawl' && brawlById(net ? net.brawl : opts.brawl).tod) tod = brawlById(net ? net.brawl : opts.brawl).tod;
-  if (world.mapId !== mapId || world.tod !== tod) { setupArena(mapId, tod); if (!HEADLESS) applyQuality(); } else resetBuildings();
+  if (world.mapId !== mapId || world.tod !== tod || world.mapSize !== mapSz) { setupArena(mapId, tod, mapSz); if (!HEADLESS) applyQuality(); } else resetBuildings();
   world.wxK = wxK; startWeather();
   const lv = net ? net.lv : level(), aiLv = clamp(lv + 1 + (net ? 0 : aiSkillShift()), 1, 10), budget = cpuMax(lv), aiTier = maxTier(clamp(lv + (net ? 0 : Math.min(0, aiSkillShift())), 1, 10));
   GRAV = MAPS[mapId] && MAPS[mapId].grav != null ? MAPS[mapId].grav : 22;
@@ -6597,8 +6859,8 @@ function startBattle(opts) {
   const names = PILOTS.slice(); for (let i = names.length - 1; i > 0; i--) { const j = rnd() * (i + 1) | 0; [names[i], names[j]] = [names[j], names[i]]; }
   const N = mode === 'test' ? 1 : opts.n || 20;
   const limit = modeLimit(mode, N) || (mode === 'tdm' || mode === 'space' ? ({ 5: 20, 10: 50, 20: 100 }[N] || 20) : mode === 'arena' ? ({ 5: 800, 10: 1200, 20: 1500 }[N] || 1000) : mode === 'pit' ? ({ 5: 12, 10: 18, 20: 25 }[N] || 15) : 0);
-  match = { dmgScale: tierScale(level()), mode, mapId, n: N, score: [0, 0], limit, time: modeTime(mode) || (mode === 'elim' ? 7 : 10) * 60, aiLv, over: false, endT: 0, winner: null, player: null, tick: 0, net: !!net, isHost: !net || net.isHost, spectator: !!(net && net.spectator) };
-  const player = new Bot(gSerialize(), net ? net.myTeam : 0, 'You', { player: true, human: true, netId: net ? net.me : 'me' }); match.player = player;
+  match = { dmgScale: tierScale(level()), mode, mapId, mapSize: mapSz, n: N, score: [0, 0], limit, time: modeTime(mode) || (mode === 'elim' ? 7 : 10) * 60, aiLv, over: false, endT: 0, winner: null, player: null, tick: 0, net: !!net, isHost: !net || net.isHost, spectator: !!(net && net.spectator) };
+  const player = new Bot(deployDesign(mode), net ? net.myTeam : 0, 'You', { player: true, human: true, netId: net ? net.me : 'me' }); match.player = player; player.bay = deployBay(mode); LOADOUT.next = null; if (net && !net.spectator) { const d = player.design; setTimeout(() => slowPresenceDesign(d), 0); } // the bay this mode allows may differ from what we last sent (after setup: presence updates re-sync the roster)
   if (net && net.spectator) { player.build(); player.dead = true; player.respawnT = Infinity; } else world.bots.push(player);
   modeSetup(opts, net);
   if (mode !== 'test') {
@@ -6623,7 +6885,7 @@ function startBattle(opts) {
   for (const p of world.points) { p.owner = -1; p.prog = 0; p.group.visible = mode === 'arena' || p === match.hill; paintPoint(p); }
   resetReactors();
   player.input.weapon = WTYPES.find(t => player.guns[t].length) || 'blaster';
-  player.wg = botGroups(player, design); player.wgIdx = -1; player.input.group = null; if (player.wg.length) { player.wgIdx = 0; player.input.group = player.wg[0].types.slice(); player.input.groupMode = player.wg[0].mode; } updateControlsHint();
+  resetPlayerWeapons(player);
   cam.target.copy(player.center); cam.spect = null; clock = 0;
   state = 'battle';
   $('#garage').hidden = true; $('#menu').hidden = true; $('#hud').hidden = false;
@@ -6736,7 +6998,7 @@ function leaveBattle() {
   $('#hud').hidden = true; $('#lock').hidden = true;
 }
 function toGarage() {
-  leaveBattle(); state = 'garage';
+  leaveBattle(); state = 'garage'; LOADOUT.bay = null; // the bay open in the garage is what you deploy next
   $('#menu').hidden = true; $('#garage').hidden = false; hideOverlay(); syncTopH();
   garage.group.rotation.y = 0;
   buildPartsUI(); buildBaysUI(); buildFinishUI(); updateStats(); Music.play('garage'); techBadge();
@@ -6794,16 +7056,31 @@ function showPause() {
   $('#ovQuit').onclick = () => { if (match && match.net) toMenu(); else toGarage(); };
 }
 function optButtons(id, items, sel) { return `<div class="opts" id="${id}">${items.map(([k, name, blurb]) => `<button class="opt${k === sel ? ' sel' : ''}" data-k="${k}"><b>${name}</b><span>${blurb}</span></button>`).join('')}</div>`; }
+// shared by Battle setup and Host custom game: mode, map (space maps for Space Battle), map size, team size
+function mapOptsHtml() {
+  const sp = setupSel.mode === 'space', list = sp ? SPACE_ORDER : MAP_ORDER;
+  return optButtons('oMap', list.map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', sp ? 'Any space map.' : 'Pick one for me.']]), sp ? setupSel.smap : setupSel.map);
+}
+function setupOptsHtml(net) {
+  return `<h3>MODE</h3>${optButtons('oMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), setupSel.mode)}
+    <h3 id="oMapH">${setupSel.mode === 'space' ? 'SPACE MAP' : 'MAP'}</h3><div id="oMapBox">${mapOptsHtml()}</div>
+    <h3>MAP SIZE</h3>${optButtons('oMsz', [['auto', 'Auto', 'Matches the team size.'], ...Object.entries(MAP_SIZES).map(([k, z]) => [k, z.name, z.blurb])], setupSel.size || 'auto')}
+    <div id="oLoadBox">${loadoutOptsHtml(setupSel.mode)}</div>
+    <h3>TEAM SIZE</h3>${optButtons('oSize', net ? [[5, '5 v 5', 'AI fills empty slots.'], [10, '10 v 10', 'AI fills empty slots.'], [20, '20 v 20', 'AI fills empty slots.']] : [[5, '5 v 5', 'Quick skirmish.'], [10, '10 v 10', 'Mid-size brawl.'], [20, '20 v 20', 'Full-scale war.']], setupSel.n)}`;
+}
+function wireSetupOpts() {
+  const wire = (id, key, num, after) => document.querySelectorAll(`#${id} .opt`).forEach(b => b.onclick = () => { setupSel[key] = num ? +b.dataset.k : b.dataset.k; document.querySelectorAll(`#${id} .opt`).forEach(x => x.classList.toggle('sel', x === b)); SFX.ui(); if (after) after(); });
+  const maps = () => { $('#oMapBox').innerHTML = mapOptsHtml(); $('#oMapH').textContent = setupSel.mode === 'space' ? 'SPACE MAP' : 'MAP'; wire('oMap', setupSel.mode === 'space' ? 'smap' : 'map'); };
+  const loads = () => { $('#oLoadBox').innerHTML = loadoutOptsHtml(setupSel.mode); wireLoadoutOpts(); };
+  wire('oMode', 'mode', false, () => { maps(); loads(); }); maps(); loads(); wire('oMsz', 'size'); wire('oSize', 'n', true);
+}
 function showSetup() {
   const v = validateDesign(); if (!v.ok) { toast(v.msg); return; }
-  showOverlay(`<h2>Battle setup</h2><p>Deploying <b></b> from bay ${bayIdx + 1}.</p>
-    <h3>MODE</h3>${optButtons('oMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), setupSel.mode)}
-    <h3>MAP</h3>${optButtons('oMap', MAP_ORDER.map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', 'Pick one for me.']]), setupSel.map)}
-    <h3>TEAM SIZE</h3>${optButtons('oSize', [[5, '5 v 5', 'Quick skirmish.'], [10, '10 v 10', 'Mid-size brawl.'], [20, '20 v 20', 'Full-scale war.']], setupSel.n)}
+  showOverlay(`<h2>Battle setup</h2><p>Deploying <b></b>.</p>
+    ${setupOptsHtml(false)}
     <div class="btns"><button class="primary" id="ovDeploy">Deploy</button><button id="ovCancel">Cancel</button></div>`, true);
-  $('#ovBox p b').textContent = design.name || 'your bot';
-  const wire = (id, key, num) => document.querySelectorAll(`#${id} .opt`).forEach(b => b.onclick = () => { setupSel[key] = num ? +b.dataset.k : b.dataset.k; document.querySelectorAll(`#${id} .opt`).forEach(x => x.classList.toggle('sel', x === b)); SFX.ui(); });
-  wire('oMode', 'mode'); wire('oMap', 'map'); wire('oSize', 'n', true);
+  $('#ovBox p b').textContent = (bays[deployBay(setupSel.mode)] || design).name || 'your bot';
+  wireSetupOpts();
   $('#ovDeploy').onclick = () => { store.set('sfa.setup', setupSel); hideOverlay(); $('#loading') && 0; startBattle(setupSel); };
   $('#ovCancel').onclick = () => { hideOverlay(); if (state === 'menu') buildPilotCard(); };
 }
@@ -6814,7 +7091,7 @@ function showSettings(back) {
     <div class="srow"><label for="sMusic">Music</label><input type="range" id="sMusic" min="0" max="1" step=".05" value="${settings.music}"><span class="num">${pct(settings.music)}</span></div>
     <div class="srow"><label for="sSfx">Effects</label><input type="range" id="sSfx" min="0" max="1" step=".05" value="${settings.sfx}"><span class="num">${pct(settings.sfx)}</span></div>
     <div class="srow"><label for="sSens">Mouse speed</label><input type="range" id="sSens" min=".3" max="2.5" step=".05" value="${settings.sens}"><span class="num">${settings.sens.toFixed(2)}×</span></div>
-    <div class="srow"><span>Graphics</span><div class="seg" id="sQual"><button data-k="high" class="${settings.quality === 'high' ? 'sel' : ''}">High</button><button data-k="low" class="${settings.quality !== 'high' ? 'sel' : ''}">Fast</button></div><span></span></div>
+    <div class="srow"><span>Graphics</span><div class="seg" id="sQual"><button data-k="ultra" class="${settings.quality === 'ultra' ? 'sel' : ''}">Ultra</button><button data-k="high" class="${settings.quality === 'high' ? 'sel' : ''}">High</button><button data-k="low" class="${settings.quality !== 'high' ? 'sel' : ''}">Fast</button></div><span></span></div>
     <div class="srow"><span>Soft shadowing</span><div class="seg" id="sAo"><button data-k="1" class="${settings.ao === false ? '' : 'sel'}">On</button><button data-k="0" class="${settings.ao === false ? 'sel' : ''}">Off</button></div><span></span></div>
     <div class="srow"><span>Reflections</span><div class="seg" id="sRefl"><button data-k="1" class="${settings.reflections === false ? '' : 'sel'}">On</button><button data-k="0" class="${settings.reflections === false ? 'sel' : ''}">Off</button></div><span></span></div>
     <div class="srow"><span>Show chat</span><div class="seg" id="sChat"><button data-k="1" class="${CHAT.hidden ? '' : 'sel'}">On</button><button data-k="0" class="${CHAT.hidden ? 'sel' : ''}">Off</button></div><span></span></div>
@@ -6822,7 +7099,7 @@ function showSettings(back) {
     <div class="srow"><span>Speed units</span><div class="seg" id="sUnits"><button data-k="mph" class="${settings.units !== 'kmh' ? 'sel' : ''}">mph</button><button data-k="kmh" class="${settings.units === 'kmh' ? 'sel' : ''}">km/h</button></div><span></span></div>
     <div class="srow"><span>Keys and gamepad</span><button id="sKeys">Controls…</button><span></span></div>
     <div class="srow"><span>Invert mouse Y</span><div class="seg" id="sInv"><button data-k="0" class="${settings.invertY ? '' : 'sel'}">Off</button><button data-k="1" class="${settings.invertY ? 'sel' : ''}">On</button></div><span></span></div>
-    <p style="font-size:13px">High adds glow, soft shadowing, reflections and sharper shadows. Fast is smoother on older computers. Shadowing and reflections only apply on High. Press F3 in game to see your frame rate.</p>
+    <p style="font-size:13px">Ultra adds full-resolution rendering, light shafts, film grain and the sharpest, widest shadows. High adds glow, soft shadowing, reflections and sharper shadows. Fast is smoother on older computers. Shadowing and reflections only apply on High. Press F3 in game to see your frame rate.</p>
     <div class="btns"><button class="primary" id="ovDone">Done</button></div>`);
   const slide = (id, key, fmt) => { const el = $('#' + id); el.oninput = () => { settings[key] = +el.value; el.nextElementSibling.textContent = fmt(settings[key]); saveSettings(); SFX.apply(); }; };
   slide('sMaster', 'master', pct); slide('sMusic', 'music', pct); slide('sSfx', 'sfx', pct); slide('sSens', 'sens', v => v.toFixed(2) + '×');
@@ -6837,10 +7114,10 @@ function showSettings(back) {
 }
 function applyQuality() {
   renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight); post.resize();
-  renderer.shadowMap.type = settings.quality === 'high' ? T.PCFSoftShadowMap : T.PCFShadowMap; renderer.shadowMap.needsUpdate = true;
+  renderer.shadowMap.type = hiQ() ? T.PCFSoftShadowMap : T.PCFShadowMap; renderer.shadowMap.needsUpdate = true;
   // Fast: simpler far bots sooner, smaller shadow maps
-  LOD_D2 = settings.quality === 'high' ? 170 * 170 : 95 * 95;
-  if (world.sun) { const sz = settings.quality === 'high' ? 2048 : 1024; if (world.sun.shadow.mapSize.x !== sz) { world.sun.shadow.mapSize.set(sz, sz); if (world.sun.shadow.map) { world.sun.shadow.map.dispose(); world.sun.shadow.map = null; } } }
+  LOD_D2 = ultraQ() ? 250 * 250 : hiQ() ? 170 * 170 : 95 * 95;
+  if (world.sun) { const ext = ultraQ() ? 120 : 85; Object.assign(world.sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext }); world.sun.shadow.camera.updateProjectionMatrix(); const sz = ultraQ() ? 4096 : hiQ() ? 2048 : 1024; if (world.sun.shadow.mapSize.x !== sz) { world.sun.shadow.mapSize.set(sz, sz); if (world.sun.shadow.map) { world.sun.shadow.map.dispose(); world.sun.shadow.map = null; } } }
 }
 function showHelp() {
   showOverlay(`<h2>How to play</h2>
@@ -6936,6 +7213,7 @@ addEventListener('keydown', e => {
     if (!P || paused || match.over) return;
     if (e.code === KB('destruct') && !e.repeat && !P.dead) P.die();
     if ((e.code === KB('boost') || (KB('boost') === 'ShiftLeft' && e.code === 'ShiftRight')) && !e.repeat) P.input.dash = true;
+    if (P.dead && /^Digit[1-5]$/.test(e.code) && loadoutPick(+e.code.slice(5) - 1)) return;
     if (/^Digit[1-4]$/.test(e.code) && P.wg && P.wg[+e.code.slice(5) - 1]) { selectGroup(+e.code.slice(5) - 1); return; }
     const m = WKEYS[e.code]; if (m && P.guns[m] && P.guns[m].length) { P.input.weapon = m; P.input.group = null; P.wgIdx = -1; buildWeaponHud(); SFX.ui(); }
     const mk = modKeyOf(e.code); if (mk && !e.repeat && !P.dead && hasModule(P, mk)) P.input.mod = mk;
@@ -7066,7 +7344,7 @@ function updateBattle(dt) {
   if (match.mode === 'elim' && !match.over && match.isHost) { match.score = [aliveCount(0), aliveCount(1)]; }
   for (const b of world.bots) if (b.dead && !b.remote) {
     b.respawnT -= dt;
-    if (b.respawnT <= 0 && !match.over) { b.spawn(b.home ? b.home : spawnPoint(b.team), match.mode === 'pit' ? rand(0, 6.28) : b.team === 0 ? 0 : Math.PI); if (b.isPlayer) { P.input.weapon = WTYPES.find(t => P.guns[t].length) || 'blaster'; buildWeaponHud(); $('#fuelRow').hidden = !P.stats.jets; } }
+    if (b.respawnT <= 0 && !match.over) { if (b.isPlayer) applyLoadout(b); b.spawn(b.home ? b.home : spawnPoint(b.team), match.mode === 'pit' ? rand(0, 6.28) : b.team === 0 ? 0 : Math.PI); if (b.isPlayer) { resetPlayerWeapons(P); buildWeaponHud(); $('#fuelRow').hidden = !P.stats.jets; drawLoadoutBar(); } }
   }
   updateDebris(dt); updateParticles(dt); updateFlashes(dt); ambientFx(dt); fxUpdate(dt);
   if (world.sky) world.sky.material.uniforms.time.value = world.time;
@@ -7176,7 +7454,7 @@ function updateHud(dt) {
     $('#centerMsg').append(a, s);
   } else if (!P.dead && centerMsgT <= 0 && !match.over && $('#centerMsg').textContent) $('#centerMsg').textContent = '';
   hudT -= dt; if (hudT > 0) return; hudT = .08;
-  updateReactorHud();
+  drawLoadoutBar(); updateReactorHud();
   const k = P.dead ? 0 : clamp(P.hp / P.maxHp, 0, 1);
   $('#hpPct').textContent = Math.round(k * 100) + '%';
   $('#hpBar i').style.width = k * 100 + '%'; $('#hpBar').classList.toggle('low', k < .35);
@@ -7262,10 +7540,10 @@ function frame(now) {
   } else if (state === 'battle' && world.scene) {
     if (camera.view && camera.view.enabled) camera.clearViewOffset();
     if (!paused || (match && match.net)) updateBattle(dt); else SFX.engineUpdate(null, false);
-    post.render(world.scene, camera, { bloom: .6, vignette: .3 });
+    post.render(world.scene, camera, battleLook());
   } else if (state === 'replay' && world.scene && match) {
     if (camera.view && camera.view.enabled) camera.clearViewOffset();
-    updateReplay(dt); post.render(world.scene, camera, { bloom: .6, vignette: .3 });
+    updateReplay(dt); post.render(world.scene, camera, battleLook());
   }
 }
 
@@ -7361,7 +7639,7 @@ function recStart() {
   if (HEADLESS || !match || match.mode === 'test') { REC.on = false; return; }
   REC.on = true; REC.t = 0; REC.acc = 0; REC.frames = []; REC.shots = [];
   REC.bots = world.bots.map(b => ({ design: b.design, team: b.team, name: b.isPlayer ? 'You' : b.name, me: b.isPlayer }));
-  REC.meta = { map: world.mapId, tod: world.tod, wx: world.wxK, mode: match.mode, n: match.n };
+  REC.meta = { map: world.mapId, tod: world.tod, wx: world.wxK, mode: match.mode, n: match.n, size: world.mapSize };
 }
 function recTick(dt) {
   if (!REC.on || !match) return;
@@ -7375,7 +7653,7 @@ const RP = { on: false, t: 0, speed: 1, playing: true, bots: [], si: 0, follow: 
 function startReplay() {
   const R = LAST_REPLAY.data; if (!R) { toast('No replay yet. Finish a battle first.'); return; }
   hideOverlay(); leaveBattle(); clearBattle();
-  setupArena(R.meta.map, R.meta.tod); world.wxK = R.meta.wx; startWeather();
+  setupArena(R.meta.map, R.meta.tod, R.meta.size || "medium"); world.wxK = R.meta.wx; startWeather();
   match = { mode: R.meta.mode, mapId: R.meta.map, n: R.meta.n, score: [0, 0], limit: 0, time: 0, over: false, net: false, isHost: false, spectator: true, replay: true, dmgScale: 1, rx: [1, 1], rxMax: 1, player: null };
   RP.bots = R.bots.map((b, i) => { const bot = new Bot(b.design, b.team, b.name, { remote: true, netId: 'r' + i }); bot.build(); bot.dead = true; return bot; });
   match.player = new Bot(R.bots[0].design, 0, 'You', { player: true }); match.player.build(); match.player.dead = true; match.player.respawnT = Infinity;
@@ -7529,11 +7807,11 @@ function perfTick(dt) {
   const now = performance.now(), real = Math.min(1, (now - (PERF.last || now)) / 1000) || dt; PERF.last = now; PERF.fr.push(real); // real time: the game clamps dt on slow frames if (PERF.fr.length > 60) PERF.fr.shift();
   const avg = PERF.fr.reduce((s, v) => s + v, 0) / PERF.fr.length; PERF.ms = avg * 1000; PERF.fps = Math.round(1 / Math.max(.001, avg));
   // first battle on High: if it runs under ~28 fps for a while, switch to Fast once
-  if (state === 'battle' && settings.quality === 'high' && !store.get('sfa.autoQ', false) && !paused) {
+  if (state === 'battle' && hiQ() && !store.get('sfa.autoQ', false) && !paused) {
     PERF.autoT += real; if (PERF.autoT > 3) { PERF.autoN++; PERF.autoSum += real; }
     if (PERF.autoN >= 240 || PERF.autoSum >= 5) {
       store.set('sfa.autoQ', true);
-      if (PERF.autoSum / PERF.autoN > 1 / 28) { settings.quality = 'low'; saveSettings(); applyQuality(); toast('Graphics switched to Fast for smoother play. You can change this in Settings.'); }
+      if (PERF.autoSum / PERF.autoN > 1 / 28) { const was = settings.quality; settings.quality = was === 'ultra' ? 'high' : 'low'; saveSettings(); applyQuality(); toast(`Graphics switched to ${was === 'ultra' ? 'High' : 'Fast'} for smoother play. You can change this in Settings.`); if (was === 'ultra') { store.set('sfa.autoQ', false); PERF.autoN = PERF.autoSum = PERF.autoT = 0; } }
     }
   }
   if (!PERF.show) return;
@@ -7845,6 +8123,7 @@ function padTick(dt) {
     PAD.fire = B('fire'); PAD.up = B('up'); PAD.down = B('down');
     const s = 2.6 * settings.sens * (settings.padSens || 1); cam.yaw -= ax(am) * s * dt; cam.pitch = clamp(cam.pitch - ax(am + 1) * s * .7 * dt * (settings.invertY ? -1 : 1), -.75, .7);
     if (match.spectator) { if (H('up')) cam.spect = nextSpect(1); if (H('down')) cam.spect = nextSpect(-1); }
+    else if (P && P.dead && !match.over) { if (H('prev')) loadoutCycle(-1); if (H('next')) loadoutCycle(1); }
     else if (P && !P.dead && !match.over) {
       if (H('prev')) cycleWeapon(-1); if (H('next')) cycleWeapon(1);
       if (H('dash')) P.input.dash = true;
@@ -8489,6 +8768,90 @@ function techCard() {
 }
 Object.assign(window.__sfa, { TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
 Object.assign(window.__sfa, { SPLASH, mobility, Bot, WEAPONS, PARTS, TIERS, BAL, HEAT, TESLA, computeStats });
+// ---- 78-loadout.js ----
+// ================= LOADOUTS =================
+// Your garage bays are your loadout. Pick which bot you deploy with on the setup screen, and while you are
+// wrecked press 1–5 (or tap a card, or the gamepad's next/prev weapon buttons) to rebuild as a different bot.
+// Online, the new design goes out with your presence and other players rebuild you with it when you respawn.
+const LOADOUT = { bay: null, next: null, el: null, sig: '' };
+const bayUsable = d => !!(d && Array.isArray(d.blocks) && d.blocks.length);
+const bayCopy = (d, i) => { const c = JSON.parse(JSON.stringify(d)); migrateDesign(c); c.name = c.name || 'Bay ' + (i + 1); c.v = 3; c.f = c.f || 'standard'; return c; };
+// why a bay cannot be used in this battle ('' when it can)
+function loadoutIssue(d, mode) {
+  if (!bayUsable(d)) return 'empty';
+  const iss = designIssue(d, level(), true); if (iss) return iss;
+  const locked = d.blocks.find(b => PARTS[b.t] && partLocked(b.t)); if (locked) return PARTS[locked.t].name + ' is locked';
+  if (connectivity(d.blocks).length) return 'has loose blocks';
+  if (mode === 'space' && !canFlyInSpace(computeStats(d.blocks))) return 'cannot fly in space';
+  return '';
+}
+// the bays offered as a loadout: [{ i, d, why }]
+function loadoutList(mode) { return bays.map((d, i) => bayUsable(d) ? { i, d, why: loadoutIssue(d, mode) } : null).filter(Boolean); }
+// the bot you deploy with: the loadout pick if it is still usable, else the bay open in the garage
+function deployDesign(mode) {
+  if (mode === 'test') return gSerialize();
+  const i = LOADOUT.bay;
+  if (i != null && i !== bayIdx && bays[i] && !loadoutIssue(bays[i], mode)) return bayCopy(bays[i], i);
+  return gSerialize();
+}
+const deployBay = mode => { if (mode === 'test') return bayIdx; const i = LOADOUT.bay; return i != null && i !== bayIdx && bays[i] && !loadoutIssue(bays[i], mode) ? i : bayIdx; };
+// the design other players should see for you right now
+function presenceDesign() { const P = match && match.net && match.player; return P && !match.spectator && P.design ? P.design : deployDesign(NET.game && NET.game.info ? NET.game.info.mode : null); }
+// battle setup: the START WITH row
+function loadoutOptsHtml(mode) {
+  const list = loadoutList(mode); if (list.length < 2) return '';
+  const cur = deployBay(mode);
+  return `<h3>START WITH</h3><div class="opts" id="oLoad">${list.map(({ i, d, why }) => `<button class="opt${i === cur ? ' sel' : ''}" data-k="${i}"${why ? ' disabled' : ''}><b>${i + 1} · ${esc(cleanName(d.name || '') || 'Bay ' + (i + 1))}</b><span>${why ? esc(why) : `${d.blocks.length} blocks · ${Math.round(computeStats(d.blocks).cpu)} CPU`}</span></button>`).join('')}</div>`;
+}
+function wireLoadoutOpts() {
+  document.querySelectorAll('#oLoad .opt').forEach(b => b.onclick = () => { if (b.disabled) return; LOADOUT.bay = +b.dataset.k; document.querySelectorAll('#oLoad .opt').forEach(x => x.classList.toggle('sel', x === b)); SFX.ui(); const t = $('#ovBox p b'); if (t) t.textContent = bays[LOADOUT.bay].name || 'your bot'; });
+}
+// while wrecked: choose the bot for the next respawn
+function loadoutPick(i) {
+  const P = match && match.player; if (!P || !P.dead || match.over || match.spectator || match.mode === 'test') return false;
+  const d = bays[i]; if (!bayUsable(d)) return false;
+  const why = loadoutIssue(d, match.mode); if (why) { toast(`${cleanName(d.name || '') || 'Bay ' + (i + 1)}: ${why}.`); SFX.deny ? SFX.deny() : SFX.ui(); return true; }
+  LOADOUT.next = i; LOADOUT.bay = i; SFX.ui(); drawLoadoutBar(true);
+  if (match.net) { P.pendingDesign = bayCopy(d, i); slowPresenceDesign(P.pendingDesign); }
+  return true;
+}
+function loadoutCycle(dir) {
+  const list = loadoutList(match && match.mode).filter(x => !x.why); if (list.length < 2) return;
+  const P = match.player, cur = LOADOUT.next != null ? LOADOUT.next : P.bay != null ? P.bay : bayIdx;
+  const k = list.findIndex(x => x.i === cur), n = list[((k < 0 ? 0 : k) + dir + list.length) % list.length];
+  loadoutPick(n.i);
+}
+// on respawn: swap in the chosen design (returns true when the bot changed)
+function applyLoadout(P) {
+  const i = LOADOUT.next; LOADOUT.next = null;
+  if (i == null || i === P.bay || !bays[i] || loadoutIssue(bays[i], match.mode)) { P.pendingDesign = null; return false; }
+  P.design = P.pendingDesign || bayCopy(bays[i], i); P.pendingDesign = null; P.bay = i;
+  return true;
+}
+// after a (re)spawn: weapon groups and HUD follow the bot you are in now
+function resetPlayerWeapons(P) {
+  P.input.weapon = WTYPES.find(t => P.guns[t].length) || 'blaster';
+  P.wg = botGroups(P, P.design); P.wgIdx = -1; P.input.group = null;
+  if (P.wg.length) { P.wgIdx = 0; P.input.group = P.wg[0].types.slice(); P.input.groupMode = P.wg[0].mode; }
+  if (typeof updateControlsHint === 'function') updateControlsHint();
+}
+// the card row shown while wrecked
+function drawLoadoutBar(force) {
+  if (HEADLESS) return;
+  const P = match && match.player, show = !!(P && P.dead && !match.over && !match.spectator && match.mode !== 'test' && P.respawnT !== Infinity && state === 'battle');
+  if (!LOADOUT.el) {
+    const el = document.createElement('div'); el.id = 'loadoutBar'; el.hidden = true; $('#hud').appendChild(el); LOADOUT.el = el;
+    el.addEventListener('pointerdown', e => { const c = e.target.closest('[data-bay]'); if (c) { e.stopPropagation(); loadoutPick(+c.dataset.bay); } });
+  }
+  const el = LOADOUT.el; if (!show) { if (!el.hidden) el.hidden = true; LOADOUT.sig = ''; return; }
+  const list = loadoutList(match.mode); if (list.length < 2) { el.hidden = true; return; }
+  const cur = LOADOUT.next != null ? LOADOUT.next : P.bay != null ? P.bay : deployBay(match.mode), sig = cur + '|' + list.map(x => x.i + x.why).join(',');
+  el.hidden = false; if (!force && sig === LOADOUT.sig) return; LOADOUT.sig = sig;
+  el.innerHTML = `<div class="lh">REBUILD AS · press ${list.filter(x => !x.why).map(x => x.i + 1).join(' ')}${PAD.on ? ' or LB / RB' : ''}</div>` + list.map(({ i, d, why }) => `<div class="lc${i === cur ? ' sel' : ''}${why ? ' bad' : ''}" data-bay="${i}"><i>${i + 1}</i><b></b><span>${why ? esc(why) : Math.round(computeStats(d.blocks).cpu) + ' CPU'}</span></div>`).join('');
+  el.querySelectorAll('.lc b').forEach((b, k) => b.textContent = cleanName(list[k].d.name || '') || 'Bay ' + (list[k].i + 1));
+}
+Object.assign(window.__sfa, { LOADOUT, loadoutPick, loadoutList, deployDesign, deployBay, drawLoadoutBar, get bays() { return bays; } });
+Object.assign(window.__sfa, { post, cam });
 // ---- 99-end.js ----
 start();
 // end of RoboBlocks

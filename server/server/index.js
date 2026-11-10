@@ -27,14 +27,15 @@ const log = (...a) => { const line = new Date().toISOString().slice(11, 19) + ' 
 const DISCORD = (env.BC_DISCORD_WEBHOOK || '').trim();
 
 // ---------- config: servers.json (edit it in the panel's File Manager) ----------
-const MODES = ['tdm', 'arena', 'elim', 'pit', 'space', 'ctc', 'koth', 'horde', 'brawl'], MAPS = ['dust', 'frost', 'ash', 'city', 'moon', 'space'];
+const MODES = ['tdm', 'arena', 'elim', 'pit', 'space', 'ctc', 'koth', 'horde', 'brawl'], MAPS = ['dust', 'frost', 'ash', 'city', 'moon', 'space', 'nebula', 'shipyard', 'rings', 'random'], SIZES = ['auto', 'small', 'medium', 'large'];
 const DEFAULT_SERVERS = [
   { id: 'sv-scrap', name: 'Scrapyard 24/7', blurb: 'Team Deathmatch on every map.', n: 10, rot: [['tdm', 'dust'], ['tdm', 'frost'], ['tdm', 'ash']] },
   { id: 'sv-beacon', name: 'Beacon Wars', blurb: 'Battle Arena rotation.', n: 10, rot: [['arena', 'frost'], ['arena', 'dust'], ['arena', 'ash']] },
   { id: 'sv-last', name: 'Last Bot Standing', blurb: 'Fast 5v5 Elimination rounds.', n: 5, rot: [['elim', 'ash'], ['elim', 'dust'], ['elim', 'frost']] },
-  { id: 'sv-war', name: 'Total War', blurb: '20v20 mixed rotation.', n: 20, rot: [['tdm', 'dust'], ['arena', 'ash'], ['tdm', 'frost'], ['arena', 'dust'], ['elim', 'frost']] },
+  { id: 'sv-war', name: 'Total War', blurb: '20v20 mixed rotation on large maps.', n: 20, rot: [['tdm', 'dust', 'large'], ['arena', 'ash', 'large'], ['tdm', 'frost', 'large'], ['arena', 'dust', 'large'], ['elim', 'frost', 'large']] },
   { id: 'sv-objective', name: 'Objective Rush', blurb: 'Capture the Core and King of the Hill.', n: 10, rot: [['ctc', 'dust'], ['koth', 'city'], ['ctc', 'frost'], ['koth', 'ash']] },
   { id: 'sv-horde', name: 'Horde Co-op', blurb: 'Team up against ten waves of AI.', n: 5, rot: [['horde', 'dust'], ['horde', 'frost'], ['horde', 'ash']] },
+  { id: 'sv-orbit', name: 'Orbital Command', blurb: 'Space Battle across every space map.', n: 10, rot: [['space', 'space'], ['space', 'nebula'], ['space', 'shipyard'], ['space', 'rings']] },
   { id: 'sv-brawl', name: 'Weekly Brawl', blurb: 'This week\'s twist on team deathmatch.', n: 10, rot: [['brawl', 'dust'], ['brawl', 'city'], ['brawl', 'frost'], ['brawl', 'moon']] },
 ];
 function loadServers() {
@@ -47,7 +48,8 @@ function loadServers() {
   const clean = [];
   for (const s of Array.isArray(list) ? list : []) {
     const id = String(s.id || '').toLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 20);
-    const rot = (Array.isArray(s.rot) ? s.rot : []).filter(r => Array.isArray(r) && MODES.includes(r[0]) && MAPS.includes(r[1]));
+    // each rotation entry is [mode, map] or [mode, map, size]; size is auto (by team size), small, medium or large
+    const rot = (Array.isArray(s.rot) ? s.rot : []).filter(r => Array.isArray(r) && MODES.includes(r[0]) && MAPS.includes(r[1]) && (r[2] == null || SIZES.includes(r[2]))).map(r => r.slice(0, 3));
     const n = [5, 10, 20].includes(+s.n) ? +s.n : 10;
     if (!id || !rot.length) { log(`skipping server entry ${JSON.stringify(s).slice(0, 80)}: needs an id and a rotation of [mode, map] pairs`); continue; }
     const lv = v => Math.min(10, Math.max(1, parseInt(v, 10) || 1));

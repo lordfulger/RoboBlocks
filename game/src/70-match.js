@@ -3,7 +3,7 @@ let state = 'boot', paused = false, match = null, clock = 0;
 const keys = {}; let mouseDown = false;
 const cam = { yaw: 0, pitch: -.12, shake: 0, target: new T.Vector3(), deathT: 0, spect: null };
 const hudFx = { dmg: 0 };
-let setupSel = Object.assign({ mode: 'tdm', map: 'dust', n: 20 }, store.get('sfa.setup', {}));
+let setupSel = Object.assign({ mode: 'tdm', map: 'dust', smap: 'random', size: 'auto', n: 20 }, store.get('sfa.setup', {}));
 function spawnPoint(team) {
   if (world.space) { const bz = team === 0 ? -world.spawnZ : world.spawnZ; for (let i = 0; i < 30; i++) { const p = new T.Vector3(rand(-40, 40), rand(35, 75), bz + rand(-20, 20)); if (!sphereAt(p, 8) && world.bots.every(b => b.dead || b.pos.distanceTo(p) > 10)) return p; } return new T.Vector3(rand(-40, 40), 55, bz); }
   if (match && match.mode === 'pit') { // anywhere, away from everyone else
@@ -44,9 +44,11 @@ function enemyArch(rnd, lv) {
 function startBattle(opts) {
   const mode = opts.mode, net = opts.net || null;
   leaveGarageTools();
-  const v = net && net.spectator ? { ok: true } : validateDesign(); if (!v.ok) { toast(v.msg); return; }
-  let mapId = mode === 'space' ? 'space' : mode === 'test' ? (world.mapId === 'space' ? 'dust' : world.mapId || 'dust') : opts.map === 'random' || opts.map === 'space' ? MAP_ORDER[Math.random() * MAP_ORDER.length | 0] : opts.map || 'dust';
-  if (mode === 'space' && !(net && net.spectator) && !canFlyInSpace(computeStats(gSerialize().blocks))) {
+  const v = net && net.spectator ? { ok: true } : deployBay(mode) !== bayIdx ? { ok: true } : validateDesign(); if (!v.ok) { toast(v.msg); return; }
+  const isSpace = id => !!(MAPS[id] && MAPS[id].space);
+  let mapId = mode === 'space' ? (isSpace(opts.map) ? opts.map : isSpace(opts.smap) ? opts.smap : pickMap(SPACE_ORDER)) : mode === 'test' ? (!world.mapId || isSpace(world.mapId) ? 'dust' : world.mapId) : opts.map === 'random' || !MAPS[opts.map] || isSpace(opts.map) ? pickMap(MAP_ORDER) : opts.map;
+  const mapSz = mode === 'test' ? (world.mapSize || 'medium') : mapSizeOf(opts.size, mode === 'test' ? 1 : opts.n || 20);
+  if (mode === 'space' && !(net && net.spectator) && !canFlyInSpace(computeStats(deployDesign(mode).blocks))) {
     if (!net) { toast('Space Battle is for flying bots. Add thrusters, jump jets, rotors, propellers or hover pads.'); return; }
     net.spectator = true; toast('Your bot cannot fly, so you are watching this Space Battle. Add thrusters, jets, rotors, propellers or hover pads to join in.');
   }
@@ -55,7 +57,7 @@ function startBattle(opts) {
   let tod = mode === 'test' ? (world.tod || 'day') : tods[wr() * tods.length | 0], wxK = mode === 'test' ? (world.wxK == null ? .5 : world.wxK) : [0, .5, .5, 1][wr() * 4 | 0];
   if (opts.tod) tod = opts.tod; if (opts.wx != null) wxK = opts.wx;
   if (mode === 'brawl' && brawlById(net ? net.brawl : opts.brawl).tod) tod = brawlById(net ? net.brawl : opts.brawl).tod;
-  if (world.mapId !== mapId || world.tod !== tod) { setupArena(mapId, tod); if (!HEADLESS) applyQuality(); } else resetBuildings();
+  if (world.mapId !== mapId || world.tod !== tod || world.mapSize !== mapSz) { setupArena(mapId, tod, mapSz); if (!HEADLESS) applyQuality(); } else resetBuildings();
   world.wxK = wxK; startWeather();
   const lv = net ? net.lv : level(), aiLv = clamp(lv + 1 + (net ? 0 : aiSkillShift()), 1, 10), budget = cpuMax(lv), aiTier = maxTier(clamp(lv + (net ? 0 : Math.min(0, aiSkillShift())), 1, 10));
   GRAV = MAPS[mapId] && MAPS[mapId].grav != null ? MAPS[mapId].grav : 22;
@@ -63,8 +65,8 @@ function startBattle(opts) {
   const names = PILOTS.slice(); for (let i = names.length - 1; i > 0; i--) { const j = rnd() * (i + 1) | 0; [names[i], names[j]] = [names[j], names[i]]; }
   const N = mode === 'test' ? 1 : opts.n || 20;
   const limit = modeLimit(mode, N) || (mode === 'tdm' || mode === 'space' ? ({ 5: 20, 10: 50, 20: 100 }[N] || 20) : mode === 'arena' ? ({ 5: 800, 10: 1200, 20: 1500 }[N] || 1000) : mode === 'pit' ? ({ 5: 12, 10: 18, 20: 25 }[N] || 15) : 0);
-  match = { dmgScale: tierScale(level()), mode, mapId, n: N, score: [0, 0], limit, time: modeTime(mode) || (mode === 'elim' ? 7 : 10) * 60, aiLv, over: false, endT: 0, winner: null, player: null, tick: 0, net: !!net, isHost: !net || net.isHost, spectator: !!(net && net.spectator) };
-  const player = new Bot(gSerialize(), net ? net.myTeam : 0, 'You', { player: true, human: true, netId: net ? net.me : 'me' }); match.player = player;
+  match = { dmgScale: tierScale(level()), mode, mapId, mapSize: mapSz, n: N, score: [0, 0], limit, time: modeTime(mode) || (mode === 'elim' ? 7 : 10) * 60, aiLv, over: false, endT: 0, winner: null, player: null, tick: 0, net: !!net, isHost: !net || net.isHost, spectator: !!(net && net.spectator) };
+  const player = new Bot(deployDesign(mode), net ? net.myTeam : 0, 'You', { player: true, human: true, netId: net ? net.me : 'me' }); match.player = player; player.bay = deployBay(mode); LOADOUT.next = null; if (net && !net.spectator) { const d = player.design; setTimeout(() => slowPresenceDesign(d), 0); } // the bay this mode allows may differ from what we last sent (after setup: presence updates re-sync the roster)
   if (net && net.spectator) { player.build(); player.dead = true; player.respawnT = Infinity; } else world.bots.push(player);
   modeSetup(opts, net);
   if (mode !== 'test') {
@@ -89,7 +91,7 @@ function startBattle(opts) {
   for (const p of world.points) { p.owner = -1; p.prog = 0; p.group.visible = mode === 'arena' || p === match.hill; paintPoint(p); }
   resetReactors();
   player.input.weapon = WTYPES.find(t => player.guns[t].length) || 'blaster';
-  player.wg = botGroups(player, design); player.wgIdx = -1; player.input.group = null; if (player.wg.length) { player.wgIdx = 0; player.input.group = player.wg[0].types.slice(); player.input.groupMode = player.wg[0].mode; } updateControlsHint();
+  resetPlayerWeapons(player);
   cam.target.copy(player.center); cam.spect = null; clock = 0;
   state = 'battle';
   $('#garage').hidden = true; $('#menu').hidden = true; $('#hud').hidden = false;
@@ -202,7 +204,7 @@ function leaveBattle() {
   $('#hud').hidden = true; $('#lock').hidden = true;
 }
 function toGarage() {
-  leaveBattle(); state = 'garage';
+  leaveBattle(); state = 'garage'; LOADOUT.bay = null; // the bay open in the garage is what you deploy next
   $('#menu').hidden = true; $('#garage').hidden = false; hideOverlay(); syncTopH();
   garage.group.rotation.y = 0;
   buildPartsUI(); buildBaysUI(); buildFinishUI(); updateStats(); Music.play('garage'); techBadge();
@@ -260,16 +262,31 @@ function showPause() {
   $('#ovQuit').onclick = () => { if (match && match.net) toMenu(); else toGarage(); };
 }
 function optButtons(id, items, sel) { return `<div class="opts" id="${id}">${items.map(([k, name, blurb]) => `<button class="opt${k === sel ? ' sel' : ''}" data-k="${k}"><b>${name}</b><span>${blurb}</span></button>`).join('')}</div>`; }
+// shared by Battle setup and Host custom game: mode, map (space maps for Space Battle), map size, team size
+function mapOptsHtml() {
+  const sp = setupSel.mode === 'space', list = sp ? SPACE_ORDER : MAP_ORDER;
+  return optButtons('oMap', list.map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', sp ? 'Any space map.' : 'Pick one for me.']]), sp ? setupSel.smap : setupSel.map);
+}
+function setupOptsHtml(net) {
+  return `<h3>MODE</h3>${optButtons('oMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), setupSel.mode)}
+    <h3 id="oMapH">${setupSel.mode === 'space' ? 'SPACE MAP' : 'MAP'}</h3><div id="oMapBox">${mapOptsHtml()}</div>
+    <h3>MAP SIZE</h3>${optButtons('oMsz', [['auto', 'Auto', 'Matches the team size.'], ...Object.entries(MAP_SIZES).map(([k, z]) => [k, z.name, z.blurb])], setupSel.size || 'auto')}
+    <div id="oLoadBox">${loadoutOptsHtml(setupSel.mode)}</div>
+    <h3>TEAM SIZE</h3>${optButtons('oSize', net ? [[5, '5 v 5', 'AI fills empty slots.'], [10, '10 v 10', 'AI fills empty slots.'], [20, '20 v 20', 'AI fills empty slots.']] : [[5, '5 v 5', 'Quick skirmish.'], [10, '10 v 10', 'Mid-size brawl.'], [20, '20 v 20', 'Full-scale war.']], setupSel.n)}`;
+}
+function wireSetupOpts() {
+  const wire = (id, key, num, after) => document.querySelectorAll(`#${id} .opt`).forEach(b => b.onclick = () => { setupSel[key] = num ? +b.dataset.k : b.dataset.k; document.querySelectorAll(`#${id} .opt`).forEach(x => x.classList.toggle('sel', x === b)); SFX.ui(); if (after) after(); });
+  const maps = () => { $('#oMapBox').innerHTML = mapOptsHtml(); $('#oMapH').textContent = setupSel.mode === 'space' ? 'SPACE MAP' : 'MAP'; wire('oMap', setupSel.mode === 'space' ? 'smap' : 'map'); };
+  const loads = () => { $('#oLoadBox').innerHTML = loadoutOptsHtml(setupSel.mode); wireLoadoutOpts(); };
+  wire('oMode', 'mode', false, () => { maps(); loads(); }); maps(); loads(); wire('oMsz', 'size'); wire('oSize', 'n', true);
+}
 function showSetup() {
   const v = validateDesign(); if (!v.ok) { toast(v.msg); return; }
-  showOverlay(`<h2>Battle setup</h2><p>Deploying <b></b> from bay ${bayIdx + 1}.</p>
-    <h3>MODE</h3>${optButtons('oMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), setupSel.mode)}
-    <h3>MAP</h3>${optButtons('oMap', MAP_ORDER.map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', 'Pick one for me.']]), setupSel.map)}
-    <h3>TEAM SIZE</h3>${optButtons('oSize', [[5, '5 v 5', 'Quick skirmish.'], [10, '10 v 10', 'Mid-size brawl.'], [20, '20 v 20', 'Full-scale war.']], setupSel.n)}
+  showOverlay(`<h2>Battle setup</h2><p>Deploying <b></b>.</p>
+    ${setupOptsHtml(false)}
     <div class="btns"><button class="primary" id="ovDeploy">Deploy</button><button id="ovCancel">Cancel</button></div>`, true);
-  $('#ovBox p b').textContent = design.name || 'your bot';
-  const wire = (id, key, num) => document.querySelectorAll(`#${id} .opt`).forEach(b => b.onclick = () => { setupSel[key] = num ? +b.dataset.k : b.dataset.k; document.querySelectorAll(`#${id} .opt`).forEach(x => x.classList.toggle('sel', x === b)); SFX.ui(); });
-  wire('oMode', 'mode'); wire('oMap', 'map'); wire('oSize', 'n', true);
+  $('#ovBox p b').textContent = (bays[deployBay(setupSel.mode)] || design).name || 'your bot';
+  wireSetupOpts();
   $('#ovDeploy').onclick = () => { store.set('sfa.setup', setupSel); hideOverlay(); $('#loading') && 0; startBattle(setupSel); };
   $('#ovCancel').onclick = () => { hideOverlay(); if (state === 'menu') buildPilotCard(); };
 }
@@ -280,7 +297,7 @@ function showSettings(back) {
     <div class="srow"><label for="sMusic">Music</label><input type="range" id="sMusic" min="0" max="1" step=".05" value="${settings.music}"><span class="num">${pct(settings.music)}</span></div>
     <div class="srow"><label for="sSfx">Effects</label><input type="range" id="sSfx" min="0" max="1" step=".05" value="${settings.sfx}"><span class="num">${pct(settings.sfx)}</span></div>
     <div class="srow"><label for="sSens">Mouse speed</label><input type="range" id="sSens" min=".3" max="2.5" step=".05" value="${settings.sens}"><span class="num">${settings.sens.toFixed(2)}×</span></div>
-    <div class="srow"><span>Graphics</span><div class="seg" id="sQual"><button data-k="high" class="${settings.quality === 'high' ? 'sel' : ''}">High</button><button data-k="low" class="${settings.quality !== 'high' ? 'sel' : ''}">Fast</button></div><span></span></div>
+    <div class="srow"><span>Graphics</span><div class="seg" id="sQual"><button data-k="ultra" class="${settings.quality === 'ultra' ? 'sel' : ''}">Ultra</button><button data-k="high" class="${settings.quality === 'high' ? 'sel' : ''}">High</button><button data-k="low" class="${settings.quality !== 'high' ? 'sel' : ''}">Fast</button></div><span></span></div>
     <div class="srow"><span>Soft shadowing</span><div class="seg" id="sAo"><button data-k="1" class="${settings.ao === false ? '' : 'sel'}">On</button><button data-k="0" class="${settings.ao === false ? 'sel' : ''}">Off</button></div><span></span></div>
     <div class="srow"><span>Reflections</span><div class="seg" id="sRefl"><button data-k="1" class="${settings.reflections === false ? '' : 'sel'}">On</button><button data-k="0" class="${settings.reflections === false ? 'sel' : ''}">Off</button></div><span></span></div>
     <div class="srow"><span>Show chat</span><div class="seg" id="sChat"><button data-k="1" class="${CHAT.hidden ? '' : 'sel'}">On</button><button data-k="0" class="${CHAT.hidden ? 'sel' : ''}">Off</button></div><span></span></div>
@@ -288,7 +305,7 @@ function showSettings(back) {
     <div class="srow"><span>Speed units</span><div class="seg" id="sUnits"><button data-k="mph" class="${settings.units !== 'kmh' ? 'sel' : ''}">mph</button><button data-k="kmh" class="${settings.units === 'kmh' ? 'sel' : ''}">km/h</button></div><span></span></div>
     <div class="srow"><span>Keys and gamepad</span><button id="sKeys">Controls…</button><span></span></div>
     <div class="srow"><span>Invert mouse Y</span><div class="seg" id="sInv"><button data-k="0" class="${settings.invertY ? '' : 'sel'}">Off</button><button data-k="1" class="${settings.invertY ? 'sel' : ''}">On</button></div><span></span></div>
-    <p style="font-size:13px">High adds glow, soft shadowing, reflections and sharper shadows. Fast is smoother on older computers. Shadowing and reflections only apply on High. Press F3 in game to see your frame rate.</p>
+    <p style="font-size:13px">Ultra adds full-resolution rendering, light shafts, film grain and the sharpest, widest shadows. High adds glow, soft shadowing, reflections and sharper shadows. Fast is smoother on older computers. Shadowing and reflections only apply on High. Press F3 in game to see your frame rate.</p>
     <div class="btns"><button class="primary" id="ovDone">Done</button></div>`);
   const slide = (id, key, fmt) => { const el = $('#' + id); el.oninput = () => { settings[key] = +el.value; el.nextElementSibling.textContent = fmt(settings[key]); saveSettings(); SFX.apply(); }; };
   slide('sMaster', 'master', pct); slide('sMusic', 'music', pct); slide('sSfx', 'sfx', pct); slide('sSens', 'sens', v => v.toFixed(2) + '×');
@@ -303,10 +320,10 @@ function showSettings(back) {
 }
 function applyQuality() {
   renderer.setPixelRatio(pixelRatio()); renderer.setSize(innerWidth, innerHeight); post.resize();
-  renderer.shadowMap.type = settings.quality === 'high' ? T.PCFSoftShadowMap : T.PCFShadowMap; renderer.shadowMap.needsUpdate = true;
+  renderer.shadowMap.type = hiQ() ? T.PCFSoftShadowMap : T.PCFShadowMap; renderer.shadowMap.needsUpdate = true;
   // Fast: simpler far bots sooner, smaller shadow maps
-  LOD_D2 = settings.quality === 'high' ? 170 * 170 : 95 * 95;
-  if (world.sun) { const sz = settings.quality === 'high' ? 2048 : 1024; if (world.sun.shadow.mapSize.x !== sz) { world.sun.shadow.mapSize.set(sz, sz); if (world.sun.shadow.map) { world.sun.shadow.map.dispose(); world.sun.shadow.map = null; } } }
+  LOD_D2 = ultraQ() ? 250 * 250 : hiQ() ? 170 * 170 : 95 * 95;
+  if (world.sun) { const ext = ultraQ() ? 120 : 85; Object.assign(world.sun.shadow.camera, { left: -ext, right: ext, top: ext, bottom: -ext }); world.sun.shadow.camera.updateProjectionMatrix(); const sz = ultraQ() ? 4096 : hiQ() ? 2048 : 1024; if (world.sun.shadow.mapSize.x !== sz) { world.sun.shadow.mapSize.set(sz, sz); if (world.sun.shadow.map) { world.sun.shadow.map.dispose(); world.sun.shadow.map = null; } } }
 }
 function showHelp() {
   showOverlay(`<h2>How to play</h2>
@@ -402,6 +419,7 @@ addEventListener('keydown', e => {
     if (!P || paused || match.over) return;
     if (e.code === KB('destruct') && !e.repeat && !P.dead) P.die();
     if ((e.code === KB('boost') || (KB('boost') === 'ShiftLeft' && e.code === 'ShiftRight')) && !e.repeat) P.input.dash = true;
+    if (P.dead && /^Digit[1-5]$/.test(e.code) && loadoutPick(+e.code.slice(5) - 1)) return;
     if (/^Digit[1-4]$/.test(e.code) && P.wg && P.wg[+e.code.slice(5) - 1]) { selectGroup(+e.code.slice(5) - 1); return; }
     const m = WKEYS[e.code]; if (m && P.guns[m] && P.guns[m].length) { P.input.weapon = m; P.input.group = null; P.wgIdx = -1; buildWeaponHud(); SFX.ui(); }
     const mk = modKeyOf(e.code); if (mk && !e.repeat && !P.dead && hasModule(P, mk)) P.input.mod = mk;
@@ -532,7 +550,7 @@ function updateBattle(dt) {
   if (match.mode === 'elim' && !match.over && match.isHost) { match.score = [aliveCount(0), aliveCount(1)]; }
   for (const b of world.bots) if (b.dead && !b.remote) {
     b.respawnT -= dt;
-    if (b.respawnT <= 0 && !match.over) { b.spawn(b.home ? b.home : spawnPoint(b.team), match.mode === 'pit' ? rand(0, 6.28) : b.team === 0 ? 0 : Math.PI); if (b.isPlayer) { P.input.weapon = WTYPES.find(t => P.guns[t].length) || 'blaster'; buildWeaponHud(); $('#fuelRow').hidden = !P.stats.jets; } }
+    if (b.respawnT <= 0 && !match.over) { if (b.isPlayer) applyLoadout(b); b.spawn(b.home ? b.home : spawnPoint(b.team), match.mode === 'pit' ? rand(0, 6.28) : b.team === 0 ? 0 : Math.PI); if (b.isPlayer) { resetPlayerWeapons(P); buildWeaponHud(); $('#fuelRow').hidden = !P.stats.jets; drawLoadoutBar(); } }
   }
   updateDebris(dt); updateParticles(dt); updateFlashes(dt); ambientFx(dt); fxUpdate(dt);
   if (world.sky) world.sky.material.uniforms.time.value = world.time;
@@ -642,7 +660,7 @@ function updateHud(dt) {
     $('#centerMsg').append(a, s);
   } else if (!P.dead && centerMsgT <= 0 && !match.over && $('#centerMsg').textContent) $('#centerMsg').textContent = '';
   hudT -= dt; if (hudT > 0) return; hudT = .08;
-  updateReactorHud();
+  drawLoadoutBar(); updateReactorHud();
   const k = P.dead ? 0 : clamp(P.hp / P.maxHp, 0, 1);
   $('#hpPct').textContent = Math.round(k * 100) + '%';
   $('#hpBar i').style.width = k * 100 + '%'; $('#hpBar').classList.toggle('low', k < .35);
@@ -728,10 +746,10 @@ function frame(now) {
   } else if (state === 'battle' && world.scene) {
     if (camera.view && camera.view.enabled) camera.clearViewOffset();
     if (!paused || (match && match.net)) updateBattle(dt); else SFX.engineUpdate(null, false);
-    post.render(world.scene, camera, { bloom: .6, vignette: .3 });
+    post.render(world.scene, camera, battleLook());
   } else if (state === 'replay' && world.scene && match) {
     if (camera.view && camera.view.enabled) camera.clearViewOffset();
-    updateReplay(dt); post.render(world.scene, camera, { bloom: .6, vignette: .3 });
+    updateReplay(dt); post.render(world.scene, camera, battleLook());
   }
 }
 

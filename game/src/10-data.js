@@ -150,7 +150,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.7.0';
+const BC_VERSION = '2.8.0';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -159,6 +159,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.0', ['Loadouts: your garage bays are your loadout. Pick which bot to deploy, and while wrecked press 1–5 (LB/RB on a gamepad, or tap a card) to rebuild as a different bot. Works online.', 'Map sizes: Small, Medium and Large arenas, or Auto to match the team size. Obstacles, trees and craters scale with the map.', 'Three new space maps: Crimson Nebula (glowing gas and ice shards), Dry Dock (a half-built cruiser inside a scaffold) and Ring Belt (bands of rock with clear lanes). Choose one in Battle setup.', 'Painted nebula skies, ringed planets with glowing atmospheres, and work lights in space.', 'New Ultra graphics: full-resolution rendering, light shafts from the sun, film grain, and wider, sharper shadows.', 'Every map has its own colour grade on High and Ultra.', 'RoboBlocks is now on GitHub: servers install and update from the latest release.']],
   ['2.7.0', ['Weapon balance pass, tested with thousands of AI duels: every weapon now wins its fair share in its own range.', 'Splash damage is capped per blast (1.8 times its damage to one bot), so tightly packed bots no longer take ten times the damage from mortars and plasma.', 'Flak shells now burst right next to ground bots instead of short of them.', 'Arc Lance: each extra lance now adds damage. Gravity mines snap shut when they land near an enemy. Tesla blades are cheaper, tougher, hit harder and pull you onto nearby enemies.', 'Blaster, chain gun, plasma, rail and Rail Lancer toned down slightly; seeker, flak and mines buffed.']],
   ['2.6.0', ['New desktop app: RoboBlocks runs in its own window and updates itself from your server.', 'Far more detailed robots: armored turret mounts, cooling rings, ammo boxes, coil rails, tread links, rotor blades and bevelled armor blocks.', 'Barrels kick back when they fire.', 'Speeds show in mph (switch to km/h in Settings). Settings also has a Simple robot detail option for older computers.']],
   ['2.5.0', ['Tech Tree: earn tech points by levelling up (and every 2,000 XP past level 10) and from achievements, then spend them on a hex map of parts, armor tiers, materials and CPU Cores. Open it from the main menu or the garage.', 'Pilots who played before keep everything their level already gave them, for free, plus all their points.']],
@@ -211,7 +212,25 @@ const MAPS = {
     name: 'Orbital Wreckfield', blurb: 'Open space, an asteroid field and a wrecked station. Used by Space Battle.', size: 900, seed: 83, amp: 0, space: true, grav: 0,
     sky: [0x1a1030, 0x020208], fog: 0x0a0814, fogNear: 260, fogFar: 1100, sun: [.6, .35, -.5], sunCol: 0xfff4e8, sunI: 2.8,
     hemi: [0x7a88b0, 0x2a1830, .5], ground: [0x222222, 0x333333, 0x111111], pad: 0x333333,
-    mesas: 0, rocks: 0, rockCol: [0x6a625c, 0x544c48], decor: 'none', clouds: 0, dust: 0x8a8078, liquid: null,
+    mesas: 0, rocks: 0, rockCol: [0x6a625c, 0x544c48], decor: 'none', clouds: 0, dust: 0x8a8078, liquid: null, layout: 'wreck', nebula: [0x6a3cff, 0x2a8cff],
+  },
+  nebula: {
+    name: 'Crimson Nebula', blurb: 'Glowing gas clouds that hide you from far away, ice shards and a derelict relay.', size: 900, seed: 91, amp: 0, space: true, grav: 0,
+    sky: [0x3a0c22, 0x08020a], fog: 0x2a0a1c, fogNear: 140, fogFar: 620, sun: [-.5, .3, .55], sunCol: 0xffc0a8, sunI: 2.4,
+    hemi: [0xff8aa8, 0x2a0a30, .62], ground: [0x222222, 0x333333, 0x111111], pad: 0x333333,
+    mesas: 0, rocks: 0, rockCol: [0x8a6a78, 0x5a4458], decor: 'none', clouds: 0, dust: 0xc07a90, liquid: null, layout: 'nebula', nebula: [0xff3a6a, 0xff9a3c],
+  },
+  shipyard: {
+    name: 'Dry Dock', blurb: 'An orbital shipyard: girder scaffolds, a half-built cruiser and cargo containers to fight around.', size: 900, seed: 103, amp: 0, space: true, grav: 0,
+    sky: [0x0c1626, 0x010206], fog: 0x08101c, fogNear: 300, fogFar: 1200, sun: [.3, .55, .6], sunCol: 0xfff8ee, sunI: 3.0,
+    hemi: [0x9ab4d8, 0x1a2230, .55], ground: [0x222222, 0x333333, 0x111111], pad: 0x333333,
+    mesas: 0, rocks: 0, rockCol: [0x6a6e74, 0x50545a], decor: 'none', clouds: 0, dust: 0x8a9098, liquid: null, layout: 'shipyard', nebula: [0x2a6cff, 0x22d0c0],
+  },
+  rings: {
+    name: 'Ring Belt', blurb: 'Inside a gas giant\'s rings: bands of ice and rock with clear lanes between them.', size: 900, seed: 117, amp: 0, space: true, grav: 0,
+    sky: [0x1c1a10, 0x030302], fog: 0x14120a, fogNear: 240, fogFar: 1050, sun: [-.65, .25, -.4], sunCol: 0xffe6b8, sunI: 2.9,
+    hemi: [0xe0c890, 0x2a2218, .55], ground: [0x222222, 0x333333, 0x111111], pad: 0x333333,
+    mesas: 0, rocks: 0, rockCol: [0xb8ac98, 0x8a7e6c], decor: 'none', clouds: 0, dust: 0xc8b89a, liquid: null, layout: 'rings', nebula: [0xffb05a, 0x8a5aff],
   },
   moon: {
     name: 'Lunar Outpost', blurb: 'Low gravity, deep craters and jump pads. Everything flies farther here.', size: 900, seed: 67, amp: 4, moon: true, grav: 9,
@@ -221,9 +240,16 @@ const MAPS = {
   },
 };
 const MAP_ORDER = ['dust', 'frost', 'ash', 'city', 'moon'];
+// Space Battle has its own maps
+const SPACE_ORDER = ['space', 'nebula', 'shipyard', 'rings'];
+const pickMap = (list, r = Math.random) => list[r() * list.length | 0];
+// map sizes scale the whole arena; Auto picks by team size (5v5 small, 10v10 medium, 20v20 large)
+const MAP_SIZES = { small: { k: .72, name: 'Small', blurb: 'Tight and fast. Fights start in seconds.' }, medium: { k: 1, name: 'Medium', blurb: 'The standard arena.' }, large: { k: 1.4, name: 'Large', blurb: 'Room to flank, long sightlines.' } };
+const autoMapSize = n => n <= 5 ? 'small' : n >= 20 ? 'large' : 'medium';
+const mapSizeOf = (sz, n) => MAP_SIZES[sz] ? sz : autoMapSize(n || 10);
 // each match picks a time of day and weather (from the match seed, so every player sees the same)
-const MAP_TOD = { dust: ['day', 'dusk', 'dawn'], frost: ['day', 'dawn', 'dusk'], ash: ['day', 'night'], city: ['day', 'dusk', 'night'], moon: ['day'], space: ['day'] };
-const MAP_WX = { dust: 'sand', frost: 'snow', ash: 'ash', city: 'rain', moon: 'none', space: 'none' };
+const MAP_TOD = { dust: ['day', 'dusk', 'dawn'], frost: ['day', 'dawn', 'dusk'], ash: ['day', 'night'], city: ['day', 'dusk', 'night'], moon: ['day'], space: ['day'], nebula: ['day'], shipyard: ['day'], rings: ['day'] };
+const MAP_WX = { dust: 'sand', frost: 'snow', ash: 'ash', city: 'rain', moon: 'none', space: 'none', nebula: 'none', shipyard: 'none', rings: 'none' };
 
 let progress = Object.assign({ xp: 0, matches: 0, wins: 0, kills: 0 }, store.get('sfa.progress', {}));
 // HEADLESS: this copy runs inside the Node dedicated server (no screen, no audio); it hosts one official server.
@@ -459,6 +485,8 @@ let design = bays[bayIdx] || { name: 'Bay ' + (bayIdx + 1), v: 3, blocks: [] };
 if (!design.name || design.name === 'Bot') design.name = 'Bay ' + (bayIdx + 1);
 const saveBays = () => { bays[bayIdx] = design; store.set('sfa.bays', bays); store.set('sfa.bay', bayIdx); cloudDirty(); };
 let settings = Object.assign({ master: .8, music: .55, sfx: .9, quality: 'high', sens: 1, invertY: false }, store.get('sfa.settings', {}));
+// graphics presets: ultra (sharper shadows, full resolution, light shafts, film grain), high, low ('Fast')
+const hiQ = () => settings.quality === 'high' || settings.quality === 'ultra', ultraQ = () => settings.quality === 'ultra';
 // speeds are shown in mph unless the player picks km/h (game units are metres per second)
 // the desktop app (window.ROBOBLOCKS) names its server; a page served by a server uses that server
 const HOST = (typeof window !== 'undefined' && window.ROBOBLOCKS) || null;

@@ -235,6 +235,7 @@ function padTick(dt) {
     PAD.fire = B('fire'); PAD.up = B('up'); PAD.down = B('down');
     const s = 2.6 * settings.sens * (settings.padSens || 1); cam.yaw -= ax(am) * s * dt; cam.pitch = clamp(cam.pitch - ax(am + 1) * s * .7 * dt * (settings.invertY ? -1 : 1), -.75, .7);
     if (match.spectator) { if (H('up')) cam.spect = nextSpect(1); if (H('down')) cam.spect = nextSpect(-1); }
+    else if (P && P.dead && !match.over) { if (H('prev')) loadoutCycle(-1); if (H('next')) loadoutCycle(1); }
     else if (P && !P.dead && !match.over) {
       if (H('prev')) cycleWeapon(-1); if (H('next')) cycleWeapon(1);
       if (H('dash')) P.input.dash = true;

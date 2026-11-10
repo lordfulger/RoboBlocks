@@ -72,9 +72,9 @@
         },
         {
             "name": "Download URL",
-            "description": "Optional. A .tar.gz of the server files. Used by the installer, and on every restart to update (a GitHub \"releases/latest/download/...\" link always points at the newest release).",
+            "description": "A .tar.gz of the server files, used by the installer and on every restart to update. The default is the newest official GitHub release. Clear it to stop updating from GitHub (or use UPDATE_FROM / GIT_REPO instead).",
             "env_variable": "DOWNLOAD_URL",
-            "default_value": "",
+            "default_value": "https://github.com/lordfulger/RoboBlocks/releases/latest/download/roboblocks-server.tar.gz",
             "user_viewable": true,
             "user_editable": true,
             "rules": "nullable|string|max:500",

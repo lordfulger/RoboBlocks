@@ -30,7 +30,7 @@ Where updates come from (the first one set wins):
 | Variable | Use it when |
 |---|---|
 | `UPDATE_FROM` | You run several servers: point them at one of them (for example your hub, `https://hub.example.com`). Each server shares its own files at `/server-package.tar.gz` (turn that off with `BC_SHARE_PACKAGE=0`). Then you only upload a new release to one server. |
-| `DOWNLOAD_URL` | You publish releases as a `.tar.gz`, for example a GitHub release. `https://github.com/<you>/<repo>/releases/latest/download/roboblocks-server.tar.gz` always points at the newest one. |
+| `DOWNLOAD_URL` | The default. The egg points it at the official GitHub releases, `https://github.com/lordfulger/RoboBlocks/releases/latest/download/roboblocks-server.tar.gz`, which always serves the newest release. Use your own fork's link to publish your own builds. The repository must be public for this link to download. |
 | `GIT_REPO` (+ `GIT_BRANCH`) | The server files live in a Git repository. Needs `git` in the container (the standard Node images have it). |
 
 A release only installs when it is newer: either the game version (`BC_VERSION`) is higher, or the game is the same and `package.json`'s version is higher. Pointing at an older server never downgrades you.
@@ -48,8 +48,8 @@ A release only installs when it is newer: either the game version (`BC_VERSION`)
 2. **Create a server** with the RoboBlocks egg. Give it one port allocation; that port is both the web page and the WebSocket. 1 CPU core and 512 MB RAM is plenty: all four default servers running full AI matches at once (90 bots) measured about half a core and 250 MB.
 3. **Get the files onto the server**, using one of these:
    - **Upload them.** Open the server's *File Manager*, upload `roboblocks-server.tar.gz`, then *Unarchive* it in the top folder so that `server/index.js` sits at the root.
-   - **Set Download URL.** Host `roboblocks-server.tar.gz` somewhere reachable (for example a GitHub release) and set the variable, then *Reinstall*.
-   - **Set Git repository.** Push this folder to a Git repo, set the variable, then *Reinstall*.
+   - **Download URL (the default).** The egg already points at the newest GitHub release, so a new server installs it straight away. Point it somewhere else and *Reinstall* to use another build.
+   - **Set Git repository.** Set it to the RoboBlocks repository (or your fork), then *Reinstall*. The installer finds the `server/` folder inside the repository.
 4. **Start the server.** The console shows `RoboBlocks server ready on port …` when it's up.
 5. **Play.** Open `http://<server-ip>:<port>/`, choose **Multiplayer**, and join a server. Matches start automatically after a 15-second warmup.
 
@@ -93,7 +93,7 @@ A release only installs when it is newer: either the game version (`BC_VERSION`)
 - `password` (optional) makes players type a password to join.
 - `ranked: true` (optional) needs a signed-in account and changes players' rating after each match.
 - `minLv` and `maxLv` (optional, 1 to 10) limit which pilot levels may join; they also need an account, so levels can't be faked.
-- `rot` is the rotation, as `[mode, map]` pairs. Modes are `tdm` (Team Deathmatch), `arena` (Battle Arena, with reactors), `elim` (Elimination), `pit` (The Pit, free-for-all), `ctc` (Capture the Core), `koth` (King of the Hill), `horde` (co-op against ten waves of AI, every player on one team), `brawl` (Weekly Brawl: team deathmatch with a rule that changes every Monday) and `space` (Space Battle: zero gravity, flying bots only; it always uses its own map, so write `["space", "space"]`). Maps are `dust`, `frost`, `ash`, `city` (Rustgate Ruins, with buildings that crumble) and `moon` (Lunar Outpost, low gravity and jump pads). Each match also picks a time of day and weather.
+- `rot` is the rotation, as `[mode, map]` or `[mode, map, size]` entries. Modes are `tdm` (Team Deathmatch), `arena` (Battle Arena, with reactors), `elim` (Elimination), `pit` (The Pit, free-for-all), `ctc` (Capture the Core), `koth` (King of the Hill), `horde` (co-op against ten waves of AI, every player on one team), `brawl` (Weekly Brawl: team deathmatch with a rule that changes every Monday) and `space` (Space Battle: zero gravity, flying bots only). Ground maps are `dust`, `frost`, `ash`, `city` (Rustgate Ruins, with buildings that crumble) and `moon` (Lunar Outpost, low gravity and jump pads). Space maps, for `space` only, are `space` (Orbital Wreckfield), `nebula` (Crimson Nebula), `shipyard` (Dry Dock) and `rings` (Ring Belt). `random` picks a fitting map each match. Size is `small`, `medium`, `large` or `auto` (the default: 5v5 small, 10v10 medium, 20v20 large). Each match also picks a time of day and weather.
 - `id` may use letters, numbers and dashes; `sv-` is added if missing.
 
 Example with all the options:
