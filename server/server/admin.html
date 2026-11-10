@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RoboBlocks Admin</title>
+<style>
+:root{--bg:#0e1215;--panel:#161c21;--line:#2a333a;--fg:#e6ecef;--muted:#8d9aa3;--accent:#ff8a1f;--bad:#ff6a5a;--good:#5dd08a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}header b{font-size:18px;letter-spacing:.04em}header i{color:var(--accent);font-style:normal}
+main{max-width:1100px;margin:0 auto;padding:16px;display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+section{background:var(--panel);border:1px solid var(--line);padding:14px;min-width:0}section.wide{grid-column:1/-1}
+h2{margin:0 0 10px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+input,textarea,button{font:inherit;color:inherit}input,textarea{background:#0b0f12;border:1px solid var(--line);padding:7px 9px;width:100%}
+textarea{font:12px/1.4 ui-monospace,monospace;min-height:220px}
+button{background:#232c33;border:1px solid var(--line);padding:6px 12px;cursor:pointer}button:hover{border-color:var(--accent)}button.primary{background:var(--accent);color:#111;border-color:var(--accent);font-weight:600}
+table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 8px;border-bottom:1px solid #ffffff10;text-align:left;white-space:nowrap}th{color:var(--muted);font-weight:500}
+.row{display:flex;gap:8px;margin-top:8px}.muted{color:var(--muted)}.err{color:var(--bad)}.ok{color:var(--good)}
+#log{background:#0b0f12;border:1px solid var(--line);padding:8px;font:12px/1.45 ui-monospace,monospace;max-height:300px;overflow:auto;white-space:pre-wrap}
+.list{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:auto}.item{border:1px solid var(--line);padding:8px 10px;background:#0b0f12}.item b{color:var(--accent)}.item pre{white-space:pre-wrap;font-size:11px;color:var(--muted);margin:6px 0 0;max-height:140px;overflow:auto}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+#login{max-width:360px;margin:60px auto;background:var(--panel);border:1px solid var(--line);padding:20px;display:grid;gap:10px}
+</style></head>
+<body>
+<header><b>ROBO<i>BLOCKS</i> ADMIN</b><span class="muted" id="who"></span><span style="flex:1"></span><a href="/" style="color:var(--muted)">Open the game</a></header>
+<form id="login"><h2>Sign in with an admin account</h2><input id="u" placeholder="Pilot name" autocomplete="username"><input id="p" type="password" placeholder="Password" autocomplete="current-password"><button class="primary">Sign in</button><p class="err" id="lerr"></p><p class="muted">Make an account an admin with the console command <code>op &lt;name&gt;</code>.</p></form>
+<main id="app" hidden>
+  <section class="wide"><h2>Servers</h2><table id="srv"></table></section>
+  <section><h2>Pilots online</h2><table id="pl"></table></section>
+  <section><h2>Bans</h2><table id="bans"></table></section>
+  <section><h2>Updates</h2><div id="upd" class="muted">…</div><div class="row"><button id="updCheck">Check now</button><button class="primary" id="updGo">Install update</button></div><p class="muted" style="font-size:12px">Installing downloads the new server files and keeps your data. Restart the server from the panel afterwards to run them.</p></section>
+  <section><h2>Message of the day</h2><input id="motd" maxlength="300"><div class="row"><button id="motdSet">Set</button></div>
+    <h2 style="margin-top:14px">Announce</h2><input id="say" maxlength="200" placeholder="Shown to everyone online"><div class="row"><button id="sayGo">Send</button></div></section>
+  <section class="wide"><h2>Bug reports <span class="muted" id="bugN"></span></h2><div id="bugs" class="list"></div><div class="row"><button data-clear="bugs">Clear all</button></div></section>
+  <section class="wide"><h2>Script errors from players' browsers</h2><table id="errs"></table><div class="row"><button data-clear="errors">Clear all</button></div></section>
+  <section><h2>Player reports</h2><div id="preps" class="list"></div><div class="row"><button data-clear="players">Clear all</button></div></section>
+  <section><h2>After-match feedback</h2><div id="fbsum" class="muted"></div><div id="fb" class="list"></div><div class="row"><button data-clear="feedback">Clear all</button></div></section>
+  <section class="wide"><h2>Match stats</h2><div class="cols"><table id="stM"></table><table id="stW"></table><table id="stV"></table></div><div class="row"><button id="stClear">Reset stats</button></div></section>
+  <section><h2>balance.json (applies right away)</h2><textarea id="bal" spellcheck="false" style="min-height:260px"></textarea><div class="row"><button class="primary" id="balSave">Save and apply</button><span id="balMsg" class="muted">Damage multipliers, XP rate, CPU bonus, reactor health, respawn time.</span></div></section>
+  <section><h2>Reset a password</h2><input id="rpName" placeholder="Account name"><div class="row"><button id="rpGo">Reset</button><span id="rpMsg" class="muted"></span></div></section>
+  <section class="wide"><h2>Log</h2><div id="log"></div></section>
+  <section class="wide"><h2>servers.json</h2><textarea id="cfg" spellcheck="false"></textarea><div class="row"><button class="primary" id="cfgSave">Save</button><span id="cfgMsg" class="muted">Changes apply after a restart.</span></div></section>
+</main>
+<script>
+(() => {
+  let ws, id = 0; const calls = new Map(), $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const api = (op, a) => new Promise((ok, no) => { const i = ++id; calls.set(i, { ok, no }); ws.send(JSON.stringify({ t: 'api', id: i, op, a: a || {} })); setTimeout(() => { if (calls.has(i)) { calls.delete(i); no(new Error('No answer')); } }, 10000); });
+  function connect() {
+    return new Promise(res => {
+      ws = new WebSocket((location.protocol === 'https:' ? 'wss://' : 'ws://') + location.host + '/ws');
+      ws.onmessage = e => { const m = JSON.parse(e.data); if (m.t === 'welcome') res(); if (m.t === 'api') { const c = calls.get(m.id); if (c) { calls.delete(m.id); m.ok ? c.ok(m.d) : c.no(new Error(m.e)); } } if (m.t === 'kicked') alert(m.reason); };
+      ws.onclose = () => setTimeout(() => location.reload(), 3000);
+    });
+  }
+  async function refresh() {
+    try {
+      const [st, pl, bans, log, upd] = await Promise.all([api('admin.status'), api('admin.players'), api('admin.bans'), api('admin.log'), api('admin.updateState')]);
+      showUpd(upd);
+      $('#srv').innerHTML = '<tr><th>Server</th><th>Phase</th><th>Match</th><th>Players</th><th>Score</th><th>Time left</th></tr>' + st.servers.map(s => `<tr><td>${esc(s.name || s.id)}</td><td>${esc(s.phase)}</td><td>${esc(s.mode || '')} ${esc(s.map || '')}</td><td>${s.players | 0}</td><td>${(s.score || []).join(' – ')}</td><td>${s.timeLeft ? s.timeLeft + 's' : s.cd ? s.cd + 's' : ''}</td></tr>`).join('') + `<tr><td colspan="6" class="muted">${st.players} of ${st.maxPlayers} players online · up ${Math.round(st.uptime / 60)} min · ${st.accounts} accounts</td></tr>`;
+      $('#pl').innerHTML = pl.length ? '<tr><th>Pilot</th><th>Where</th><th>Address</th><th></th></tr>' + pl.map(p => `<tr><td>${esc(p.acct || p.name)}${p.admin ? ' (admin)' : p.acct ? '' : ' (guest)'}</td><td>${esc(p.sv || 'menu')}</td><td class="muted">${esc(p.ip)}</td><td>${p.admin ? '' : `<button data-kick="${p.id}">Kick</button> <button data-ban="${p.id}">Ban</button>`}</td></tr>`).join('') : '<tr><td class="muted">Nobody online.</td></tr>';
+      const all = bans.names.map(x => [x, 'account']).concat(bans.ips.map(x => [x, 'address']));
+      $('#bans').innerHTML = all.length ? all.map(([x, k]) => `<tr><td>${esc(x)}</td><td class="muted">${k}</td><td><button data-unban="${esc(x)}">Unban</button></td></tr>`).join('') : '<tr><td class="muted">Nobody is banned.</td></tr>';
+      const L = $('#log'), atEnd = L.scrollTop + L.clientHeight >= L.scrollHeight - 4; L.textContent = log.join('\n'); if (atEnd) L.scrollTop = L.scrollHeight;
+      if (document.activeElement !== $('#motd')) $('#motd').value = st.motd || '';
+      const [rep, stats] = await Promise.all([api('admin.reports'), api('admin.stats')]);
+      const ago = t => { const s = (Date.now() - t) / 1000; return s < 3600 ? Math.round(s / 60) + ' min ago' : s < 86400 ? Math.round(s / 3600) + ' h ago' : Math.round(s / 86400) + ' d ago'; };
+      $('#bugN').textContent = rep.bugs.length ? `(${rep.bugs.length})` : '';
+      $('#bugs').innerHTML = rep.bugs.length ? rep.bugs.map((b, i) => `<div class="item"><b>${esc(b.who)}</b> <span class="muted">${ago(b.t)} · ${esc(b.ip)}</span> <button data-del="bugs" data-i="${i}" style="float:right">Done</button><div>${esc(b.text)}</div><pre>${esc(b.info)}</pre></div>`).join('') : '<span class="muted">No bug reports.</span>';
+      const errs = Object.values(rep.errors).sort((a, b) => b.n - a.n);
+      $('#errs').innerHTML = errs.length ? '<tr><th>Times</th><th>Error</th><th>Where</th><th>Version</th><th>Last</th></tr>' + errs.map(e => `<tr><td>${e.n}</td><td title="${esc(e.stack)}">${esc(e.msg)}</td><td class="muted">${esc(e.where)}</td><td class="muted">${esc(e.ver)}</td><td class="muted">${ago(e.last)}</td></tr>`).join('') : '<tr><td class="muted">No errors reported.</td></tr>';
+      $('#preps').innerHTML = rep.players.length ? rep.players.map((r, i) => `<div class="item"><b>${esc(r.target)}</b> reported by ${esc(r.who)} <span class="muted">${ago(r.t)}${r.where ? ' · ' + esc(r.where) : ''}</span> <button data-del="players" data-i="${i}" style="float:right">Done</button><div>${esc(r.reason)}</div></div>`).join('') : '<span class="muted">No reports.</span>';
+      const c = { fun: 0, ok: 0, bad: 0 }; for (const f of rep.feedback) c[f.rating]++;
+      $('#fbsum').textContent = rep.feedback.length ? `Fun ${c.fun} · OK ${c.ok} · Frustrating ${c.bad}` : '';
+      $('#fb').innerHTML = rep.feedback.filter(f => f.text).slice(0, 80).map(f => `<div class="item"><b>${f.rating === 'fun' ? 'Fun' : f.rating === 'bad' ? 'Frustrating' : 'OK'}</b> <span class="muted">${esc(f.who)} · ${esc(f.mode)} ${esc(f.map)} · ${ago(f.t)}</span><div>${esc(f.text)}</div></div>`).join('') || '<span class="muted">No comments yet.</span>';
+      const M = Object.entries(stats.matches).sort((a, b) => b[1].n - a[1].n);
+      $('#stM').innerHTML = '<tr><th>Mode / map</th><th>Matches</th><th>Blue wins</th><th>Red wins</th><th>Avg length</th></tr>' + M.map(([k, m]) => `<tr><td>${esc(k)}</td><td>${m.n}</td><td>${Math.round(m.blue / m.n * 100)}%</td><td>${Math.round(m.red / m.n * 100)}%</td><td>${Math.round(m.secs / m.n / 60 * 10) / 10} min</td></tr>`).join('');
+      const Wt = Object.entries(stats.weapons).sort((a, b) => b[1] - a[1]), tot = Wt.reduce((s, x) => s + x[1], 0) || 1;
+      $('#stW').innerHTML = '<tr><th>Weapon</th><th>Share of damage</th></tr>' + Wt.map(([w, v]) => `<tr><td>${esc(w)}</td><td>${(v / tot * 100).toFixed(1)}%</td></tr>`).join('');
+      $('#stV').innerHTML = '<tr><th>Movement</th><th>Played</th><th>Win rate</th></tr>' + Object.entries(stats.movers).sort((a, b) => b[1].played - a[1].played).map(([k, v]) => `<tr><td>${esc(k)}</td><td>${v.played}</td><td>${v.played ? Math.round(v.won / v.played * 100) : 0}%</td></tr>`).join('');
+    } catch (e) { console.warn(e); }
+  }
+  document.addEventListener('click', async e => {
+    const t = e.target, act = (op, a, msg) => api(op, a).then(() => { refresh(); }, err => alert(err.message));
+    if (t.dataset.kick) act('admin.kick', { id: t.dataset.kick });
+    if (t.dataset.ban && confirm('Ban this pilot?')) act('admin.ban', { id: t.dataset.ban });
+    if (t.dataset.unban) act('admin.unban', { x: t.dataset.unban });
+    if (t.dataset.del) act('admin.clearReport', { kind: t.dataset.del, i: +t.dataset.i });
+    if (t.dataset.clear && confirm('Clear all of these?')) act('admin.clearReport', { kind: t.dataset.clear });
+  });
+  const showUpd = u => { const st = { none: 'No update source is set (UPDATE_FROM, DOWNLOAD_URL or GIT_REPO).', current: 'Up to date.', available: `RoboBlocks ${u.latest} is available.`, installed: `RoboBlocks ${u.latest} is installed: restart the server to run it.`, error: 'Last check failed: ' + (u.error || ''), idle: 'Not checked yet.' }[u.state] || '';
+    $('#upd').textContent = `Running ${u.version}. ${st}${u.checked ? ' Checked ' + new Date(u.checked).toLocaleTimeString() + '.' : ''} Automatic install on restart: ${u.auto ? 'on' : 'off'}.`; };
+  $('#updCheck').onclick = () => { $('#upd').textContent = 'Checking…'; api('admin.update', { apply: false }).then(showUpd, e => alert(e.message)); };
+  $('#updGo').onclick = () => { $('#upd').textContent = 'Downloading and installing…'; api('admin.update', { apply: true }).then(showUpd, e => alert(e.message)); };
+  $('#motdSet').onclick = () => api('admin.motd', { text: $('#motd').value }).then(refresh, e => alert(e.message));
+  $('#sayGo').onclick = () => api('admin.say', { text: $('#say').value }).then(() => { $('#say').value = ''; }, e => alert(e.message));
+  $('#stClear').onclick = () => { if (confirm('Reset all match stats?')) api('admin.clearStats').then(refresh); };
+  $('#balSave').onclick = () => api('admin.saveBalance', { text: $('#bal').value }).then(() => { $('#balMsg').className = 'ok'; $('#balMsg').textContent = 'Saved and sent to every player and match.'; api('admin.balance').then(r => { $('#bal').value = r.text; }); }, e => { $('#balMsg').className = 'err'; $('#balMsg').textContent = e.message; });
+  $('#rpGo').onclick = () => api('admin.resetPw', { name: $('#rpName').value }).then(r => { $('#rpMsg').className = 'ok'; $('#rpMsg').textContent = 'New password: ' + r.pw + ' (tell the player; they can change it in the game).'; }, e => { $('#rpMsg').className = 'err'; $('#rpMsg').textContent = e.message; });
+  $('#cfgSave').onclick = () => api('admin.saveServers', { text: $('#cfg').value }).then(r => { $('#cfgMsg').className = 'ok'; $('#cfgMsg').textContent = 'Saved. Restart the server to apply.'; }, e => { $('#cfgMsg').className = 'err'; $('#cfgMsg').textContent = e.message; });
+  $('#login').onsubmit = async e => {
+    e.preventDefault(); $('#lerr').textContent = '';
+    try {
+      await connect(); const r = await api('login', { name: $('#u').value, pw: $('#p').value });
+      if (!r.me || !r.me.admin) { $('#lerr').textContent = 'That account is not an admin.'; ws.close(); return; }
+      $('#who').textContent = 'Signed in as ' + r.me.name; $('#login').hidden = true; $('#app').hidden = false;
+      $('#cfg').value = (await api('admin.servers')).text; $('#bal').value = (await api('admin.balance')).text; refresh(); setInterval(refresh, 8000);
+    } catch (err) { $('#lerr').textContent = err.message; }
+  };
+})();
+</script>
+</body></html>

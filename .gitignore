@@ -1,0 +1,12 @@
+# build output
+game/dist/
+desktop/node_modules/
+desktop/dist/
+desktop/game-fallback/
+# a running server's own data and settings
+server/data/
+server/backups/
+server/downloads/
+server/servers.json
+server/balance.json
+server/.update-stage/

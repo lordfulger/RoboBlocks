@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Play RoboBlocks</title>
+<style>
+:root{--bg:#0e1215;--panel:#161c21;--line:#2a333a;--fg:#e6ecef;--muted:#8d9aa3;--accent:#ff8a1f}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1d2730,#0e1215 60%);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+main{max-width:760px;margin:0 auto;padding:40px 18px 60px}
+h1{font-size:46px;letter-spacing:.04em;margin:0}h1 i{color:var(--accent);font-style:normal}
+.tag{color:var(--muted);margin:4px 0 26px}
+.btn{display:inline-block;background:var(--accent);color:#111;font-weight:700;text-decoration:none;padding:12px 22px;margin:6px 8px 6px 0;text-transform:uppercase;letter-spacing:.06em}
+.btn.alt{background:#232c33;color:var(--fg);border:1px solid var(--line)}
+section{background:var(--panel);border:1px solid var(--line);padding:16px 18px;margin-top:16px}
+h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+kbd{border:1px solid var(--line);padding:0 6px;font-size:13px}
+ul{margin:0;padding-left:20px}li{margin:3px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}td{padding:5px 6px;border-bottom:1px solid #ffffff10}td.m{color:var(--muted)}
+.muted{color:var(--muted);font-size:13px}
+</style></head>
+<body><main>
+<h1>ROBO<i>BLOCKS</i></h1>
+<p class="tag">Build robots from blocks, then fight 20 v 20. Thanks for helping us test! Version {{VERSION}}.</p>
+<a class="btn" href="/">Play in your browser</a>{{DISCORD}}
+<section><h2>Servers right now</h2><table id="srv"><tr><td class="m">Loading…</td></tr></table></section>
+<section><h2>Getting started</h2><ul>
+<li>Press <b>Play</b> or <b>Quick play</b>. The <b>Tutorial</b> on the main menu walks you through building and driving.</li>
+<li>Make an account (Guest · Sign in on the menu card) so your level and garage are saved on this server.</li>
+<li>Drive with <kbd>W A S D</kbd>, aim with the mouse, click to fire, <kbd>Shift</kbd> to boost. Phones and tablets get touch controls.</li>
+<li>In the garage press <kbd>?</kbd> for every shortcut.</li></ul></section>
+<section><h2>Found a problem?</h2><ul>
+<li>Press <kbd>F8</kbd> anywhere in the game (or <b>Report a bug</b> in the pause menu) and tell us what happened. The game adds the technical details for you.</li>
+<li>Press <kbd>F3</kbd> to see frame rate and ping if things feel slow, and include them in your report.</li>
+<li>To report a player, open the pause menu during a match, or type <kbd>/report name reason</kbd> in chat.</li></ul></section>
+<p class="muted">Your progress and garage are stored on this server. Bug reports include your browser, the match you were in and recent error messages, nothing else.</p>
+</main>
+<script>
+fetch('/status').then(r => r.json()).then(s => {
+  const names = { tdm: 'Team Deathmatch', arena: 'Battle Arena', elim: 'Elimination', pit: 'The Pit', space: 'Space Battle' };
+  const esc = x => String(x == null ? '' : x).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  document.getElementById('srv').innerHTML = s.servers.map(v => `<tr><td>${esc(v.name || v.id)}</td><td class="m">${v.phase === 'live' ? esc(names[v.mode] || v.mode) + ' · ' + v.players + ' playing' : esc(v.phase)}</td></tr>`).join('') + `<tr><td class="m" colspan="2">${s.players} of ${s.maxPlayers} players online</td></tr>`;
+}).catch(() => { document.getElementById('srv').innerHTML = '<tr><td class="m">Could not reach the server.</td></tr>'; });
+</script>
+</body></html>

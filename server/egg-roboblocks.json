@@ -1,0 +1,224 @@
+{
+    "_comment": "DO NOT EDIT: FILE GENERATED AUTOMATICALLY BY PTERODACTYL PANEL - PTERODACTYL.IO",
+    "meta": {
+        "version": "PTDL_v2",
+        "update_url": null
+    },
+    "exported_at": "2026-11-10T21:42:28+00:00",
+    "name": "RoboBlocks",
+    "author": "roboblocks@example.com",
+    "description": "Dedicated server for RoboBlocks, a block-built robot combat game. Serves the game in the browser at http://<ip>:<port>/, relays multiplayer over WebSocket, and hosts always-on match servers with AI fill, automatic match start and map/mode rotation. No dependencies beyond Node.js 18+. Updates itself on every restart from UPDATE_FROM, DOWNLOAD_URL or GIT_REPO (set AUTO_UPDATE to 0 to turn that off).",
+    "features": null,
+    "docker_images": {
+        "Node.js 20": "ghcr.io/parkervcp/yolks:nodejs_20",
+        "Node.js 22": "ghcr.io/parkervcp/yolks:nodejs_22",
+        "Node.js 18": "ghcr.io/parkervcp/yolks:nodejs_18"
+    },
+    "file_denylist": [],
+    "startup": "node server/update.js; node server/index.js",
+    "config": {
+        "files": "{}",
+        "startup": "{\"done\": \"RoboBlocks server ready\"}",
+        "logs": "{}",
+        "stop": "stop"
+    },
+    "scripts": {
+        "installation": {
+            "script": "#!/bin/bash\n# RoboBlocks dedicated server installer (runs once, in the install container)\nmkdir -p /mnt/server\ncd /mnt/server\n\nfetch_dir=\"\"\nif [ -n \"${GIT_REPO}\" ]; then\n  echo \"Cloning RoboBlocks from ${GIT_REPO}\"\n  rm -rf /tmp/bc\n  if [ -n \"${GIT_BRANCH}\" ]; then git clone --depth 1 --branch \"${GIT_BRANCH}\" \"${GIT_REPO}\" /tmp/bc; else git clone --depth 1 \"${GIT_REPO}\" /tmp/bc; fi\n  fetch_dir=/tmp/bc\nelif [ -n \"${DOWNLOAD_URL}\" ]; then\n  echo \"Downloading RoboBlocks from ${DOWNLOAD_URL}\"\n  rm -rf /tmp/bc && mkdir -p /tmp/bc\n  curl -fsSL \"${DOWNLOAD_URL}\" -o /tmp/bc.tar.gz && tar -xzf /tmp/bc.tar.gz -C /tmp/bc\n  fetch_dir=/tmp/bc\nfi\n\nif [ -n \"${fetch_dir}\" ]; then\n  # the package may sit at the archive root or one folder down\n  src=$(dirname \"$(find \"${fetch_dir}\" -maxdepth 3 -path '*server/index.js' | head -n 1)\")\n  src=$(dirname \"${src}\")\n  if [ -f \"${src}/server/index.js\" ]; then\n    cp -a \"${src}/.\" /mnt/server/\n    rm -rf /mnt/server/.git\n  else\n    echo \"Could not find server/index.js in the download.\"\n  fi\nfi\n\nif [ -f /mnt/server/server/index.js ]; then\n  echo \"RoboBlocks is installed. Start the server, then open http://<server-ip>:<port>/ in a browser.\"\nelse\n  echo \"No RoboBlocks files yet. Either set DOWNLOAD_URL or GIT_REPO and reinstall, or upload roboblocks-server.tar.gz\"\n  echo \"with the File Manager and unarchive it so that server/index.js sits in the server's top folder.\"\nfi\n",
+            "container": "ghcr.io/parkervcp/installers:debian",
+            "entrypoint": "bash"
+        }
+    },
+    "variables": [
+        {
+            "name": "Hosted servers",
+            "description": "Comma-separated server ids to host from servers.json, or \"all\". Defaults: sv-scrap, sv-beacon, sv-last, sv-war.",
+            "env_variable": "BC_SERVERS",
+            "default_value": "all",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "AI level",
+            "description": "Pilot level (1-10) used for AI bots: sets their armor tier, CPU budget and weapon mark.",
+            "env_variable": "BC_AI_LEVEL",
+            "default_value": "5",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,10",
+            "field_type": "text"
+        },
+        {
+            "name": "Max players",
+            "description": "Most browser players allowed on this server at once.",
+            "env_variable": "BC_MAX_CLIENTS",
+            "default_value": "64",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|integer|between:1,500",
+            "field_type": "text"
+        },
+        {
+            "name": "Run matches when empty",
+            "description": "1 keeps AI-only matches running with nobody online. 0 idles each server in warmup until a player joins, which saves CPU.",
+            "env_variable": "BC_IDLE_MATCHES",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|boolean",
+            "field_type": "text"
+        },
+        {
+            "name": "Download URL",
+            "description": "Optional. A .tar.gz of the server files. Used by the installer, and on every restart to update (a GitHub \"releases/latest/download/...\" link always points at the newest release).",
+            "env_variable": "DOWNLOAD_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Git repository",
+            "description": "Optional. A Git repo with the server files (package.json, server/, public/, vendor/). Used by the installer and to update on restart; needs git in the container.",
+            "env_variable": "GIT_REPO",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:500",
+            "field_type": "text"
+        },
+        {
+            "name": "Git branch",
+            "description": "Optional branch for the Git repository.",
+            "env_variable": "GIT_BRANCH",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:100",
+            "field_type": "text"
+        },
+        {
+            "name": "Trust reverse proxy",
+            "description": "1 reads player addresses from X-Forwarded-For. Turn on only behind your own reverse proxy, so IP bans hit the right address.",
+            "env_variable": "BC_TRUST_PROXY",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Require accounts",
+            "description": "1 means only signed-in pilots can play here, so every pilot's progress and garage is saved on this server.",
+            "env_variable": "BC_REQUIRE_ACCOUNT",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord webhook",
+            "description": "Optional Discord channel webhook URL. Match results from the hosted servers are posted there.",
+            "env_variable": "BC_DISCORD_WEBHOOK",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:300",
+            "field_type": "text"
+        },
+        {
+            "name": "Discord invite",
+            "description": "Optional Discord invite link shown on the tester page at /join.",
+            "env_variable": "BC_DISCORD_INVITE",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Server name",
+            "description": "The name shown for this server in the in-game server browser.",
+            "env_variable": "BC_NAME",
+            "default_value": "RoboBlocks server",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|max:40",
+            "field_type": "text"
+        },
+        {
+            "name": "Public address",
+            "description": "The address players open, e.g. https://play.example.com. Needed to be listed in the server browser.",
+            "env_variable": "BC_PUBLIC_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Act as hub",
+            "description": "1 makes this server the server-browser hub that other RoboBlocks servers report to.",
+            "env_variable": "BC_HUB",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Hub address",
+            "description": "Address of a hub server (one with BC_HUB=1). This server reports to it and shows its list in the server browser.",
+            "env_variable": "BC_HUB_URL",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Auto update",
+            "description": "1 installs a newer server version on every restart, keeping your data and settings. 0 turns it off (the 'update' console command still works).",
+            "env_variable": "AUTO_UPDATE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Update from server",
+            "description": "Optional. The address of another RoboBlocks server (for example your hub) to copy updates from. It shares its files at /server-package.tar.gz.",
+            "env_variable": "UPDATE_FROM",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
+            "field_type": "text"
+        },
+        {
+            "name": "Update check (hours)",
+            "description": "How often a running server checks for a newer version and says so in the console and admin page. 0 turns the check off.",
+            "env_variable": "BC_UPDATE_CHECK_HOURS",
+            "default_value": "6",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|min:0|max:168",
+            "field_type": "text"
+        },
+        {
+            "name": "Share server package",
+            "description": "1 lets other RoboBlocks servers update from this one (UPDATE_FROM). The package never includes your data, servers.json or balance.json.",
+            "env_variable": "BC_SHARE_PACKAGE",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        }
+    ]
+}

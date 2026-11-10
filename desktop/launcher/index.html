@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'; img-src 'self' data:">
+<title>RoboBlocks</title>
+<style>
+  :root { --bg: #0b0f13; --panel: #141b22; --line: #26313a; --fg: #e9edf0; --muted: #8a98a4; --accent: #ff8a1f; --good: #5fd36a; --bad: #ff6a5a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.45 "Segoe UI", system-ui, -apple-system, Roboto, sans-serif; user-select: none; }
+  body { display: grid; grid-template-columns: 1fr 340px; grid-template-rows: auto 1fr auto; height: 100vh; }
+  header { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 14px; padding: 22px 28px 6px; }
+  .logo { font-weight: 800; font-size: 44px; letter-spacing: .02em; line-height: 1; }
+  .logo i { font-style: normal; color: var(--accent); }
+  .tag { color: var(--muted); }
+  main { padding: 10px 28px; overflow: auto; position: relative; }
+  main::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 40%, #1b2a36 0%, transparent 60%), repeating-linear-gradient(60deg, transparent 0 38px, #ffffff06 38px 40px), repeating-linear-gradient(-60deg, transparent 0 38px, #ffffff06 38px 40px); pointer-events: none; }
+  h2 { font-size: 12px; letter-spacing: .16em; color: var(--muted); margin: 14px 0 8px; font-weight: 600; position: relative; }
+  .news { position: relative; background: #141b22cc; border: 1px solid var(--line); padding: 14px 16px; }
+  .news b { font-size: 18px; }
+  .news ul { margin: 8px 0 0; padding-left: 18px; color: #c9d3d9; }
+  .news li { margin: 4px 0; }
+  aside { grid-row: 2 / 4; grid-column: 2; background: var(--panel); border-left: 1px solid var(--line); padding: 22px; display: flex; flex-direction: column; gap: 14px; }
+  label { font-size: 12px; letter-spacing: .12em; color: var(--muted); }
+  .row { display: flex; gap: 8px; }
+  input[type=text] { flex: 1; min-width: 0; background: #0e1419; border: 1px solid var(--line); color: var(--fg); padding: 9px 10px; font: inherit; user-select: text; }
+  button { background: #1d262e; color: var(--fg); border: 1px solid var(--line); padding: 9px 14px; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .5; cursor: default; }
+  #play { background: var(--accent); color: #111; border: 0; font-size: 26px; font-weight: 800; letter-spacing: .08em; padding: 18px; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%); }
+  #play:hover:not(:disabled) { filter: brightness(1.1); }
+  .bar { height: 6px; background: #0e1419; border: 1px solid var(--line); }
+  .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  #status { min-height: 40px; font-size: 13px; color: #c9d3d9; }
+  #status.bad { color: var(--bad); } #status.good { color: var(--good); }
+  .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #c9d3d9; cursor: pointer; }
+  .meta { margin-top: auto; font-size: 12px; color: var(--muted); }
+  #self { display: none; border-left: 3px solid var(--accent); padding: 8px 10px; background: #2b2116; font-size: 13px; }
+  footer { grid-column: 1; padding: 10px 28px 18px; color: var(--muted); font-size: 12px; }
+  a { color: var(--accent); cursor: pointer; }
+</style>
+</head>
+<body>
+  <header><div class="logo">ROBO<i>BLOCKS</i></div><div class="tag">Build it from blocks. Break it apart in battle.</div></header>
+  <main>
+    <h2>WHAT'S NEW</h2>
+    <div class="news" id="news"><b>Welcome</b><ul><li>Enter your game server's address on the right. The launcher downloads the game from it and keeps it up to date.</li><li>You can also play against AI without a server.</li></ul></div>
+  </main>
+  <aside>
+    <button id="play">PLAY</button>
+    <div class="bar"><i id="prog"></i></div>
+    <div id="status">Starting…</div>
+    <div id="self"></div>
+    <div><label for="server">GAME SERVER</label>
+      <div class="row" style="margin-top:6px"><input type="text" id="server" placeholder="play.example.com:8080" spellcheck="false"><button id="save">Save</button></div></div>
+    <button id="check">Check for updates</button>
+    <label class="check"><input type="checkbox" id="fullscreen"> Start in fullscreen (F11 toggles)</label>
+    <label class="check"><input type="checkbox" id="hide"> Hide the launcher while playing</label>
+    <label class="check"><input type="checkbox" id="auto"> Skip the launcher and start the game</label>
+    <div class="meta" id="meta"></div>
+  </aside>
+  <footer>Updates download from your game server automatically when the launcher starts and every 10 minutes while you play.</footer>
+<script src="launcher.js"></script>
+</body>
+</html>

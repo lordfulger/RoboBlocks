@@ -1,0 +1,94 @@
+{
+  "name": "roboblocks",
+  "productName": "RoboBlocks",
+  "version": "1.0.0",
+  "description": "RoboBlocks desktop app: a launcher that keeps the game up to date and runs it in its own window.",
+  "main": "main.js",
+  "author": "RoboBlocks",
+  "license": "UNLICENSED",
+  "roboblocks": {
+    "defaultServer": ""
+  },
+  "scripts": {
+    "bundle": "node scripts/bundle-game.js",
+    "start": "npm run bundle && electron .",
+    "dist": "npm run bundle && electron-builder",
+    "dist:win": "npm run bundle && electron-builder --win",
+    "dist:mac": "npm run bundle && electron-builder --mac",
+    "dist:linux": "npm run bundle && electron-builder --linux"
+  },
+  "dependencies": {
+    "electron-updater": "6.6.2"
+  },
+  "devDependencies": {
+    "electron": "39.8.10",
+    "electron-builder": "26.0.12"
+  },
+  "build": {
+    "appId": "com.roboblocks.app",
+    "productName": "RoboBlocks",
+    "artifactName": "RoboBlocks-${version}-${os}-${arch}.${ext}",
+    "files": [
+      "main.js",
+      "preload-*.js",
+      "launcher/**",
+      "game-fallback/**",
+      "build/icon.png",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "RoboBlocks"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg"
+        },
+        {
+          "target": "zip"
+        }
+      ],
+      "category": "public.app-category.games",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Game",
+      "icon": "build/icon.png",
+      "maintainer": "RoboBlocks"
+    },
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://your-game-server.example/downloads/"
+      }
+    ]
+  }
+}
