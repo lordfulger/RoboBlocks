@@ -5,6 +5,7 @@
   "description": "RoboBlocks desktop app: a launcher that keeps the game up to date and runs it in its own window.",
   "main": "main.js",
   "author": "RoboBlocks",
+  "homepage": "https://github.com/lordfulger/RoboBlocks",
   "license": "UNLICENSED",
   "roboblocks": {
     "defaultServer": ""
@@ -82,7 +83,7 @@
       ],
       "category": "Game",
       "icon": "build/icon.png",
-      "maintainer": "RoboBlocks"
+      "maintainer": "RoboBlocks <roboblocks@example.com>"
     },
     "publish": [
       {
