@@ -184,14 +184,14 @@ function finishMatch() {
   { const tp = techEarned() - tpBefore; if (tp > 0) html += `<div class="unlock">+${tp} tech points${after > before ? ' for reaching level ' + after : ' for a new rank'}. You have ${techAvail()} to spend in the <a href="#" id="ovTech">Tech Tree</a>.</div>`; }
   html += medalsHtml() + surveyHtml();
   if (match.net) html += `<p id="nextIn" class="next"></p><div class="btns"><button class="primary" id="ovLobby">Leave to lobby</button><button id="ovMenu">Main menu</button></div>`;
-  else html += `<div class="btns"><button class="primary" id="ovAgain">Battle again</button><button id="ovReplay">Watch replay</button><button id="ovGarage">Garage</button><button id="ovMenu">Main menu</button></div>`;
+  else html += `<div class="btns"><button class="primary" id="ovAgain">Battle again</button><button id="ovReplay">Watch replay</button><button id="ovShare">Share replay</button><button id="ovGarage">Garage</button><button id="ovMenu">Main menu</button></div>`;
   showOverlay(html);
   if ($('#ovTech')) $('#ovTech').onclick = e => { e.preventDefault(); if (match.net) showTechTree('battle'); else { hideOverlay(); toMenu(); showTechTree('menu'); } };
   wireSurvey(match.mode, match.mapId);
   if (match.mode !== 'test') progMatchEnd(p, { result, mode: match.mode, map: match.mapId, xp }).then(notes => { if (!notes.length || !$('#ovBox')) return; const d = document.createElement('div'); d.className = 'unlock'; d.innerHTML = notes.map(esc).join('<br>'); const b = $('#ovBox .btns'); if (b) b.before(d); }).catch(() => { });
   if (match.net) { $('#ovLobby').onclick = () => { hideOverlay(); toMenu(); showLobby(); }; $('#ovMenu').onclick = () => { hideOverlay(); toMenu(); }; match.done = true; return; }
   $('#ovAgain').onclick = () => { hideOverlay(); leaveBattle(); startBattle(setupSel); };
-  $('#ovReplay').onclick = () => startReplay();
+  $('#ovReplay').onclick = () => startReplay(); if ($('#ovShare')) $('#ovShare').onclick = () => shareReplay();
   $('#ovGarage').onclick = () => { hideOverlay(); toGarage(); };
   $('#ovMenu').onclick = () => { hideOverlay(); toMenu(); };
   match.done = true;
@@ -338,7 +338,7 @@ function showHelp() {
 }
 $('#mPlay').onclick = () => { SFX.init(); SFX.ui(); showSetup(); };
 $('#mQuick').onclick = () => { SFX.init(); SFX.ui(); quickPlay(); };
-$('#mReplay').onclick = () => { SFX.init(); SFX.ui(); startReplay(); };
+$('#mReplay').onclick = () => { SFX.init(); SFX.ui(); showReplayMenu(); };
 $('#mOnline').onclick = () => { SFX.init(); SFX.ui(); if (NET.requireAccount && !BE.me) { toast('This server needs an account. Sign in or create one.'); showAccount(() => { if (BE.me) showLobby(); else backToMenu(); }); return; } showLobby(); };
 $('#mGarage').onclick = () => { SFX.init(); SFX.ui(); toGarage(); };
 $('#mTest').onclick = () => { SFX.init(); SFX.ui(); startBattle({ mode: 'test' }); };

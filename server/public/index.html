@@ -395,7 +395,7 @@ body.touch #mods{right:auto;left:50%;transform:translateX(-50%);bottom:calc(64px
 .medal{flex:1;min-width:110px;background:#0d1114;border:1px solid var(--line);padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px}
 .medal .mi{font-size:22px;color:#ffd36a}.medal span:last-child{color:var(--muted)}.medal.me{border-color:var(--accent)}
 #replayBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;padding:8px 12px;z-index:40;width:min(820px,calc(100vw - 24px));font-size:13px}
-#replayBar[hidden]{display:none}#replayBar input{flex:1;min-width:80px}#replayBar #rpWho{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+#replayBar[hidden]{display:none}#shareBox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;width:min(460px,calc(100vw - 32px));padding:18px 20px}#shareBox[hidden]{display:none}#shareBox>b{font-size:18px;letter-spacing:.04em}#shareBox p{font-size:14px;line-height:1.45}#shareBox .x{position:absolute;right:10px;top:10px;padding:4px 9px}#shareBox input{display:block;width:100%;margin-top:8px;font:inherit;padding:8px;box-sizing:border-box}#shareBox .btns{display:flex;gap:8px;flex-wrap:wrap}#replayBar input{flex:1;min-width:80px}#replayBar #rpWho{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
 .bayCard{background:#0d1114;border:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:3px;min-width:0}
 .bayCard.cur{border-color:var(--accent)}.bayCard img{width:100%;height:auto;aspect-ratio:22/15;background:radial-gradient(#26313a,#11161a)}.bayCard span{font-size:12px;color:var(--muted)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;font-size:14px}.keys kbd{font-family:var(--display);font-size:12px;border:1px solid var(--line);padding:2px 6px;white-space:nowrap;justify-self:start}
@@ -512,7 +512,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <button id="mPass">Battle pass</button>
     <button id="mParty">Party</button>
     <button id="mFriends">Friends</button>
-    <button id="mReplay">Last replay</button>
+    <button id="mReplay">Replays</button>
     <button id="mLeader">Leaderboards</button>
     <button id="mShop">Robot Shop</button>
     <button id="mTut">Tutorial</button>
@@ -615,7 +615,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 
 <div id="chat" hidden><div id="chatLog"></div><div class="crow"><button id="chatScope">TEAM</button><input id="chatIn" maxlength="140" spellcheck="false" autocomplete="off" placeholder="Enter to send · Tab: team/all · /mute name"></div></div>
 <div id="partyInv" class="panel" hidden><span></span><button class="primary ok">Join party</button><button class="no">No thanks</button></div>
-<div id="replayBar" class="panel" hidden><button id="rpPlay">❚❚</button><button id="rpSpeed">1×</button><input id="rpSlider" type="range" min="0" max="100" value="0"><span id="rpTime" class="num"></span><span id="rpWho"></span><button id="rpNext">Next bot</button><button id="rpExit" class="primary">Exit</button></div>
+<div id="replayBar" class="panel" hidden><button id="rpPlay">❚❚</button><button id="rpSpeed">1×</button><input id="rpSlider" type="range" min="0" max="100" value="0"><span id="rpTime" class="num"></span><span id="rpWho"></span><button id="rpNext">Next bot</button><button id="rpShare">Share</button><button id="rpExit" class="primary">Exit</button></div>
 <pre id="perf" class="panel" hidden></pre>
 <div id="updBanner" class="panel" hidden><span></span><button class="primary">Refresh</button></div>
 <div id="netBanner" class="panel" hidden>Connection lost. Reconnecting…</div>
@@ -797,7 +797,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
-  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.', 'Quick Play looks across every RoboBlocks server and takes you to the busiest room at your level, even on another server.', 'Damage numbers are coloured by the weapon that dealt them, and every hit varies a little (90 to 110%).', 'A short guide explains Play online the first time you open it.', 'Tech Tree upgrades: Calibrated Barrels, Shaped Warheads, Overcharged Capacitors, Autoloaders, Heat Sinks, Fuel Cells and Module Chargers improve your own bot, rank by rank. Two more CPU Cores at levels 9 and 10.', 'Weekly challenges: three bigger goals every week, each worth up to 900 XP and 2 tech points, next to your daily quests.', 'Weekend events: every battle on Saturday and Sunday gives 1.5× XP (servers can change this with BC_WEEKEND_XP).']],
+  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.', 'Quick Play looks across every RoboBlocks server and takes you to the busiest room at your level, even on another server.', 'Damage numbers are coloured by the weapon that dealt them, and every hit varies a little (90 to 110%).', 'A short guide explains Play online the first time you open it.', 'Tech Tree upgrades: Calibrated Barrels, Shaped Warheads, Overcharged Capacitors, Autoloaders, Heat Sinks, Fuel Cells and Module Chargers improve your own bot, rank by rank. Two more CPU Cores at levels 9 and 10.', 'Weekly challenges: three bigger goals every week, each worth up to 900 XP and 2 tech points, next to your daily quests.', 'Weekend events: every battle on Saturday and Sunday gives 1.5× XP (servers can change this with BC_WEEKEND_XP).', 'Shareable replays: Share replay on the end screen (or Replays on the main menu) uploads it to the server and gives you a link anyone can watch, or saves a .rbreplay file to send.']],
   ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.', 'Better flying: Space climbs and C descends quickly, and letting go holds your height. Helicopters respond faster, planes climb and dive toward where you aim, and C drops jump-jet bots faster.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
@@ -7408,14 +7408,14 @@ function finishMatch() {
   { const tp = techEarned() - tpBefore; if (tp > 0) html += `<div class="unlock">+${tp} tech points${after > before ? ' for reaching level ' + after : ' for a new rank'}. You have ${techAvail()} to spend in the <a href="#" id="ovTech">Tech Tree</a>.</div>`; }
   html += medalsHtml() + surveyHtml();
   if (match.net) html += `<p id="nextIn" class="next"></p><div class="btns"><button class="primary" id="ovLobby">Leave to lobby</button><button id="ovMenu">Main menu</button></div>`;
-  else html += `<div class="btns"><button class="primary" id="ovAgain">Battle again</button><button id="ovReplay">Watch replay</button><button id="ovGarage">Garage</button><button id="ovMenu">Main menu</button></div>`;
+  else html += `<div class="btns"><button class="primary" id="ovAgain">Battle again</button><button id="ovReplay">Watch replay</button><button id="ovShare">Share replay</button><button id="ovGarage">Garage</button><button id="ovMenu">Main menu</button></div>`;
   showOverlay(html);
   if ($('#ovTech')) $('#ovTech').onclick = e => { e.preventDefault(); if (match.net) showTechTree('battle'); else { hideOverlay(); toMenu(); showTechTree('menu'); } };
   wireSurvey(match.mode, match.mapId);
   if (match.mode !== 'test') progMatchEnd(p, { result, mode: match.mode, map: match.mapId, xp }).then(notes => { if (!notes.length || !$('#ovBox')) return; const d = document.createElement('div'); d.className = 'unlock'; d.innerHTML = notes.map(esc).join('<br>'); const b = $('#ovBox .btns'); if (b) b.before(d); }).catch(() => { });
   if (match.net) { $('#ovLobby').onclick = () => { hideOverlay(); toMenu(); showLobby(); }; $('#ovMenu').onclick = () => { hideOverlay(); toMenu(); }; match.done = true; return; }
   $('#ovAgain').onclick = () => { hideOverlay(); leaveBattle(); startBattle(setupSel); };
-  $('#ovReplay').onclick = () => startReplay();
+  $('#ovReplay').onclick = () => startReplay(); if ($('#ovShare')) $('#ovShare').onclick = () => shareReplay();
   $('#ovGarage').onclick = () => { hideOverlay(); toGarage(); };
   $('#ovMenu').onclick = () => { hideOverlay(); toMenu(); };
   match.done = true;
@@ -7562,7 +7562,7 @@ function showHelp() {
 }
 $('#mPlay').onclick = () => { SFX.init(); SFX.ui(); showSetup(); };
 $('#mQuick').onclick = () => { SFX.init(); SFX.ui(); quickPlay(); };
-$('#mReplay').onclick = () => { SFX.init(); SFX.ui(); startReplay(); };
+$('#mReplay').onclick = () => { SFX.init(); SFX.ui(); showReplayMenu(); };
 $('#mOnline').onclick = () => { SFX.init(); SFX.ui(); if (NET.requireAccount && !BE.me) { toast('This server needs an account. Sign in or create one.'); showAccount(() => { if (BE.me) showLobby(); else backToMenu(); }); return; } showLobby(); };
 $('#mGarage').onclick = () => { SFX.init(); SFX.ui(); toGarage(); };
 $('#mTest').onclick = () => { SFX.init(); SFX.ui(); startBattle({ mode: 'test' }); };
@@ -8156,6 +8156,61 @@ function recTick(dt) {
 }
 function recShot(owner, type, from, aim) { if (!REC.on || REC.shots.length > 20000) return; const i = world.bots.indexOf(owner); if (i >= 0) REC.shots.push([REC.t, i, type, r1(from.x), r1(from.y), r1(from.z), r1(aim.x), r1(aim.y), r1(aim.z)]); }
 function recStop() { if (!REC.on) return; REC.on = false; if (REC.frames.length > 10) LAST_REPLAY.data = { meta: REC.meta, bots: REC.bots, frames: REC.frames, shots: REC.shots }; }
+// ---------- sharing replays: upload to this server for a link, or save / open a .rbreplay file ----------
+async function replayPack(R) {
+  const json = JSON.stringify({ v: 1, game: BC_VERSION, meta: R.meta, bots: R.bots.map(b => b.me && b.name === 'You' ? { ...b, name: cleanName(NET.name || '') || 'Pilot' } : b), frames: R.frames, shots: R.shots });
+  return new Uint8Array(await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+}
+async function replayUnpack(buf) {
+  let R; try { R = JSON.parse(await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text()); } catch (e) { throw new Error('That is not a RoboBlocks replay.'); }
+  if (!R || !R.meta || !MAPS[R.meta.map] || !Array.isArray(R.bots) || !Array.isArray(R.frames) || R.frames.length < 2 || !Array.isArray(R.shots)) throw new Error('That is not a RoboBlocks replay.');
+  R.bots = R.bots.slice(0, 64).map(b => ({ design: b.design, team: b.team | 0, name: cleanName(String(b.name || '')) || 'Pilot', me: false }));
+  R.shots = R.shots.filter(x => Array.isArray(x) && WEAPONS[x[2]] && R.bots[x[1]]);
+  return R;
+}
+const replayCanUpload = () => !onClaudePage() && /^https?:$/.test(location.protocol) && BE.kind === 'server';
+function replayBox(html) {
+  let el = $('#shareBox'); if (!el) { el = document.createElement('div'); el.id = 'shareBox'; el.className = 'panel'; document.body.appendChild(el); }
+  el.innerHTML = `<button class="x" title="Close">✕</button>${html}`; el.hidden = false; el.querySelector('.x').onclick = () => { el.hidden = true; };
+  return el;
+}
+async function shareReplay() {
+  const R = LAST_REPLAY.data; if (!R) { toast('No replay yet. Finish a battle first.'); return; }
+  if (RP.on) RP.playing = false;
+  const el = replayBox(`<b>Share replay</b><p>${replayCanUpload() ? 'Uploading…' : 'Save the replay as a file and send it to a friend. They open it from Last replay, Open replay file.'}</p><div class="btns"><button id="shSave">Save replay file</button></div>`);
+  let data; try { data = await replayPack(R); } catch (e) { el.querySelector('p').textContent = 'Could not pack the replay: ' + e.message; return; }
+  el.querySelector('#shSave').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' })); a.download = `roboblocks-${R.meta.map}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.rbreplay`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
+  if (!replayCanUpload()) return;
+  try {
+    const r = await fetch('/replay', { method: 'POST', body: data, headers: { 'Content-Type': 'application/octet-stream' } }), j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.id) throw new Error(j.e || 'The server said no (' + r.status + ').');
+    const link = location.origin + '/#replay=' + j.id; LAST_REPLAY.link = link;
+    el.querySelector('p').innerHTML = `Anyone with this link can watch it, in a browser or the RoboBlocks app:<input id="shLink" readonly>`;
+    const inp = el.querySelector('#shLink'); inp.value = link; inp.onclick = () => inp.select();
+    const b = document.createElement('button'); b.className = 'primary'; b.textContent = 'Copy link'; el.querySelector('.btns').prepend(b);
+    b.onclick = async () => { try { await navigator.clipboard.writeText(link); b.textContent = 'Copied'; } catch (e) { inp.select(); document.execCommand('copy'); b.textContent = 'Copied'; } };
+  } catch (e) { el.querySelector('p').textContent = 'Could not upload: ' + e.message + ' You can still save it as a file.'; }
+}
+function openReplayFile() {
+  const f = document.createElement('input'); f.type = 'file'; f.accept = '.rbreplay,application/octet-stream';
+  f.onchange = async () => { const file = f.files && f.files[0]; if (!file) return; if (file.size > 8 * 1024 * 1024) { toast('That file is too large.'); return; } try { LAST_REPLAY.data = await replayUnpack(await file.arrayBuffer()); LAST_REPLAY.link = ''; const b = $('#shareBox'); if (b) b.hidden = true; startReplay(); } catch (e) { toast(e.message); } };
+  f.click();
+}
+function showReplayMenu() {
+  const R = LAST_REPLAY.data;
+  const el = replayBox(`<b>Replays</b><p>${R ? `Your last battle: ${esc(MODES[R.meta.mode] ? MODES[R.meta.mode].name : R.meta.mode)} on ${esc(MAPS[R.meta.map].name)}, ${Math.round(R.frames[R.frames.length - 1].t / 60)} min.` : 'Finish a battle to record a replay, or open one a friend sent you.'}</p><div class="btns">${R ? '<button class="primary" id="rmWatch">Watch</button><button id="rmShare">Share</button>' : ''}<button id="rmOpen">Open replay file</button></div>`);
+  if (R) { el.querySelector('#rmWatch').onclick = () => { el.hidden = true; startReplay(); }; el.querySelector('#rmShare').onclick = shareReplay; }
+  el.querySelector('#rmOpen').onclick = openReplayFile;
+}
+// a #replay=<id> link: fetch it from this server and play it
+async function replayHashCheck() {
+  const id = (location.hash.match(/^#replay=([a-z0-9]{10})$/) || [])[1]; if (!id) return;
+  history.replaceState(null, '', location.pathname);
+  toast('Loading replay…');
+  try { const r = await fetch('/replay/' + id); if (!r.ok) throw new Error(r.status === 404 ? 'That replay is no longer on this server.' : 'Could not load the replay.'); LAST_REPLAY.data = await replayUnpack(await r.arrayBuffer()); LAST_REPLAY.link = location.origin + '/#replay=' + id; startReplay(); }
+  catch (e) { toast(e.message); }
+}
+if (!HEADLESS) { const rpWait = () => { if (typeof state !== 'undefined' && state === 'menu' && window.__sfa && $('#menu') && !$('#menu').hidden) replayHashCheck(); else setTimeout(rpWait, 800); }; setTimeout(rpWait, 1500); addEventListener('hashchange', () => { if (/^#replay=/.test(location.hash) && state === 'menu') replayHashCheck(); }); }
 const RP = { on: false, t: 0, speed: 1, playing: true, bots: [], si: 0, follow: 0 };
 function startReplay() {
   const R = LAST_REPLAY.data; if (!R) { toast('No replay yet. Finish a battle first.'); return; }
@@ -8168,7 +8223,7 @@ function startReplay() {
   state = 'replay'; $('#menu').hidden = true; $('#garage').hidden = true; $('#hud').hidden = true; $('#replayBar').hidden = false;
   $('#rpSlider').max = Math.floor(R.frames[R.frames.length - 1].t * 10); Music.play('battle');
 }
-function stopReplay() { RP.on = false; $('#replayBar').hidden = true; clearBattle(); match = null; toMenu(); }
+function stopReplay() { RP.on = false; $('#replayBar').hidden = true; { const b = $('#shareBox'); if (b) b.hidden = true; } clearBattle(); match = null; toMenu(); }
 const _rpA = new T.Vector3();
 function updateReplay(dt) {
   const R = LAST_REPLAY.data; if (!R) return;
@@ -8206,6 +8261,7 @@ function updateReplay(dt) {
   $('#rpPlay').onclick = () => { RP.playing = !RP.playing; $('#rpPlay').textContent = RP.playing ? '❚❚' : '▶'; };
   $('#rpSpeed').onclick = () => { RP.speed = RP.speed >= 4 ? .5 : RP.speed * 2; $('#rpSpeed').textContent = RP.speed + '×'; };
   $('#rpNext').onclick = () => { for (let k = 1; k <= RP.bots.length; k++) { const j = (RP.follow + k) % RP.bots.length; if (!RP.bots[j].dead) { RP.follow = j; break; } } };
+  $('#rpShare').onclick = () => shareReplay();
   $('#rpExit').onclick = stopReplay;
   let drag = null; // drag to turn the replay camera
   canvas.addEventListener('pointerdown', e => { if (state === 'replay') drag = { x: e.clientX, y: e.clientY }; });
@@ -9345,6 +9401,7 @@ function techCard() {
     ${st === 'ready' ? `<button class="primary" id="ttBuy">Unlock for ${n.cost} ★</button>` : ''}`;
   if ($('#ttBuy')) $('#ttBuy').onclick = () => techBuyUI(id);
 }
+Object.assign(window.__sfa, { LAST_REPLAY, replayPack, replayUnpack, shareReplay, showReplayMenu });
 Object.assign(window.__sfa, { weeklyNow, WEEKLY, PROG, showQuests, eventXp, get progress() { return progress; } });
 Object.assign(window.__sfa, { TECH_UP, upRank, upDmg, TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
 Object.assign(window.__sfa, { SPLASH, mobility, Bot, WEAPONS, PARTS, TIERS, BAL, HEAT, TESLA, computeStats });

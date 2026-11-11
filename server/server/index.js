@@ -112,6 +112,8 @@ const DOWNLOADS = path.join(ROOT, 'downloads');
 
 // ---------- accounts, relay + hosts ----------
 const db = new DB(path.join(ROOT, 'data'), log);
+const { Replays } = require('./replays');
+const replays = new Replays(path.join(ROOT, 'data', 'replays'), { keep: Math.max(10, Math.min(5000, +env.BC_REPLAYS_KEEP || 300)), log });
 setExtraWords(db.d.words);
 const startedAt = Date.now();
 // ---------- updates: share this package with other servers, and check for newer ones ----------
@@ -340,6 +342,8 @@ const httpServer = http.createServer((req, res) => {
   if (url === '/servers' && req.method === 'GET') { serverList(req).then(j => { res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify(j)); }).catch(() => { res.writeHead(500); res.end(); }); return; }
   if (url === '/hub/list' && IS_HUB) { res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify({ servers: [selfEntry(req), ...hubEntries()] })); return; }
   if (url === '/hub/beat' && IS_HUB && req.method === 'POST') { const fwd = TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); hubBeat(req, res, (fwd || req.socket.remoteAddress || '').replace(/^::ffff:/, '')).catch(() => { try { res.writeHead(500); res.end(); } catch (e) { } }); return; }
+  if (url === '/replay' && req.method === 'POST') { const fwd = TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); replays.upload(req, res, (fwd || req.socket.remoteAddress || '').replace(/^::ffff:/, '')); return; }
+  if (url.startsWith('/replay/') && req.method === 'GET') { replays.serve(url.slice(8), res); return; }
   if (url === '/status') {
     res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
     res.end(JSON.stringify({ name: 'RoboBlocks', server: SERVER_NAME, version: VERSION, serverVersion: (() => { try { return require('../package.json').version; } catch (e) { return VERSION; } })(), players: relay.humanCount, maxPlayers: MAX_CLIENTS, weekendXp: weekendMul(), servers: hosts.map(h => ({ id: h.id, name: (SERVERS.find(s => s.id === h.id) || {}).name, ...h.status() })) }));

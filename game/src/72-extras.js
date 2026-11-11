@@ -111,6 +111,61 @@ function recTick(dt) {
 }
 function recShot(owner, type, from, aim) { if (!REC.on || REC.shots.length > 20000) return; const i = world.bots.indexOf(owner); if (i >= 0) REC.shots.push([REC.t, i, type, r1(from.x), r1(from.y), r1(from.z), r1(aim.x), r1(aim.y), r1(aim.z)]); }
 function recStop() { if (!REC.on) return; REC.on = false; if (REC.frames.length > 10) LAST_REPLAY.data = { meta: REC.meta, bots: REC.bots, frames: REC.frames, shots: REC.shots }; }
+// ---------- sharing replays: upload to this server for a link, or save / open a .rbreplay file ----------
+async function replayPack(R) {
+  const json = JSON.stringify({ v: 1, game: BC_VERSION, meta: R.meta, bots: R.bots.map(b => b.me && b.name === 'You' ? { ...b, name: cleanName(NET.name || '') || 'Pilot' } : b), frames: R.frames, shots: R.shots });
+  return new Uint8Array(await new Response(new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+}
+async function replayUnpack(buf) {
+  let R; try { R = JSON.parse(await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text()); } catch (e) { throw new Error('That is not a RoboBlocks replay.'); }
+  if (!R || !R.meta || !MAPS[R.meta.map] || !Array.isArray(R.bots) || !Array.isArray(R.frames) || R.frames.length < 2 || !Array.isArray(R.shots)) throw new Error('That is not a RoboBlocks replay.');
+  R.bots = R.bots.slice(0, 64).map(b => ({ design: b.design, team: b.team | 0, name: cleanName(String(b.name || '')) || 'Pilot', me: false }));
+  R.shots = R.shots.filter(x => Array.isArray(x) && WEAPONS[x[2]] && R.bots[x[1]]);
+  return R;
+}
+const replayCanUpload = () => !onClaudePage() && /^https?:$/.test(location.protocol) && BE.kind === 'server';
+function replayBox(html) {
+  let el = $('#shareBox'); if (!el) { el = document.createElement('div'); el.id = 'shareBox'; el.className = 'panel'; document.body.appendChild(el); }
+  el.innerHTML = `<button class="x" title="Close">✕</button>${html}`; el.hidden = false; el.querySelector('.x').onclick = () => { el.hidden = true; };
+  return el;
+}
+async function shareReplay() {
+  const R = LAST_REPLAY.data; if (!R) { toast('No replay yet. Finish a battle first.'); return; }
+  if (RP.on) RP.playing = false;
+  const el = replayBox(`<b>Share replay</b><p>${replayCanUpload() ? 'Uploading…' : 'Save the replay as a file and send it to a friend. They open it from Last replay, Open replay file.'}</p><div class="btns"><button id="shSave">Save replay file</button></div>`);
+  let data; try { data = await replayPack(R); } catch (e) { el.querySelector('p').textContent = 'Could not pack the replay: ' + e.message; return; }
+  el.querySelector('#shSave').onclick = () => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' })); a.download = `roboblocks-${R.meta.map}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.rbreplay`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); };
+  if (!replayCanUpload()) return;
+  try {
+    const r = await fetch('/replay', { method: 'POST', body: data, headers: { 'Content-Type': 'application/octet-stream' } }), j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.id) throw new Error(j.e || 'The server said no (' + r.status + ').');
+    const link = location.origin + '/#replay=' + j.id; LAST_REPLAY.link = link;
+    el.querySelector('p').innerHTML = `Anyone with this link can watch it, in a browser or the RoboBlocks app:<input id="shLink" readonly>`;
+    const inp = el.querySelector('#shLink'); inp.value = link; inp.onclick = () => inp.select();
+    const b = document.createElement('button'); b.className = 'primary'; b.textContent = 'Copy link'; el.querySelector('.btns').prepend(b);
+    b.onclick = async () => { try { await navigator.clipboard.writeText(link); b.textContent = 'Copied'; } catch (e) { inp.select(); document.execCommand('copy'); b.textContent = 'Copied'; } };
+  } catch (e) { el.querySelector('p').textContent = 'Could not upload: ' + e.message + ' You can still save it as a file.'; }
+}
+function openReplayFile() {
+  const f = document.createElement('input'); f.type = 'file'; f.accept = '.rbreplay,application/octet-stream';
+  f.onchange = async () => { const file = f.files && f.files[0]; if (!file) return; if (file.size > 8 * 1024 * 1024) { toast('That file is too large.'); return; } try { LAST_REPLAY.data = await replayUnpack(await file.arrayBuffer()); LAST_REPLAY.link = ''; const b = $('#shareBox'); if (b) b.hidden = true; startReplay(); } catch (e) { toast(e.message); } };
+  f.click();
+}
+function showReplayMenu() {
+  const R = LAST_REPLAY.data;
+  const el = replayBox(`<b>Replays</b><p>${R ? `Your last battle: ${esc(MODES[R.meta.mode] ? MODES[R.meta.mode].name : R.meta.mode)} on ${esc(MAPS[R.meta.map].name)}, ${Math.round(R.frames[R.frames.length - 1].t / 60)} min.` : 'Finish a battle to record a replay, or open one a friend sent you.'}</p><div class="btns">${R ? '<button class="primary" id="rmWatch">Watch</button><button id="rmShare">Share</button>' : ''}<button id="rmOpen">Open replay file</button></div>`);
+  if (R) { el.querySelector('#rmWatch').onclick = () => { el.hidden = true; startReplay(); }; el.querySelector('#rmShare').onclick = shareReplay; }
+  el.querySelector('#rmOpen').onclick = openReplayFile;
+}
+// a #replay=<id> link: fetch it from this server and play it
+async function replayHashCheck() {
+  const id = (location.hash.match(/^#replay=([a-z0-9]{10})$/) || [])[1]; if (!id) return;
+  history.replaceState(null, '', location.pathname);
+  toast('Loading replay…');
+  try { const r = await fetch('/replay/' + id); if (!r.ok) throw new Error(r.status === 404 ? 'That replay is no longer on this server.' : 'Could not load the replay.'); LAST_REPLAY.data = await replayUnpack(await r.arrayBuffer()); LAST_REPLAY.link = location.origin + '/#replay=' + id; startReplay(); }
+  catch (e) { toast(e.message); }
+}
+if (!HEADLESS) { const rpWait = () => { if (typeof state !== 'undefined' && state === 'menu' && window.__sfa && $('#menu') && !$('#menu').hidden) replayHashCheck(); else setTimeout(rpWait, 800); }; setTimeout(rpWait, 1500); addEventListener('hashchange', () => { if (/^#replay=/.test(location.hash) && state === 'menu') replayHashCheck(); }); }
 const RP = { on: false, t: 0, speed: 1, playing: true, bots: [], si: 0, follow: 0 };
 function startReplay() {
   const R = LAST_REPLAY.data; if (!R) { toast('No replay yet. Finish a battle first.'); return; }
@@ -123,7 +178,7 @@ function startReplay() {
   state = 'replay'; $('#menu').hidden = true; $('#garage').hidden = true; $('#hud').hidden = true; $('#replayBar').hidden = false;
   $('#rpSlider').max = Math.floor(R.frames[R.frames.length - 1].t * 10); Music.play('battle');
 }
-function stopReplay() { RP.on = false; $('#replayBar').hidden = true; clearBattle(); match = null; toMenu(); }
+function stopReplay() { RP.on = false; $('#replayBar').hidden = true; { const b = $('#shareBox'); if (b) b.hidden = true; } clearBattle(); match = null; toMenu(); }
 const _rpA = new T.Vector3();
 function updateReplay(dt) {
   const R = LAST_REPLAY.data; if (!R) return;
@@ -161,6 +216,7 @@ function updateReplay(dt) {
   $('#rpPlay').onclick = () => { RP.playing = !RP.playing; $('#rpPlay').textContent = RP.playing ? '❚❚' : '▶'; };
   $('#rpSpeed').onclick = () => { RP.speed = RP.speed >= 4 ? .5 : RP.speed * 2; $('#rpSpeed').textContent = RP.speed + '×'; };
   $('#rpNext').onclick = () => { for (let k = 1; k <= RP.bots.length; k++) { const j = (RP.follow + k) % RP.bots.length; if (!RP.bots[j].dead) { RP.follow = j; break; } } };
+  $('#rpShare').onclick = () => shareReplay();
   $('#rpExit').onclick = stopReplay;
   let drag = null; // drag to turn the replay camera
   canvas.addEventListener('pointerdown', e => { if (state === 'replay') drag = { x: e.clientX, y: e.clientY }; });

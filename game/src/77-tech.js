@@ -209,6 +209,7 @@ function techCard() {
     ${st === 'ready' ? `<button class="primary" id="ttBuy">Unlock for ${n.cost} ★</button>` : ''}`;
   if ($('#ttBuy')) $('#ttBuy').onclick = () => techBuyUI(id);
 }
+Object.assign(window.__sfa, { LAST_REPLAY, replayPack, replayUnpack, shareReplay, showReplayMenu });
 Object.assign(window.__sfa, { weeklyNow, WEEKLY, PROG, showQuests, eventXp, get progress() { return progress; } });
 Object.assign(window.__sfa, { TECH_UP, upRank, upDmg, TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
 Object.assign(window.__sfa, { SPLASH, mobility, Bot, WEAPONS, PARTS, TIERS, BAL, HEAT, TESLA, computeStats });

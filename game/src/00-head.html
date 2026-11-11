@@ -395,7 +395,7 @@ body.touch #mods{right:auto;left:50%;transform:translateX(-50%);bottom:calc(64px
 .medal{flex:1;min-width:110px;background:#0d1114;border:1px solid var(--line);padding:8px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px}
 .medal .mi{font-size:22px;color:#ffd36a}.medal span:last-child{color:var(--muted)}.medal.me{border-color:var(--accent)}
 #replayBar{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));display:flex;gap:8px;align-items:center;padding:8px 12px;z-index:40;width:min(820px,calc(100vw - 24px));font-size:13px}
-#replayBar[hidden]{display:none}#replayBar input{flex:1;min-width:80px}#replayBar #rpWho{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
+#replayBar[hidden]{display:none}#shareBox{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:80;width:min(460px,calc(100vw - 32px));padding:18px 20px}#shareBox[hidden]{display:none}#shareBox>b{font-size:18px;letter-spacing:.04em}#shareBox p{font-size:14px;line-height:1.45}#shareBox .x{position:absolute;right:10px;top:10px;padding:4px 9px}#shareBox input{display:block;width:100%;margin-top:8px;font:inherit;padding:8px;box-sizing:border-box}#shareBox .btns{display:flex;gap:8px;flex-wrap:wrap}#replayBar input{flex:1;min-width:80px}#replayBar #rpWho{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px}
 .bayCard{background:#0d1114;border:1px solid var(--line);padding:8px;display:flex;flex-direction:column;gap:3px;min-width:0}
 .bayCard.cur{border-color:var(--accent)}.bayCard img{width:100%;height:auto;aspect-ratio:22/15;background:radial-gradient(#26313a,#11161a)}.bayCard span{font-size:12px;color:var(--muted)}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;align-items:center;font-size:14px}.keys kbd{font-family:var(--display);font-size:12px;border:1px solid var(--line);padding:2px 6px;white-space:nowrap;justify-self:start}
@@ -512,7 +512,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <button id="mPass">Battle pass</button>
     <button id="mParty">Party</button>
     <button id="mFriends">Friends</button>
-    <button id="mReplay">Last replay</button>
+    <button id="mReplay">Replays</button>
     <button id="mLeader">Leaderboards</button>
     <button id="mShop">Robot Shop</button>
     <button id="mTut">Tutorial</button>
@@ -615,7 +615,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 
 <div id="chat" hidden><div id="chatLog"></div><div class="crow"><button id="chatScope">TEAM</button><input id="chatIn" maxlength="140" spellcheck="false" autocomplete="off" placeholder="Enter to send · Tab: team/all · /mute name"></div></div>
 <div id="partyInv" class="panel" hidden><span></span><button class="primary ok">Join party</button><button class="no">No thanks</button></div>
-<div id="replayBar" class="panel" hidden><button id="rpPlay">❚❚</button><button id="rpSpeed">1×</button><input id="rpSlider" type="range" min="0" max="100" value="0"><span id="rpTime" class="num"></span><span id="rpWho"></span><button id="rpNext">Next bot</button><button id="rpExit" class="primary">Exit</button></div>
+<div id="replayBar" class="panel" hidden><button id="rpPlay">❚❚</button><button id="rpSpeed">1×</button><input id="rpSlider" type="range" min="0" max="100" value="0"><span id="rpTime" class="num"></span><span id="rpWho"></span><button id="rpNext">Next bot</button><button id="rpShare">Share</button><button id="rpExit" class="primary">Exit</button></div>
 <pre id="perf" class="panel" hidden></pre>
 <div id="updBanner" class="panel" hidden><span></span><button class="primary">Refresh</button></div>
 <div id="netBanner" class="panel" hidden>Connection lost. Reconnecting…</div>
