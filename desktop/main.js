@@ -39,8 +39,21 @@ const LAST = {}; // the latest message on each channel, for a window that opens 
 const send = (ch, data) => { LAST[ch] = data; for (const w of [launcherWin, gameWin]) if (w && !w.isDestroyed()) w.webContents.send(ch, data); };
 const status = (state, extra = {}) => send('status', { state, server: cfg.server, version: gameVersion(), ...extra });
 const log = (...a) => fs.appendFile(path.join(USER, 'launcher.log'), new Date().toISOString() + ' ' + a.join(' ') + '\n', () => { });
-async function fetchT(url, ms = 15000) { const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms); try { return await fetch(url, { signal: ac.signal, cache: 'no-store' }); } finally { clearTimeout(t); } }
+// Chromium's network stack (net.fetch) reaches the same servers a browser on this computer can, through the
+// system proxy and DNS; Node's fetch is only the fallback.
+async function fetchT(url, ms = 15000) { const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms); try { return await (net && net.fetch ? net.fetch(url, { signal: ac.signal, cache: 'no-store', bypassCustomProtocolHandlers: true }) : fetch(url, { signal: ac.signal, cache: 'no-store' })); } finally { clearTimeout(t); } }
 const sha256 = b => crypto.createHash('sha256').update(b).digest('hex');
+// a plain-words reason the server could not be reached
+function reachError(e) {
+  const m = String((e && e.cause && (e.cause.code || e.cause.message)) || (e && e.message) || e), host = (() => { try { return new URL(cfg.server).host; } catch (x) { return cfg.server; } })();
+  if (e && e.name === 'AbortError' || /TIMED_OUT|ETIMEDOUT|CONNECT_TIMEOUT/.test(m)) return `${host} did not answer. Is the server running, and is that port open?`;
+  if (/CONNECTION_REFUSED|ECONNREFUSED/.test(m)) return `${host} refused the connection. Check the port number and that the server is running.`;
+  if (/NAME_NOT_RESOLVED|ENOTFOUND|EAI_AGAIN/.test(m)) return `${host} could not be found. Check the address.`;
+  if (/ADDRESS_UNREACHABLE|NETWORK_CHANGED|INTERNET_DISCONNECTED|ENETUNREACH|EHOSTUNREACH/.test(m)) return `no network route to ${host}. Check your internet connection.`;
+  if (/SSL|CERT|TLS|ERR_SSL/.test(m)) return `secure connection to ${host} failed. Try http:// instead of https://.`;
+  if (/^HTTP 404/.test(m)) return `${host} answered but is not a RoboBlocks server (or is older than 2.6).`;
+  return `${host}: ${m}`;
+}
 // returns 'current' | 'updated' | 'offline' | 'noserver' | 'error'
 async function checkForUpdate(why) {
   if (busy) return busy;
@@ -49,7 +62,7 @@ async function checkForUpdate(why) {
     status('checking');
     let man;
     try { const r = await fetchT(cfg.server + '/launcher/manifest.json'); if (!r.ok) throw new Error('HTTP ' + r.status); man = await r.json(); }
-    catch (e) { log('update check failed:', e.message); status('offline', { error: e.message }); return 'offline'; }
+    catch (e) { log('update check failed:', e.message, e.cause ? e.cause.code || e.cause.message : ''); status('offline', { error: reachError(e) }); return 'offline'; }
     if (!man || !man.version || !Array.isArray(man.files) || !man.files.length) { status('error', { error: 'The server did not send a game update list.' }); return 'error'; }
     send('news', { version: man.version, notes: Array.isArray(man.notes) ? man.notes.slice(0, 8) : [] });
     const cur = installed();

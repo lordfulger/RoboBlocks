@@ -31,9 +31,31 @@ function isNewer(r, l) { return newer(r.game, l.game) || (r.game === l.game && n
 function newer(a, b) { const pa = String(a).split(/[.-]/).map(n => parseInt(n, 10) || 0), pb = String(b).split(/[.-]/).map(n => parseInt(n, 10) || 0); for (let i = 0; i < Math.max(pa.length, pb.length); i++) { if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) > (pb[i] || 0); } return false; }
 const cleanUrl = u => { try { const x = new URL(String(u || '').trim()); return /^https?:$/.test(x.protocol) ? x.href.replace(/\/+$/, '') : ''; } catch (e) { return ''; } };
 
+// Prefer IPv4: many Docker networks hand out IPv6 DNS answers they cannot route, which makes downloads fail.
+try { require('dns').setDefaultResultOrder('ipv4first'); } catch (e) { }
+// say what actually went wrong ("fetch failed" alone hides it)
+function why(e) { const c = e && e.cause; return c ? `${c.code || c.name || 'error'}${c.hostname ? ' ' + c.hostname : ''}${c.message && !String(c.code || '').length ? ': ' + c.message : ''}` : e && e.name === 'AbortError' ? 'timed out' : (e && e.message) || String(e); }
+function hint(e) {
+  const code = String(e && e.cause && e.cause.code || '');
+  if (/ENOTFOUND|EAI_AGAIN/.test(code)) return ' (DNS lookup failed: the container cannot resolve names. Check the DNS servers in Wings\' config.yml, under docker > network.)';
+  if (/ECONNREFUSED|ENETUNREACH|EHOSTUNREACH|ETIMEDOUT|UND_ERR_CONNECT_TIMEOUT/.test(code)) return ' (no route out: the node\'s firewall or Docker network blocks outgoing connections.)';
+  if (/CERT|SSL|TLS/.test(code)) return ' (TLS problem: the container\'s certificates or clock may be wrong.)';
+  return '';
+}
+// plain curl as a second try: it uses the system's resolver and proxy settings, which sometimes work when Node's do not
+function curlGet(url, ms) {
+  return new Promise((resolve, reject) => {
+    require('child_process').execFile('curl', ['-fsSL', '--connect-timeout', '20', '--max-time', String(Math.ceil(ms / 1000)), '-A', 'RoboBlocks-server-updater', url], { encoding: 'buffer', maxBuffer: 256 * 1024 * 1024 }, (err, out) => err ? reject(err) : resolve(out));
+  });
+}
 async function get(url, ms = 60000) {
   const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms);
   try { const r = await fetch(url, { signal: ac.signal, redirect: 'follow', headers: { 'User-Agent': 'RoboBlocks-server-updater' } }); if (!r.ok) throw new Error(`HTTP ${r.status} from ${url}`); return Buffer.from(await r.arrayBuffer()); }
+  catch (e) {
+    if (/^HTTP /.test(e.message)) throw e;
+    try { return await curlGet(url, ms); }
+    catch (e2) { throw new Error(`cannot reach ${new URL(url).host}: ${why(e)}${hint(e)}`); }
+  }
   finally { clearTimeout(t); }
 }
 function source() {

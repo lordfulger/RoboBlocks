@@ -8,7 +8,7 @@ const TEXT = {
   downloading: d => [`Downloading RoboBlocks ${d.target}… ${Math.round((d.progress || 0) * 100)}%`, ''],
   current: d => [`Up to date: RoboBlocks ${d.version}.`, 'good'],
   updated: d => [d.from ? `Updated from ${d.from} to ${d.version}.` : `RoboBlocks ${d.version} is installed.`, 'good'],
-  offline: d => [`Can't reach the server (${d.error || 'offline'}). You can still play the version you have (${d.version}).`, 'bad'],
+  offline: d => [`Can't reach the server: ${d.error || 'offline'} You can still play the version you have (${d.version}).`, 'bad'],
   error: d => [`Update failed: ${d.error}. Playing ${d.version} instead.`, 'bad'],
   idle: d => [`Ready: RoboBlocks ${d.version}.`, ''],
 };
