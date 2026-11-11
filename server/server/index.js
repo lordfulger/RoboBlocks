@@ -38,6 +38,7 @@ const DEFAULT_SERVERS = [
   { id: 'sv-objective', name: 'Objective Rush', blurb: 'Capture the Core and King of the Hill.', n: 10, rot: [['ctc', 'dust'], ['koth', 'city'], ['ctc', 'frost'], ['koth', 'ash']] },
   { id: 'sv-horde', name: 'Horde Co-op', blurb: 'Team up against ten waves of AI.', n: 5, rot: [['horde', 'dust'], ['horde', 'frost'], ['horde', 'ash']] },
   { id: 'sv-orbit', name: 'Orbital Command', blurb: 'Space Battle across every space map.', n: 10, rot: [['space', 'space'], ['space', 'nebula'], ['space', 'shipyard'], ['space', 'rings']] },
+  { id: 'sv-pit', name: 'The Pit 24/7', blurb: 'Free-for-all: every bot for itself.', n: 5, rot: [['pit', 'dust', 'small'], ['pit', 'city', 'small'], ['pit', 'moon', 'small'], ['pit', 'frost', 'small']] },
   { id: 'sv-brawl', name: 'Weekly Brawl', blurb: 'This week\'s twist on team deathmatch.', n: 10, rot: [['brawl', 'dust'], ['brawl', 'city'], ['brawl', 'frost'], ['brawl', 'moon']] },
 ];
 function loadServers() {
@@ -46,6 +47,11 @@ function loadServers() {
   if (fs.existsSync(file)) {
     try { list = JSON.parse(fs.readFileSync(file, 'utf8')); }
     catch (e) { log('servers.json is not valid JSON, using the defaults:', e.message); list = DEFAULT_SERVERS; }
+    // a servers.json that still holds only the stock rooms (the file written on first start) picks up rooms added in later versions
+    if (Array.isArray(list) && list.length && list.every(s => s && DEFAULT_SERVERS.some(d => d.id === s.id))) {
+      const add = DEFAULT_SERVERS.filter(d => !list.some(s => s.id === d.id));
+      if (add.length) { list = list.concat(add); try { fs.writeFileSync(file, JSON.stringify(list, null, 2)); log(`added new stock rooms to servers.json: ${add.map(s => s.name).join(', ')}`); } catch (e) { } }
+    }
   } else { try { fs.writeFileSync(file, JSON.stringify(DEFAULT_SERVERS, null, 2)); } catch (e) { } }
   const clean = [];
   for (const s of Array.isArray(list) ? list : []) {

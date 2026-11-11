@@ -168,7 +168,7 @@ function renderLobbyList() {
     const inRoom = others.filter(p => p.presence.sv === sv.id), cnt = inRoom.length, meIn = NET.game && NET.game.code === sv.id;
     const who = inRoom.slice(0, 4).map(p => pilotTag(p.presence)).join(', ') + (cnt > 4 ? ` +${cnt - 4}` : '');
     const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
-    want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.n}v${sv.n}. ${cnt || meIn ? `👤 ${cnt + (meIn ? 1 : 0)} playing${cnt ? ': ' + who : ''}${meIn ? (cnt ? ', you' : ' (you)') : ''} · ` : 'Nobody here yet · '}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
+    want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.rot && sv.rot.length && sv.rot.every(r => r[0] === 'pit') ? sv.n * 2 + ' pilots' : sv.n + 'v' + sv.n}. ${cnt || meIn ? `👤 ${cnt + (meIn ? 1 : 0)} playing${cnt ? ': ' + who : ''}${meIn ? (cnt ? ', you' : ' (you)') : ''} · ` : 'Nobody here yet · '}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
   }
   for (const p of hosts.filter(p => !p.presence.host.server && String(p.presence.host.code).startsWith('c'))) {
     const h = p.presence.host, code = String(h.code).replace(/[^a-z0-9-]/g, '').slice(0, 12);
@@ -367,7 +367,7 @@ function showWaiting() {
   const g = NET.game; if (!g) return;
   const title = g.server ? g.server.name : g.isHost || g.created ? 'Your custom game' : 'Custom game';
   showOverlay(`<h2>${title}</h2><p id="wsub"></p><p id="nextIn" class="next"></p>
-    <div class="teams"><div><h3 style="color:var(--ally)">BLUE TEAM</h3><div id="wroster"></div></div><div><h3 style="color:var(--enemy)">RED TEAM</h3><div id="wroster2"></div></div></div>
+    <div class="teams"><div><h3 id="wh1" style="color:var(--ally)">BLUE TEAM</h3><div id="wroster"></div></div><div><h3 id="wh2" style="color:var(--enemy)">RED TEAM</h3><div id="wroster2"></div></div></div>
     <p style="font-size:13px">Empty slots are filled with AI bots.${g.server ? ' Matches start automatically and rotate maps.' : ''}</p>
     <div class="btns"><button class="primary" id="ovStart" hidden>Start battle</button><button id="ovLeave">Leave</button></div>`, true);
   $('#ovStart').onclick = () => { if (NET.game && NET.game.isHost && NET.game.info.phase === 'lobby') launchMatch(); };
@@ -384,10 +384,13 @@ function renderWaiting() {
   }
   if ($('#ovStart')) $('#ovStart').hidden = !(g.isHost && info && info.phase === 'lobby');
   if (!$('#wroster')) return;
-  $('#wsub').textContent = info ? `${(MODES[info.mode] || MODES.tdm).name} on ${(MAPS[info.map] || MAPS.dust).name} (${(MAP_SIZES[info.size] || MAP_SIZES.medium).name.toLowerCase()}), ${info.n}v${info.n}.` : '';
+  const ffa = info && info.mode === 'pit';
+  $('#wsub').textContent = info ? `${(MODES[info.mode] || MODES.tdm).name} on ${(MAPS[info.map] || MAPS.dust).name} (${(MAP_SIZES[info.size] || MAP_SIZES.medium).name.toLowerCase()}), ${ffa ? `free-for-all: everyone against everyone, ${info.n * 2} pilots and bots` : `${info.n}v${info.n}`}.` : '';
+  // The Pit has no teams: one list of pilots
+  if ($('#wh1')) { $('#wh1').textContent = ffa ? 'PILOTS · EVERY ONE FOR THEMSELVES' : 'BLUE TEAM'; $('#wh1').style.color = ffa ? '#ffd36a' : 'var(--ally)'; $('#wh2').parentNode.hidden = ffa; }
   const cols = [$('#wroster'), $('#wroster2')]; cols.forEach(c => c.innerHTML = '');
   for (const p of NET.slowPeers) {
-    let t = info && info.roster ? info.roster[p.peer] : undefined; if (typeof t !== 'number') continue; if (t > 1) t = Object.keys(info.roster).indexOf(p.peer) % 2;
+    let t = info && info.roster ? info.roster[p.peer] : undefined; if (typeof t !== 'number') continue; if (ffa) t = 0; else if (t > 1) t = Object.keys(info.roster).indexOf(p.peer) % 2;
     const d = document.createElement('div'); d.className = 'r';
     const n = document.createElement('span'); n.textContent = pilotTag(p.presence) + (p.sameTab ? ' (you)' : '') + (p.presence.g ? ' ★ host' : '');
     const s = document.createElement('span'); s.className = 'num'; s.textContent = 'Lv ' + ((p.presence.lv | 0) || 1) + (p.presence.dn ? ' · ' + cleanName(p.presence.dn) : '');

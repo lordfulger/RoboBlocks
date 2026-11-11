@@ -160,7 +160,8 @@ function finishMatch() {
   if (match.spectator) {
     if (document.pointerLockElement) document.exitPointerLock();
     const w = match.winner;
-    showOverlay(`<h2>${w === 0 ? 'Blue team wins' : w === 1 ? 'Red team wins' : 'Draw'}</h2><p>${MODES[match.mode].name} on ${MAPS[match.mapId].name} · final score <b class="num">${match.score[0]} – ${match.score[1]}</b></p><p id="nextIn" class="next"></p><div class="btns"><button class="primary" id="ovLobby">Leave to lobby</button></div>`);
+    const pitTop = match.mode === 'pit' ? pitLeader() : null;
+    showOverlay(`<h2>${pitTop ? esc(pitTop.name) + ' wins' : w === 0 ? 'Blue team wins' : w === 1 ? 'Red team wins' : 'Draw'}</h2><p>${MODES[match.mode].name} on ${MAPS[match.mapId].name} · final score <b class="num">${match.score[0]} – ${match.score[1]}</b></p><p id="nextIn" class="next"></p><div class="btns"><button class="primary" id="ovLobby">Leave to lobby</button></div>`);
     $('#ovLobby').onclick = () => { hideOverlay(); toMenu(); showLobby(); }; match.done = true; return;
   }
   const p = match.player, win = match.winner === p.team;
