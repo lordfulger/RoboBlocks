@@ -4,8 +4,19 @@
 // points. Points come from levelling up (and every 2,000 XP past level 10) and from achievements.
 // Pilot level still gates every node, so other players can keep checking bots against the stamped level.
 const TECH_START = ['cube', 'wedge', 'slab', 'seat', 'wheel', 'blaster', 'flag', 'T1', 'mat_std'];
-const TECH_CPU = 25, TECH_CPU_LV = [2, 4, 5, 6, 8], TECH_CPU_MAX = TECH_CPU * TECH_CPU_LV.length;
+const TECH_CPU = 25, TECH_CPU_LV = [2, 4, 5, 6, 8, 9, 10], TECH_CPU_MAX = TECH_CPU * TECH_CPU_LV.length;
 const TECH_RANK_XP = 2000;
+// upgrades: ranked nodes that improve your own bot (never other players'). Each rank needs a higher pilot level.
+const TECH_UP = {
+  bal: { name: 'Calibrated Barrels', lv: [3, 6, 9], wps: ['blaster', 'chain', 'rail', 'lancer'], dmg: .04, desc: r => `Blasters, chain guns, rails and Rail Lancers deal ${4 * r}% more damage.` },
+  war: { name: 'Shaped Warheads', lv: [3, 6, 9], wps: ['mortar', 'plasma', 'flak', 'mine', 'seeker'], dmg: .04, splash: .04, desc: r => `Mortars, plasma, flak, gravity mines and seekers deal ${4 * r}% more damage over a ${4 * r}% wider blast.` },
+  cap: { name: 'Overcharged Capacitors', lv: [4, 7, 10], wps: ['tesla', 'arc'], dmg: .05, desc: r => `Tesla blades and Arc Lances deal ${5 * r}% more damage.` },
+  rel: { name: 'Autoloaders', lv: [5, 8], rel: .04, desc: r => `Every gun fires ${4 * r}% faster.` },
+  heat: { name: 'Heat Sinks', lv: [4, 7], heat: .12, desc: r => `Rapid-fire guns build up ${12 * r}% less heat.` },
+  fuel: { name: 'Fuel Cells', lv: [3, 6], fuel: .15, desc: r => `Jets burn ${15 * r}% less fuel.` },
+  mod: { name: 'Module Chargers', lv: [5, 8], mod: .1, desc: r => `Modules recharge ${10 * r}% faster.` },
+};
+const upKey = id => { const m = /^u_([a-z]+)(\d)$/.exec(id); return m && TECH_UP[m[1]] ? [m[1], +m[2]] : null; };
 // lines grow from a parent in a screen direction (x right, y down); see techLayout
 const TECH_LINES = [
   { from: 'start', dir: [0, -1], ids: ['T2', 'T3', 'T4', 'cpu1', 'T5', 'T6', 'T7', 'cpu4', 'T8', 'T9', 'T10'] },
@@ -19,11 +30,19 @@ const TECH_LINES = [
   { from: 'tesla', dir: [.55, .85], ids: ['mortar', 'plasma', 'flak', 'seeker'] },
   { from: 'start', dir: [.05, 1], ids: ['m_fly', 'm_shield', 'm_power', 'm_cloak', 'm_blink', 'cpu5', 'm_emp', 'm_disrupt'] },
   { from: 'm_shield', dir: [-.8, .6], ids: ['spike', 'shieldp', 'projector'] },
+  { from: 'T10', dir: [0, -1], ids: ['cpu7'] },
+  { from: 'm_disrupt', dir: [0, 1], ids: ['cpu6'] },
+  { from: 'lancer', dir: [.4, -1], ids: ['u_bal1', 'u_bal2', 'u_bal3'] },
+  { from: 'seeker', dir: [.6, .8], ids: ['u_war1', 'u_war2', 'u_war3'] },
+  { from: 'arc', dir: [1, 0], ids: ['u_cap1', 'u_cap2', 'u_cap3'] },
+  { from: 'arc', dir: [1, .6], ids: ['u_rel1', 'u_rel2', 'u_heat1', 'u_heat2'] },
+  { from: 'thruster', dir: [-1, 0], ids: ['u_fuel1', 'u_fuel2'] },
+  { from: 'm_disrupt', dir: [.8, .6], ids: ['u_mod1', 'u_mod2'] },
 ];
 const TECH = {};
 (function techBuild() {
-  const kindOf = id => /^T\d+$/.test(id) ? 'tier' : /^mat_/.test(id) ? 'mat' : /^cpu\d$/.test(id) ? 'cpu' : 'part';
-  const lvlOf = id => { const k = kindOf(id); if (k === 'tier') return TIERS[+id.slice(1)].lvl; if (k === 'mat') return MATERIALS[id.slice(4)].lvl; if (k === 'cpu') return TECH_CPU_LV[+id.slice(3) - 1]; return PARTS[id].lvl; };
+  const kindOf = id => upKey(id) ? 'up' : /^T\d+$/.test(id) ? 'tier' : /^mat_/.test(id) ? 'mat' : /^cpu\d$/.test(id) ? 'cpu' : 'part';
+  const lvlOf = id => { const k = kindOf(id); if (k === 'tier') return TIERS[+id.slice(1)].lvl; if (k === 'mat') return MATERIALS[id.slice(4)].lvl; if (k === 'cpu') return TECH_CPU_LV[+id.slice(3) - 1]; if (k === 'up') { const [u, r] = upKey(id); return TECH_UP[u].lv[r - 1]; } return PARTS[id].lvl; };
   // pointy-top hex grid in axial coordinates; pixel units where neighbouring cells are 1 apart
   const px = (q, r) => [q + r / 2, r * .866], NB = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
   const used = new Map([['0,0', 'start']]); TECH.start = { id: 'start', q: 0, r: 0 };
@@ -37,13 +56,13 @@ const TECH = {};
       if (!best) { for (let rad = 2; rad < 6 && !best; rad++) for (let dq = -rad; dq <= rad; dq++) for (let dr = -rad; dr <= rad; dr++) { const q = pp.q + dq, r = pp.r + dr; if (used.has(q + ',' + r)) continue; const [x, y] = px(q, r), d = Math.hypot(x - ideal[0], y - ideal[1]); if (d < bd) { bd = d; best = [q, r]; } } }
       used.set(best[0] + ',' + best[1], id);
       const kind = kindOf(id), lvl = lvlOf(id);
-      TECH[id] = { id, kind, lvl, parent, q: best[0], r: best[1], cost: kind === 'cpu' ? 2 : kind === 'tier' ? Math.ceil(lvl / 2) + 1 : Math.ceil(lvl / 2) };
+      TECH[id] = { id, kind, lvl, parent, q: best[0], r: best[1], cost: kind === 'cpu' ? 2 : kind === 'up' ? 2 + upKey(id)[1] : kind === 'tier' ? Math.ceil(lvl / 2) + 1 : Math.ceil(lvl / 2) };
       parent = id;
     });
   }
 })();
-const techName = id => { const n = TECH[id]; if (!n) return id; if (n.kind === 'tier') return `T${id.slice(1)} ${TIERS[+id.slice(1)].name} armor`; if (n.kind === 'mat') return MATERIALS[id.slice(4)].name; if (n.kind === 'cpu') return `CPU Core +${TECH_CPU}`; return PARTS[id].name; };
-const techDesc = id => { const n = TECH[id]; if (!n) return ''; if (n.kind === 'tier') { const T0 = TIERS[+id.slice(1)]; return `Armor tier ${id.slice(1)}: ${T0.hp} health per cube, ${T0.cpu} CPU each.`; } if (n.kind === 'mat') return MATERIALS[id.slice(4)].desc; if (n.kind === 'cpu') return `Raises your CPU limit by ${TECH_CPU}, so you can fit more on every bot.`; return PARTS[id].desc || ''; };
+const techName = id => { const n = TECH[id]; if (!n) return id; if (n.kind === 'tier') return `T${id.slice(1)} ${TIERS[+id.slice(1)].name} armor`; if (n.kind === 'mat') return MATERIALS[id.slice(4)].name; if (n.kind === 'cpu') return `CPU Core +${TECH_CPU}`; if (n.kind === 'up') { const [u, r] = upKey(id); return `${TECH_UP[u].name} ${['I', 'II', 'III'][r - 1]}`; } return PARTS[id].name; };
+const techDesc = id => { const n = TECH[id]; if (!n) return ''; if (n.kind === 'tier') { const T0 = TIERS[+id.slice(1)]; return `Armor tier ${id.slice(1)}: ${T0.hp} health per cube, ${T0.cpu} CPU each.`; } if (n.kind === 'mat') return MATERIALS[id.slice(4)].desc; if (n.kind === 'cpu') return `Raises your CPU limit by ${TECH_CPU}, so you can fit more on every bot.`; if (n.kind === 'up') { const [u, r] = upKey(id); return TECH_UP[u].desc(r) + (r > 1 ? ' (total with the ranks before it)' : '') + ' Only your own bot gets it.'; } return PARTS[id].desc || ''; };
 function techState() {
   if (!PROG.tech || typeof PROG.tech !== 'object' || !PROG.tech.got) {
     // pilots who played before the tree keep everything their level already gave them, free
@@ -64,6 +83,14 @@ function techSpent() { const g = techState().got; let s = 0; for (const id in g)
 const techAvail = () => techEarned() - techSpent();
 function techHas(id) { if (HEADLESS || UNLOCK_ALL) return true; if (TECH_START.includes(id) || !TECH[id]) return true; return !!techState().got[id]; }
 const techCpu = () => HEADLESS ? 0 : UNLOCK_ALL ? TECH_CPU_MAX : TECH_CPU * TECH_CPU_LV.filter((_, i) => techHas('cpu' + (i + 1))).length;
+// upgrade ranks your bot has: 0 for AI, other players, simulations and replays
+function upRank(b, u) { if (HEADLESS || !b || !b.isPlayer || b.remote || (match && match.replay)) return 0; const L = TECH_UP[u].lv; let r = 0; for (let i = 1; i <= L.length; i++) if (techHas('u_' + u + i)) r = i; else break; return r; }
+function upDmg(b, type) { if (!b || !b.isPlayer) return 1; for (const u in TECH_UP) { const U = TECH_UP[u]; if (U.wps && U.wps.includes(type)) return 1 + U.dmg * upRank(b, u); } return 1; }
+const upSplash = b => b && b.isPlayer ? 1 + TECH_UP.war.splash * upRank(b, 'war') : 1;
+const upRel = b => b && b.isPlayer ? 1 - TECH_UP.rel.rel * upRank(b, 'rel') : 1;
+const upHeat = b => b && b.isPlayer ? 1 - TECH_UP.heat.heat * upRank(b, 'heat') : 1;
+const upFuel = b => b && b.isPlayer ? 1 - TECH_UP.fuel.fuel * upRank(b, 'fuel') : 1;
+const upMod = b => b && b.isPlayer ? 1 - TECH_UP.mod.mod * upRank(b, 'mod') : 1;
 const ownCpuMax = () => cpuMax(unlockLv()) + techCpu();
 const partOpen = t => !!PARTS[t] && PARTS[t].lvl <= unlockLv() && !partLocked(t) && techHas(t);
 const tierOpen = k => !!TIERS[k] && TIERS[k].lvl <= unlockLv() && techHas('T' + k);
@@ -94,6 +121,7 @@ function techIcon(id) {
   if (n.kind === 'tier' && TIER_ICONS[+id.slice(1)]) return `<img alt="" src="${TIER_ICONS[+id.slice(1)]}">`;
   if (n.kind === 'mat') return TIER_ICONS[3] ? `<img alt="" class="mat-${id.slice(4)}" src="${TIER_ICONS[3]}">` : `<span class="tti mat-${id.slice(4)}">${MATERIALS[id.slice(4)].name.slice(0, 2).toUpperCase()}</span>`;
   if (n.kind === 'cpu') return `<span class="tti tcpu">+${TECH_CPU}</span>`;
+  if (n.kind === 'up') { const [u, r] = upKey(id); return `<span class="tti tup">${{ bal: '⌖', war: '✸', cap: 'ϟ', rel: '»', heat: '❄', fuel: '⛽', mod: '◈' }[u]}<sup>${r}</sup></span>`; }
   return '';
 }
 function showTechTree(back) {
@@ -150,7 +178,7 @@ function techRender() {
     const [x, y] = ttPos(n);
     if (id === 'start') { html += `<button class="tt-cell node start" style="left:${x}px;top:${y}px" data-id="start"><span class="in"><b>START</b></span></button>`; continue; }
     const st = techStatus(id), starter = TECH_START.includes(id);
-    html += `<button class="tt-cell node ${st}${TT.sel === id ? ' sel' : ''}" style="left:${x}px;top:${y}px" data-id="${id}" title="${esc(techName(id))}"><span class="in">${techIcon(id)}<span class="nm">${esc(n.kind === 'cpu' ? 'CPU Core' : techName(id).replace(/ armor$/, ''))}</span>${st === 'own' ? '' : st === 'level' ? `<span class="ct">LV ${n.lvl}</span>` : `<span class="ct">★ ${n.cost}</span>`}</span></button>`;
+    html += `<button class="tt-cell node ${st}${TT.sel === id ? ' sel' : ''}" style="left:${x}px;top:${y}px" data-id="${id}" title="${esc(techName(id))}"><span class="in">${techIcon(id)}<span class="nm">${esc(n.kind === 'cpu' ? 'CPU Core' : n.kind === 'up' ? techName(id).replace(/^\S+ /, '') : techName(id).replace(/ armor$/, ''))}</span>${st === 'own' ? '' : st === 'level' ? `<span class="ct">LV ${n.lvl}</span>` : `<span class="ct">★ ${n.cost}</span>`}</span></button>`;
   }
   svg.setAttribute('viewBox', `${minX - 200} ${minY - 200} ${maxX - minX + 400} ${maxY - minY + 400}`);
   svg.style.left = (minX - 200) + 'px'; svg.style.top = (minY - 200) + 'px'; svg.setAttribute('width', maxX - minX + 400); svg.setAttribute('height', maxY - minY + 400);
@@ -176,10 +204,10 @@ function techCard() {
   const n = TECH[id], st = techStatus(id), par = n.parent === 'start' ? 'START' : techName(n.parent);
   const why = { own: 'Unlocked.', ready: `Costs ${n.cost} tech point${n.cost > 1 ? 's' : ''}.`, poor: `Costs ${n.cost} tech points. You have ${techAvail()}.`, level: `Needs pilot level ${n.lvl}.`, far: `Unlock ${par} first.` }[st];
   const P = n.kind === 'part' ? PARTS[id] : null;
-  c.innerHTML = `<div class="tt-ci">${techIcon(id)}</div><b>${esc(techName(id))}</b><small>${n.kind === 'part' ? esc(P.cat) + ' · ' + P.cpu + ' CPU · ' + P.hp + ' HP' : n.kind === 'tier' ? 'Armor tier' : n.kind === 'mat' ? 'Armor material' : 'Upgrade'} · level ${n.lvl}</small>
+  c.innerHTML = `<div class="tt-ci">${techIcon(id)}</div><b>${esc(techName(id))}</b><small>${n.kind === 'part' ? esc(P.cat) + ' · ' + P.cpu + ' CPU · ' + P.hp + ' HP' : n.kind === 'tier' ? 'Armor tier' : n.kind === 'mat' ? 'Armor material' : n.kind === 'up' ? 'Bot upgrade' : 'Upgrade'} · level ${n.lvl}</small>
     <p>${esc(techDesc(id))}</p><p class="st ${st}">${why}${techState().got[id] === 'L' ? ' (kept from before the tech tree)' : ''}</p>
     ${st === 'ready' ? `<button class="primary" id="ttBuy">Unlock for ${n.cost} ★</button>` : ''}`;
   if ($('#ttBuy')) $('#ttBuy').onclick = () => techBuyUI(id);
 }
-Object.assign(window.__sfa, { TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
+Object.assign(window.__sfa, { TECH_UP, upRank, upDmg, TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
 Object.assign(window.__sfa, { SPLASH, mobility, Bot, WEAPONS, PARTS, TIERS, BAL, HEAT, TESLA, computeStats });

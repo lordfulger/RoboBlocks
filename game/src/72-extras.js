@@ -1,5 +1,32 @@
 // ================= QUICK PLAY, DAMAGE NUMBERS, HIT DIRECTION, MEDALS, REPLAYS =================
 // ---------- quick play: the fullest server that suits you ----------
+// the busiest joinable room on another server: { url, server, id, name, players }
+async function bestRemoteRoom(lv) {
+  const res = await fetchServerList().catch(() => ({ ok: false })); if (!res.ok) return null;
+  const here = SERVER_BASE, urls = res.list.map(s => { try { return { url: new URL(s.url).origin, name: s.name }; } catch (e) { return null; } }).filter(s => s && s.url !== here).slice(0, 8);
+  let best = null;
+  await Promise.all(urls.map(async u => {
+    try {
+      const ac = new AbortController(), t = setTimeout(() => ac.abort(), 3500); const r = await fetch(u.url + '/status', { signal: ac.signal, cache: 'no-store' }); clearTimeout(t); if (!r.ok) return;
+      const st = await r.json(); if (st.version && BC_VERSION && st.version.split('.')[0] !== BC_VERSION.split('.')[0]) return;
+      for (const room of st.servers || []) { const n = room.players | 0; if (n > 0 && (!best || n > best.players)) best = { url: u.url, server: st.server || u.name || u.url.replace(/^https?:\/\//, ''), id: room.id, name: room.name, players: n }; }
+    } catch (e) { }
+  }));
+  return best;
+}
+// switch servers and drop straight into a room there
+function goJoin(url, id) {
+  store.set('sfa.autoJoin', { url, id, t: Date.now() });
+  if (HOST && HOST.setServer) HOST.setServer(url); else location.href = url + '/#join=' + encodeURIComponent(id);
+}
+// on arrival: join the room the last server sent us to (or a #join= link)
+function autoJoinCheck() {
+  let id = (location.hash.match(/^#join=([\w-]+)/) || [])[1]; const aj = store.get('sfa.autoJoin', null);
+  if (!id && aj && Date.now() - aj.t < 120000 && aj.url === SERVER_BASE) id = aj.id;
+  store.set('sfa.autoJoin', null); if (location.hash.startsWith('#join=')) history.replaceState(null, '', location.pathname);
+  const sv = id && SERVERS.find(s => s.id === id); if (!sv || !canDeploy()) return;
+  toast(`Joining ${sv.name}.`); joinGame(sv.id, sv, null);
+}
 async function quickPlay() {
   if (!canDeploy()) return;
   showOverlay('<h2>Quick play</h2><p>Finding a battle…</p>');
@@ -13,21 +40,26 @@ async function quickPlay() {
   const cand = SERVERS.filter(s => !s.locked && (!s.ranked || BE.me) && lv >= (s.minLv || 1) && lv <= (s.maxLv || 10) && players(s.id) < s.n * 2)
     .map(s => { const h = (hosts.find(p => p.presence.host.code === s.id) || {}).presence; const ph = h && h.host ? h.host.phase : null; return { s, score: players(s.id) * 10 + (ph === 'live' ? 5 : ph === 'warmup' ? 3 : 0) + (s.n === 10 ? 1 : 0) - Math.min(25, srGap(s.id) / 20) }; })
     .sort((a, b) => b.score - a.score);
+  // other RoboBlocks servers (from the hub): go there if one has a busier room you can join
+  const best = cand[0] ? players(cand[0].s.id) : -1, far = await bestRemoteRoom(lv);
+  if (far && far.players > best) { toast(`Joining ${far.name} on ${far.server}.`); goJoin(far.url, far.id); return; }
   if (!cand.length) { showLobby(); toast('No open server fits right now. Pick one, or host a custom game.'); return; }
   toast(`Joining ${cand[0].s.name}.`); joinGame(cand[0].s.id, cand[0].s, null);
 }
 // ---------- floating damage numbers ----------
 const DMGN = { pool: [], acc: new Map() };
-function dmgNumber(victim, amt) {
+// one number per weapon per target, coloured by weapon, so mixed loadouts show what each gun is doing
+const DMG_COL = { blaster: '#8fe6ff', chain: '#ffe58a', plasma: '#c69bff', mortar: '#ffb066', rail: '#ffffff', seeker: '#ff8fb4', flak: '#ffd36a', arc: '#9fd8ff', mine: '#b8ff8a', lancer: '#e6f7ff', tesla: '#7fe8ff' };
+function dmgNumber(victim, amt, src) {
   if (HEADLESS || !victim || amt <= 0) return;
-  const a = DMGN.acc.get(victim) || { amt: 0, t: 0 }; a.amt += amt; DMGN.acc.set(victim, a);
+  const key = victim.netId + '|' + (src || '?'), a = DMGN.acc.get(key) || { amt: 0, t: 0, v: victim, src }; a.amt += amt; DMGN.acc.set(key, a);
 }
 function updateDmgNumbers(dt) {
   if (HEADLESS) return;
   const box = $('#dmgNums'); if (!box) return;
-  for (const [v, a] of DMGN.acc) { a.t += dt; if (a.t < .22 && a.amt < 2000) continue; DMGN.acc.delete(v); if (v.dead && a.amt < 1) continue;
+  for (const [key, a] of DMGN.acc) { const v = a.v; a.t += dt; if (a.t < .22 && a.amt < 2000) continue; DMGN.acc.delete(key); if (v.dead && a.amt < 1) continue;
     let el = DMGN.pool.find(x => x.life <= 0); if (!el) { if (DMGN.pool.length > 30) continue; el = { div: document.createElement('div'), life: 0 }; el.div.className = 'dn'; box.appendChild(el.div); DMGN.pool.push(el); }
-    el.div.textContent = Math.round(a.amt).toLocaleString(); el.div.classList.toggle('big', a.amt > 900); el.pos = v.center.clone().add(new T.Vector3(rand(-1, 1), v.height * .5 + rand(.5, 1.5), rand(-1, 1))); el.life = 1.1; el.div.style.display = 'block'; }
+    el.div.textContent = Math.round(a.amt).toLocaleString(); el.div.classList.toggle('big', a.amt > 900); el.div.style.color = DMG_COL[a.src] || ''; el.pos = v.center.clone().add(new T.Vector3(rand(-1, 1), v.height * .5 + rand(.5, 1.5), rand(-1, 1))); el.life = 1.1; el.div.style.display = 'block'; }
   for (const el of DMGN.pool) {
     if (el.life <= 0) continue; el.life -= dt; el.pos.y += dt * 2.2;
     const p = el.pos.clone().project(camera);

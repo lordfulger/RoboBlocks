@@ -158,6 +158,10 @@ Open `http://<server-ip>:<port>/admin` and sign in with an admin account. It sho
 - `update` downloads and installs a newer release (restart to run it); `update check` only checks. See Updates.
 - `stop` shuts down cleanly (the panel's Stop button sends this).
 
+## HTTPS
+
+Passwords and everything else travel unencrypted until you put HTTPS in front of the game. [HTTPS.md](HTTPS.md) walks through it with ready-made configs for nginx (machines that already run the Pterodactyl panel) and Caddy, in [`https/`](https/).
+
 ## Desktop app
 
 Players can also install the RoboBlocks desktop app, which runs the game in its own window and keeps it up to date from this server:

@@ -15,6 +15,7 @@ async function beInit() {
     if (SERVER_BASE && !onClaudePage()) {
       const room = await netInit(); // a self-hosted page: the server is right here
       if (room && room.relay && NET.accounts) BE.kind = 'server';
+      if (room) setTimeout(() => { if (state === 'menu' || state === 'garage') autoJoinCheck(); }, 1800);
     }
   } catch (e) { console.warn('backend', e); }
   BE.ready = true; setSaveBadge(cloudOn() ? 'Saved to account' : BE.kind === 'server' ? (HOST ? 'Guest: this computer' : 'Guest: this browser') : (HOST ? 'This computer' : 'This browser'));

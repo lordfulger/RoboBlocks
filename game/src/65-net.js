@@ -108,7 +108,14 @@ async function showLobby() {
   }
   NET.me = myPeer();
   const here = NET.serverName || (SERVER_BASE ? SERVER_BASE.replace(/^https?:\/\//, '') : 'This server');
-  showOverlay(`<div class="sbTop"><div><h2>Play online</h2><p class="sbHere"><b></b> · <span id="sbOnline"></span></p></div><button id="sbParty">Party</button></div>
+  showOverlay(`<div class="sbTop"><div><h2>Play online</h2><p class="sbHere"><b></b> · <span id="sbOnline"></span></p></div><div><button id="sbHelp" title="How online play works">?</button> <button id="sbParty">Party</button></div></div>
+    <div id="sbGuide" hidden><b>Playing online</b><ol>
+      <li><b>Pick a room and press Join.</b> Each room runs its own rotation of modes and maps; empty slots fill with AI. <em>Watch</em> lets you spectate a match in progress.</li>
+      <li><b>Play with friends:</b> open <b>Party</b>, invite them, and they follow you into rooms on your team.</li>
+      <li><b>Friend codes:</b> share yours (in Party) so friends can add you from anywhere, even when you are offline.</li>
+      <li><b>Switch bots mid-match:</b> while wrecked, press 1–9 or 0 to rebuild as the bot in that garage bay.</li>
+      <li><b>Host a custom game</b> to pick the mode, map, size and whether AI bots join.</li></ol>
+      <div class="btns" style="justify-content:flex-start"><button class="primary" id="sbGuideOk">Got it</button></div></div>
     <div id="lobbyList"></div>
     <div class="btns"><button class="primary" id="ovBack">Back</button><button id="sbHostBtn">Host a custom game</button></div>
     <details id="sbOther"><summary>Other servers</summary><div id="sbOthers"><p class="gempty">Looking for other servers…</p></div>
@@ -116,6 +123,8 @@ async function showLobby() {
   $('.sbHere b').textContent = here;
   $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
   $('#sbHostBtn').onclick = () => showHostGame();
+  const guide = on => { $('#sbGuide').hidden = !on; if (!on) store.set('sfa.onlineTut', true); };
+  guide(!store.get('sfa.onlineTut', false)); $('#sbGuideOk').onclick = () => guide(false); $('#sbHelp').onclick = () => guide($('#sbGuide').hidden);
   $('#sbParty').onclick = () => showParty(showLobby);
   if (NET.party) $('#sbParty').textContent = `Party (${partyMembers().length || 1})`;
   wireServerList(true);

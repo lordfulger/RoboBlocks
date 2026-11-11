@@ -338,7 +338,7 @@ const httpServer = http.createServer((req, res) => {
   if (url === '/hub/beat' && IS_HUB && req.method === 'POST') { const fwd = TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); hubBeat(req, res, (fwd || req.socket.remoteAddress || '').replace(/^::ffff:/, '')).catch(() => { try { res.writeHead(500); res.end(); } catch (e) { } }); return; }
   if (url === '/status') {
     res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-    res.end(JSON.stringify({ name: 'RoboBlocks', version: VERSION, serverVersion: (() => { try { return require('../package.json').version; } catch (e) { return VERSION; } })(), players: relay.humanCount, maxPlayers: MAX_CLIENTS, servers: hosts.map(h => ({ id: h.id, name: (SERVERS.find(s => s.id === h.id) || {}).name, ...h.status() })) }));
+    res.end(JSON.stringify({ name: 'RoboBlocks', server: SERVER_NAME, version: VERSION, serverVersion: (() => { try { return require('../package.json').version; } catch (e) { return VERSION; } })(), players: relay.humanCount, maxPlayers: MAX_CLIENTS, servers: hosts.map(h => ({ id: h.id, name: (SERVERS.find(s => s.id === h.id) || {}).name, ...h.status() })) }));
     return;
   }
   res.writeHead(404, { ...headers, 'Content-Type': 'text/plain' }); res.end('Not found');

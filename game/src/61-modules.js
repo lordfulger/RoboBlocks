@@ -11,7 +11,7 @@ function hasModule(b, t) { return !!(b.mods && b.mods[t] && b.cellList.some(c =>
 function moduleReady(b, t) { const M0 = MODULES[t]; return hasModule(b, t) && !(b.modCd[t] > 0) && b.disruptT <= 0 && b.stunT <= 0 && b.energy >= M0.cost; }
 function useModule(b, t) {
   if (!moduleReady(b, t)) { if (b.isPlayer && hasModule(b, t)) { SFX.ui(); toastCenter(b.disruptT > 0 ? 'Modules disrupted!' : b.modCd[t] > 0 ? `${MODULES[t].name} recharging` : 'Not enough energy', .8); } return false; }
-  const M0 = MODULES[t]; b.energy -= M0.cost; b.modCd[t] = M0.cd; if (b.qs) b.qs.mods++;
+  const M0 = MODULES[t]; b.energy -= M0.cost; b.modCd[t] = M0.cd * upMod(b); if (b.qs) b.qs.mods++;
   const c = b.center.clone();
   if (t === 'shield') { b.shieldT = Math.max(b.shieldT, 3); if (!HEADLESS) shockwave(c, 4, 0x5fe8ff); }
   else if (t === 'cloak') { b.cloakT = 6; if (!HEADLESS) sparks(c, 0xc77dff, 18, 6, .16, .5); }

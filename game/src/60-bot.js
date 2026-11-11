@@ -87,6 +87,8 @@ class Bot {
   damageCell(c, dmg, attacker) {
     if (!c.alive || this.dead) return dmg;
     if (attacker && attacker.dmgMul) dmg *= attacker.dmgMul; // e.g. horde enemies
+    if (attacker && attacker.isPlayer && DMG_SRC) dmg *= upDmg(attacker, DMG_SRC); // Tech Tree weapon upgrades (your own shots only)
+    if (attacker && attacker !== this && !attacker.remote) dmg *= .9 + Math.random() * .2; // each hit varies by up to 10% (decided by the shooter, once)
     if (this.shieldT > 0) return 0;
     if (this.remote && attacker && !attacker.remote) netReportHit(attacker, this, c.idx, dmg);
     if (this.barrier > 0) { const soak = Math.min(this.barrier, dmg); this.barrier -= soak; dmg -= soak; this.barrierFlash = 1; if (!HEADLESS && clock - (this.barrierHitT || -9) > .15) SFX.shieldHit(this.center); this.barrierHitT = clock; if (!HEADLESS && Math.random() < .3) sparks(this.cellWorld(c, _v3), 0x5fe8ff, 3, 5, .14, .25); if (dmg <= 0) { this.lastHitT = clock; return 0; } }
@@ -205,7 +207,7 @@ class Bot {
     this.jetting = false;
     // jets lose their push near a ceiling: ~28 m over the ground for ground bots, a little above a flier's normal ceiling
     const jetCeil = air ? (m.maxAlt || 6) + 14 : 28, jetK = clamp((jetCeil - above) / 8, 0, 1);
-    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * jetK * dt; this.fuel = Math.max(0, this.fuel - dt * .42); this.jetting = jetK > 0; }
+    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * jetK * dt; this.fuel = Math.max(0, this.fuel - dt * .42 * upFuel(this)); this.jetting = jetK > 0; }
     else if (inp.down && !air && !fly && !grounded && this.vel.y > -30) this.vel.y -= GRAV * 1.2 * dt; // C: drop faster after a jump
     else this.fuel = Math.min(1, this.fuel + dt * (grounded || driving ? .3 : .08));
     let vf = this.vel.x * fx + this.vel.z * fz, vs = this.vel.x * lx + this.vel.z * lz;
@@ -372,7 +374,7 @@ class Bot {
       }
       if (!best) continue;
       const tip = _v3.set(bx + dx * 1.5, by, bz + dz * 1.5).applyMatrix4(mw).clone();
-      const before = best.hp; const td = TESLA.dmg * match.dmgScale; bestBot.damageCell(best, td, this); onHit(this, bestBot, Math.min(before, td));
+      const before = best.hp; const td = TESLA.dmg * match.dmgScale; DMG_SRC = 'tesla'; bestBot.damageCell(best, td, this); DMG_SRC = null; onHit(this, bestBot, Math.min(before, td));
       beam(tip, hitPt, 0xaff6ff, .07, .09); sparks(hitPt, 0xbff8ff, 4, 7, .12, .25);
       if (Math.random() < .5) SFX.zap(hitPt);
     }
@@ -395,7 +397,7 @@ class Bot {
       this.ft = this.ft || {}; for (const t of grp) this.ft[t] = (this.ft[t] || 0) - dt;
       if (this.isPlayer) { if (inp.fire && grp.includes('nano')) SFX.beamStart('nano'); else SFX.beamStop(); }
       if (!inp.fire) return; if (this.cloakT > 0) this.cloakT = 0;
-      const shoot = t => { const W = WEAPONS[t], g = this.guns[t]; let iv = Math.max(W.minInt, W.cd / g.length) * (match.fireMul || 1); if (t === 'chain') { if (this.spin < .12) return 0; iv *= lerp(3.5, 1, this.spin); } const gun = g[(this.gi = (this.gi || 0) + 1) % g.length]; gun.kick = 1; fireWeapon(this, t, gun.muzzle.getWorldPosition(new T.Vector3()), inp.aim); heatAdd(this, t, iv * .65); return iv; };
+      const shoot = t => { const W = WEAPONS[t], g = this.guns[t]; let iv = Math.max(W.minInt, W.cd / g.length) * (match.fireMul || 1) * upRel(this); if (t === 'chain') { if (this.spin < .12) return 0; iv *= lerp(3.5, 1, this.spin); } const gun = g[(this.gi = (this.gi || 0) + 1) % g.length]; gun.kick = 1; fireWeapon(this, t, gun.muzzle.getWorldPosition(new T.Vector3()), inp.aim); heatAdd(this, t, iv * .65); return iv; };
       if (inp.groupMode === 'alt') { if (this.fireT > 0) return; const t = grp[(this.grpIdx = ((this.grpIdx || 0) + 1) % grp.length)], iv = shoot(t); this.fireT = iv ? Math.max(.08, iv / grp.length) : .05; }
       else for (const t of grp) if (this.ft[t] <= 0) { const iv = shoot(t); this.ft[t] = iv || .05; }
       return;
@@ -411,18 +413,18 @@ class Bot {
     const W = WEAPONS[type];
     if (type === 'lancer') { // a charged volley: every Rail Lancer fires together, then they cool down as one
       for (const g of guns) { g.kick = 1; fireWeapon(this, type, g.muzzle.getWorldPosition(new T.Vector3()), inp.aim); }
-      this.fireT = Math.max(.5, W.cd - W.charge) * (match.fireMul || 1); return;
+      this.fireT = Math.max(.5, W.cd - W.charge) * (match.fireMul || 1) * upRel(this); return;
     }
     let interval = Math.max(W.minInt, W.cd / guns.length);
     if (type === 'chain') { if (this.spin < .12) return; interval *= lerp(3.5, 1, this.spin); }
-    interval *= match.fireMul || 1;
+    interval *= (match.fireMul || 1) * upRel(this);
     const gun = guns[this.gunIdx++ % guns.length]; this.fireT = interval; gun.kick = 1;
     fireWeapon(this, type, gun.muzzle.getWorldPosition(new T.Vector3()), inp.aim); heatAdd(this, type, interval);
   }
 }
 function heatAdd(b, t, iv) {
   b.shotT = clock; const h = HEAT[t]; if (!h) return;
-  const before = b.heat; b.heat = Math.min(1, b.heat + h * iv);
+  const before = b.heat; b.heat = Math.min(1, b.heat + h * iv * upHeat(b));
   if (b.isPlayer && before < .75 && b.heat >= .75) SFX.heatWarn();
   if (b.heat >= 1) { b.overT = HEAT_LOCK; if (b.isPlayer) { SFX.overheat(); toastCenter('Overheated! Venting…', 1.2); } else if (!HEADLESS) SFX.overheat(b.center); }
 }
@@ -454,11 +456,13 @@ function solveBallistic(from, to, v, g) {
 
 // ================= WEAPONS / PROJECTILES =================
 let beamGhost = false;
+let DMG_SRC = null;
 function fireWeapon(owner, type, from, aim) {
   const n0 = world.projs.length; beamGhost = owner.remote; owner.lastFireT = clock; /* firing keeps you in combat: no base repair */ if (REC.on) recShot(owner, type, from, aim);
-  fireWeapon0(owner, type, from, aim);
+  DMG_SRC = type; fireWeapon0(owner, type, from, aim); DMG_SRC = null;
   beamGhost = false;
   if (owner.remote) for (let i = n0; i < world.projs.length; i++) world.projs[i].ghost = true;
+  else if (owner.isPlayer) { const k = upSplash(owner); if (k !== 1) for (let i = n0; i < world.projs.length; i++) if (world.projs[i].splash) world.projs[i].splash *= k; }
 }
 function fireWeapon0(owner, type, from, aim) {
   const W = WEAPONS[type], ally = owner.team === 0, scale = match.dmgScale;
@@ -558,7 +562,7 @@ function hitTest(p) {
     if (b.shieldT > 0) { shieldHit(b, pos); return true; }
     if (p.splash) { impact(p, pos); return true; }
     if (p.ghost) { sparks(pos, p.team === 0 ? 0x9ff3ff : 0xffc070, 3, 6, .14, .3); return true; }
-    const before = p.dmg; const left = b.damageCell(c, p.dmg, p.owner); p.dmg = left;
+    DMG_SRC = p.type; const before = p.dmg; const left = b.damageCell(c, p.dmg, p.owner); p.dmg = left; DMG_SRC = null;
     onHit(p.owner, b, before - left);
     sparks(pos, p.team === 0 ? 0x9ff3ff : 0xffc070, 3, 6, .14, .3);
     if (p.dmg <= 2) return true;
@@ -568,7 +572,7 @@ function hitTest(p) {
 function impact(p, pos) {
   if (p.splash) {
     damageBuildings(pos, p.dmg, p.splash);
-    if (!p.ghost) splashDamage(pos, p.splash, p.dmg, p.owner, p.team, p.air || 1);
+    if (!p.ghost) { DMG_SRC = p.type; splashDamage(pos, p.splash, p.dmg, p.owner, p.team, p.air || 1); DMG_SRC = null; }
     if (p.type === 'plasma') { flash(pos.clone(), 4.2, p.trail, .32); sparks(pos, p.trail, 16, 11, .2, .45); SFX.boom(pos, false); if (!HEADLESS) { shockwave(pos, 6, p.trail); addScorch(pos, 2); } }
     else if (p.type === 'flak') { flash(pos.clone(), 3.4, 0xfff0a0, .2); sparks(pos, 0xffe080, 14, 14, .16, .35); for (let i = 0; i < 6; i++) emit(pos.x, pos.y, pos.z, rand(-3, 3), rand(-1, 2), rand(-3, 3), rand(.8, 1.4), rand(.8, 1.4), 0x2a2622, -.4); SFX.flakBurst(pos); }
     else explosion(pos.clone(), false);
@@ -621,7 +625,7 @@ function updateProjectiles(dt) {
 let hitmarkT = 0, hitSoundT = 0, hurtSoundT = 0;
 function onHit(attacker, victim, dealt) {
   if (dealt <= 0) return;
-  if (attacker && attacker.isPlayer && victim !== attacker) dmgNumber(victim, dealt);
+  if (attacker && attacker.isPlayer && victim !== attacker) dmgNumber(victim, dealt, DMG_SRC);
   if (victim.isPlayer && attacker && attacker !== victim) hitFrom(attacker);
   if (attacker && attacker.isPlayer) { hitmarkT = .12; if (clock - hitSoundT > .06) { hitSoundT = clock; SFX.hit(); } }
   if (victim.isPlayer) { hudFx.dmg = Math.min(1, hudFx.dmg + dealt / 400); cam.shake = Math.max(cam.shake, Math.min(.5, dealt / 300)); if (clock - hurtSoundT > .25) { hurtSoundT = clock; SFX.hurt(); } }

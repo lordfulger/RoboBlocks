@@ -155,6 +155,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .grow.room .rt{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.grow.room .rt b{font-size:17px}.grow.room .rt em{font-style:normal;font-size:11px;letter-spacing:.12em;color:#ffd36a}
 .grow.room .rs{font-size:14px;color:#dfe6ea}.grow.room .rp{font-size:13px;color:#9fe0b0}.grow.room small{font-size:12px;color:var(--muted)}
 .grow.room .rb{display:flex;flex-direction:column;gap:6px;align-items:stretch}.grow.room .rb button{min-width:96px}.grow.room .rb .watch{font-size:12px;padding:4px 8px}
+#sbGuide{border:1px solid var(--accent);background:rgba(255,138,31,.06);padding:12px 16px;margin:4px 0 12px;font-size:14px}#sbGuide ol{margin:8px 0;padding-left:20px}#sbGuide li{margin:4px 0;color:#d6dde2}#sbGuide em{font-style:normal;color:var(--accent)}
 #sbOther{margin-top:12px}#sbOther summary{cursor:pointer;color:#b4c0c8;font-size:14px;padding:6px 0}#sbHost summary{cursor:pointer;font-family:var(--display);font-size:13px;letter-spacing:.14em;color:var(--dim,#9aa6ae);padding:6px 0}#sbHost[open] summary{color:inherit}
 .sbt{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:10px}.sbt td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:middle}.sbt tr.here{background:rgba(255,160,40,.08)}.sbt small{color:var(--muted)}.sbt button{padding:4px 10px;margin-left:4px}
 .wslot.grp{border-color:#7a6a2a}.wslot.grp .k{color:#ffd76a}
@@ -477,7 +478,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 #techTree .node.start{background:#fff}#techTree .node.start .in{background:#e9edf0;color:#111}#techTree .node.start b{font-size:16px;letter-spacing:.06em}
 #techTree .node.pulse{animation:ttPop .4s ease-out}
 @keyframes ttGlow{50%{background:#3a6b8a}}@keyframes ttPop{0%{transform:scale(1.25)}100%{transform:scale(1)}}
-#techTree .tti{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid #5b6b78}#techTree .tti.tcpu{color:#7ff0a0;border-color:#3f8a5a;background:#12261a}
+#techTree .tti{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid #5b6b78}#techTree .tti.tcpu{color:#7ff0a0;border-color:#3f8a5a;background:#12261a}#techTree .tti.tup{color:#ffd27a;border-color:#8a6a2f;background:#2a1f0e;font-size:17px;position:relative}#techTree .tti.tup sup{position:absolute;right:-4px;top:-6px;font-size:10px;background:#8a6a2f;color:#fff;border-radius:7px;padding:0 4px;line-height:14px}
 #techTree img.mat-light{filter:brightness(1.35) saturate(.4) hue-rotate(180deg)}#techTree img.mat-heavy{filter:brightness(.7) contrast(1.3) saturate(.2)}#techTree img.mat-reactive{filter:sepia(1) saturate(3) hue-rotate(-20deg)}#techTree img.mat-energy{filter:sepia(1) saturate(4) hue-rotate(140deg) brightness(1.2)}
 #techTree .tt-side{width:360px;flex-shrink:0;margin:14px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;z-index:2}
 #techTree .tt-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);letter-spacing:.12em;font-size:20px}#techTree .tt-head button{padding:4px 10px}
@@ -796,7 +797,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
-  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.']],
+  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.', 'Quick Play looks across every RoboBlocks server and takes you to the busiest room at your level, even on another server.', 'Damage numbers are coloured by the weapon that dealt them, and every hit varies a little (90 to 110%).', 'A short guide explains Play online the first time you open it.', 'Tech Tree upgrades: Calibrated Barrels, Shaped Warheads, Overcharged Capacitors, Autoloaders, Heat Sinks, Fuel Cells and Module Chargers improve your own bot, rank by rank. Two more CPU Cores at levels 9 and 10.']],
   ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.', 'Better flying: Space climbs and C descends quickly, and letting go holds your height. Helicopters respond faster, planes climb and dive toward where you aim, and C drops jump-jet bots faster.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
@@ -4594,6 +4595,8 @@ class Bot {
   damageCell(c, dmg, attacker) {
     if (!c.alive || this.dead) return dmg;
     if (attacker && attacker.dmgMul) dmg *= attacker.dmgMul; // e.g. horde enemies
+    if (attacker && attacker.isPlayer && DMG_SRC) dmg *= upDmg(attacker, DMG_SRC); // Tech Tree weapon upgrades (your own shots only)
+    if (attacker && attacker !== this && !attacker.remote) dmg *= .9 + Math.random() * .2; // each hit varies by up to 10% (decided by the shooter, once)
     if (this.shieldT > 0) return 0;
     if (this.remote && attacker && !attacker.remote) netReportHit(attacker, this, c.idx, dmg);
     if (this.barrier > 0) { const soak = Math.min(this.barrier, dmg); this.barrier -= soak; dmg -= soak; this.barrierFlash = 1; if (!HEADLESS && clock - (this.barrierHitT || -9) > .15) SFX.shieldHit(this.center); this.barrierHitT = clock; if (!HEADLESS && Math.random() < .3) sparks(this.cellWorld(c, _v3), 0x5fe8ff, 3, 5, .14, .25); if (dmg <= 0) { this.lastHitT = clock; return 0; } }
@@ -4712,7 +4715,7 @@ class Bot {
     this.jetting = false;
     // jets lose their push near a ceiling: ~28 m over the ground for ground bots, a little above a flier's normal ceiling
     const jetCeil = air ? (m.maxAlt || 6) + 14 : 28, jetK = clamp((jetCeil - above) / 8, 0, 1);
-    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * jetK * dt; this.fuel = Math.max(0, this.fuel - dt * .42); this.jetting = jetK > 0; }
+    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * jetK * dt; this.fuel = Math.max(0, this.fuel - dt * .42 * upFuel(this)); this.jetting = jetK > 0; }
     else if (inp.down && !air && !fly && !grounded && this.vel.y > -30) this.vel.y -= GRAV * 1.2 * dt; // C: drop faster after a jump
     else this.fuel = Math.min(1, this.fuel + dt * (grounded || driving ? .3 : .08));
     let vf = this.vel.x * fx + this.vel.z * fz, vs = this.vel.x * lx + this.vel.z * lz;
@@ -4879,7 +4882,7 @@ class Bot {
       }
       if (!best) continue;
       const tip = _v3.set(bx + dx * 1.5, by, bz + dz * 1.5).applyMatrix4(mw).clone();
-      const before = best.hp; const td = TESLA.dmg * match.dmgScale; bestBot.damageCell(best, td, this); onHit(this, bestBot, Math.min(before, td));
+      const before = best.hp; const td = TESLA.dmg * match.dmgScale; DMG_SRC = 'tesla'; bestBot.damageCell(best, td, this); DMG_SRC = null; onHit(this, bestBot, Math.min(before, td));
       beam(tip, hitPt, 0xaff6ff, .07, .09); sparks(hitPt, 0xbff8ff, 4, 7, .12, .25);
       if (Math.random() < .5) SFX.zap(hitPt);
     }
@@ -4902,7 +4905,7 @@ class Bot {
       this.ft = this.ft || {}; for (const t of grp) this.ft[t] = (this.ft[t] || 0) - dt;
       if (this.isPlayer) { if (inp.fire && grp.includes('nano')) SFX.beamStart('nano'); else SFX.beamStop(); }
       if (!inp.fire) return; if (this.cloakT > 0) this.cloakT = 0;
-      const shoot = t => { const W = WEAPONS[t], g = this.guns[t]; let iv = Math.max(W.minInt, W.cd / g.length) * (match.fireMul || 1); if (t === 'chain') { if (this.spin < .12) return 0; iv *= lerp(3.5, 1, this.spin); } const gun = g[(this.gi = (this.gi || 0) + 1) % g.length]; gun.kick = 1; fireWeapon(this, t, gun.muzzle.getWorldPosition(new T.Vector3()), inp.aim); heatAdd(this, t, iv * .65); return iv; };
+      const shoot = t => { const W = WEAPONS[t], g = this.guns[t]; let iv = Math.max(W.minInt, W.cd / g.length) * (match.fireMul || 1) * upRel(this); if (t === 'chain') { if (this.spin < .12) return 0; iv *= lerp(3.5, 1, this.spin); } const gun = g[(this.gi = (this.gi || 0) + 1) % g.length]; gun.kick = 1; fireWeapon(this, t, gun.muzzle.getWorldPosition(new T.Vector3()), inp.aim); heatAdd(this, t, iv * .65); return iv; };
       if (inp.groupMode === 'alt') { if (this.fireT > 0) return; const t = grp[(this.grpIdx = ((this.grpIdx || 0) + 1) % grp.length)], iv = shoot(t); this.fireT = iv ? Math.max(.08, iv / grp.length) : .05; }
       else for (const t of grp) if (this.ft[t] <= 0) { const iv = shoot(t); this.ft[t] = iv || .05; }
       return;
@@ -4918,18 +4921,18 @@ class Bot {
     const W = WEAPONS[type];
     if (type === 'lancer') { // a charged volley: every Rail Lancer fires together, then they cool down as one
       for (const g of guns) { g.kick = 1; fireWeapon(this, type, g.muzzle.getWorldPosition(new T.Vector3()), inp.aim); }
-      this.fireT = Math.max(.5, W.cd - W.charge) * (match.fireMul || 1); return;
+      this.fireT = Math.max(.5, W.cd - W.charge) * (match.fireMul || 1) * upRel(this); return;
     }
     let interval = Math.max(W.minInt, W.cd / guns.length);
     if (type === 'chain') { if (this.spin < .12) return; interval *= lerp(3.5, 1, this.spin); }
-    interval *= match.fireMul || 1;
+    interval *= (match.fireMul || 1) * upRel(this);
     const gun = guns[this.gunIdx++ % guns.length]; this.fireT = interval; gun.kick = 1;
     fireWeapon(this, type, gun.muzzle.getWorldPosition(new T.Vector3()), inp.aim); heatAdd(this, type, interval);
   }
 }
 function heatAdd(b, t, iv) {
   b.shotT = clock; const h = HEAT[t]; if (!h) return;
-  const before = b.heat; b.heat = Math.min(1, b.heat + h * iv);
+  const before = b.heat; b.heat = Math.min(1, b.heat + h * iv * upHeat(b));
   if (b.isPlayer && before < .75 && b.heat >= .75) SFX.heatWarn();
   if (b.heat >= 1) { b.overT = HEAT_LOCK; if (b.isPlayer) { SFX.overheat(); toastCenter('Overheated! Venting…', 1.2); } else if (!HEADLESS) SFX.overheat(b.center); }
 }
@@ -4961,11 +4964,13 @@ function solveBallistic(from, to, v, g) {
 
 // ================= WEAPONS / PROJECTILES =================
 let beamGhost = false;
+let DMG_SRC = null;
 function fireWeapon(owner, type, from, aim) {
   const n0 = world.projs.length; beamGhost = owner.remote; owner.lastFireT = clock; /* firing keeps you in combat: no base repair */ if (REC.on) recShot(owner, type, from, aim);
-  fireWeapon0(owner, type, from, aim);
+  DMG_SRC = type; fireWeapon0(owner, type, from, aim); DMG_SRC = null;
   beamGhost = false;
   if (owner.remote) for (let i = n0; i < world.projs.length; i++) world.projs[i].ghost = true;
+  else if (owner.isPlayer) { const k = upSplash(owner); if (k !== 1) for (let i = n0; i < world.projs.length; i++) if (world.projs[i].splash) world.projs[i].splash *= k; }
 }
 function fireWeapon0(owner, type, from, aim) {
   const W = WEAPONS[type], ally = owner.team === 0, scale = match.dmgScale;
@@ -5065,7 +5070,7 @@ function hitTest(p) {
     if (b.shieldT > 0) { shieldHit(b, pos); return true; }
     if (p.splash) { impact(p, pos); return true; }
     if (p.ghost) { sparks(pos, p.team === 0 ? 0x9ff3ff : 0xffc070, 3, 6, .14, .3); return true; }
-    const before = p.dmg; const left = b.damageCell(c, p.dmg, p.owner); p.dmg = left;
+    DMG_SRC = p.type; const before = p.dmg; const left = b.damageCell(c, p.dmg, p.owner); p.dmg = left; DMG_SRC = null;
     onHit(p.owner, b, before - left);
     sparks(pos, p.team === 0 ? 0x9ff3ff : 0xffc070, 3, 6, .14, .3);
     if (p.dmg <= 2) return true;
@@ -5075,7 +5080,7 @@ function hitTest(p) {
 function impact(p, pos) {
   if (p.splash) {
     damageBuildings(pos, p.dmg, p.splash);
-    if (!p.ghost) splashDamage(pos, p.splash, p.dmg, p.owner, p.team, p.air || 1);
+    if (!p.ghost) { DMG_SRC = p.type; splashDamage(pos, p.splash, p.dmg, p.owner, p.team, p.air || 1); DMG_SRC = null; }
     if (p.type === 'plasma') { flash(pos.clone(), 4.2, p.trail, .32); sparks(pos, p.trail, 16, 11, .2, .45); SFX.boom(pos, false); if (!HEADLESS) { shockwave(pos, 6, p.trail); addScorch(pos, 2); } }
     else if (p.type === 'flak') { flash(pos.clone(), 3.4, 0xfff0a0, .2); sparks(pos, 0xffe080, 14, 14, .16, .35); for (let i = 0; i < 6; i++) emit(pos.x, pos.y, pos.z, rand(-3, 3), rand(-1, 2), rand(-3, 3), rand(.8, 1.4), rand(.8, 1.4), 0x2a2622, -.4); SFX.flakBurst(pos); }
     else explosion(pos.clone(), false);
@@ -5128,7 +5133,7 @@ function updateProjectiles(dt) {
 let hitmarkT = 0, hitSoundT = 0, hurtSoundT = 0;
 function onHit(attacker, victim, dealt) {
   if (dealt <= 0) return;
-  if (attacker && attacker.isPlayer && victim !== attacker) dmgNumber(victim, dealt);
+  if (attacker && attacker.isPlayer && victim !== attacker) dmgNumber(victim, dealt, DMG_SRC);
   if (victim.isPlayer && attacker && attacker !== victim) hitFrom(attacker);
   if (attacker && attacker.isPlayer) { hitmarkT = .12; if (clock - hitSoundT > .06) { hitSoundT = clock; SFX.hit(); } }
   if (victim.isPlayer) { hudFx.dmg = Math.min(1, hudFx.dmg + dealt / 400); cam.shake = Math.max(cam.shake, Math.min(.5, dealt / 300)); if (clock - hurtSoundT > .25) { hurtSoundT = clock; SFX.hurt(); } }
@@ -5303,7 +5308,7 @@ function hasModule(b, t) { return !!(b.mods && b.mods[t] && b.cellList.some(c =>
 function moduleReady(b, t) { const M0 = MODULES[t]; return hasModule(b, t) && !(b.modCd[t] > 0) && b.disruptT <= 0 && b.stunT <= 0 && b.energy >= M0.cost; }
 function useModule(b, t) {
   if (!moduleReady(b, t)) { if (b.isPlayer && hasModule(b, t)) { SFX.ui(); toastCenter(b.disruptT > 0 ? 'Modules disrupted!' : b.modCd[t] > 0 ? `${MODULES[t].name} recharging` : 'Not enough energy', .8); } return false; }
-  const M0 = MODULES[t]; b.energy -= M0.cost; b.modCd[t] = M0.cd; if (b.qs) b.qs.mods++;
+  const M0 = MODULES[t]; b.energy -= M0.cost; b.modCd[t] = M0.cd * upMod(b); if (b.qs) b.qs.mods++;
   const c = b.center.clone();
   if (t === 'shield') { b.shieldT = Math.max(b.shieldT, 3); if (!HEADLESS) shockwave(c, 4, 0x5fe8ff); }
   else if (t === 'cloak') { b.cloakT = 6; if (!HEADLESS) sparks(c, 0xc77dff, 18, 6, .16, .5); }
@@ -5456,6 +5461,7 @@ async function beInit() {
     if (SERVER_BASE && !onClaudePage()) {
       const room = await netInit(); // a self-hosted page: the server is right here
       if (room && room.relay && NET.accounts) BE.kind = 'server';
+      if (room) setTimeout(() => { if (state === 'menu' || state === 'garage') autoJoinCheck(); }, 1800);
     }
   } catch (e) { console.warn('backend', e); }
   BE.ready = true; setSaveBadge(cloudOn() ? 'Saved to account' : BE.kind === 'server' ? (HOST ? 'Guest: this computer' : 'Guest: this browser') : (HOST ? 'This computer' : 'This browser'));
@@ -6044,7 +6050,14 @@ async function showLobby() {
   }
   NET.me = myPeer();
   const here = NET.serverName || (SERVER_BASE ? SERVER_BASE.replace(/^https?:\/\//, '') : 'This server');
-  showOverlay(`<div class="sbTop"><div><h2>Play online</h2><p class="sbHere"><b></b> · <span id="sbOnline"></span></p></div><button id="sbParty">Party</button></div>
+  showOverlay(`<div class="sbTop"><div><h2>Play online</h2><p class="sbHere"><b></b> · <span id="sbOnline"></span></p></div><div><button id="sbHelp" title="How online play works">?</button> <button id="sbParty">Party</button></div></div>
+    <div id="sbGuide" hidden><b>Playing online</b><ol>
+      <li><b>Pick a room and press Join.</b> Each room runs its own rotation of modes and maps; empty slots fill with AI. <em>Watch</em> lets you spectate a match in progress.</li>
+      <li><b>Play with friends:</b> open <b>Party</b>, invite them, and they follow you into rooms on your team.</li>
+      <li><b>Friend codes:</b> share yours (in Party) so friends can add you from anywhere, even when you are offline.</li>
+      <li><b>Switch bots mid-match:</b> while wrecked, press 1–9 or 0 to rebuild as the bot in that garage bay.</li>
+      <li><b>Host a custom game</b> to pick the mode, map, size and whether AI bots join.</li></ol>
+      <div class="btns" style="justify-content:flex-start"><button class="primary" id="sbGuideOk">Got it</button></div></div>
     <div id="lobbyList"></div>
     <div class="btns"><button class="primary" id="ovBack">Back</button><button id="sbHostBtn">Host a custom game</button></div>
     <details id="sbOther"><summary>Other servers</summary><div id="sbOthers"><p class="gempty">Looking for other servers…</p></div>
@@ -6052,6 +6065,8 @@ async function showLobby() {
   $('.sbHere b').textContent = here;
   $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
   $('#sbHostBtn').onclick = () => showHostGame();
+  const guide = on => { $('#sbGuide').hidden = !on; if (!on) store.set('sfa.onlineTut', true); };
+  guide(!store.get('sfa.onlineTut', false)); $('#sbGuideOk').onclick = () => guide(false); $('#sbHelp').onclick = () => guide($('#sbGuide').hidden);
   $('#sbParty').onclick = () => showParty(showLobby);
   if (NET.party) $('#sbParty').textContent = `Party (${partyMembers().length || 1})`;
   wireServerList(true);
@@ -7986,6 +8001,33 @@ window.__sfa = { get RP() { return RP; }, get REC() { return REC; }, NET, terrai
 // ---- 72-extras.js ----
 // ================= QUICK PLAY, DAMAGE NUMBERS, HIT DIRECTION, MEDALS, REPLAYS =================
 // ---------- quick play: the fullest server that suits you ----------
+// the busiest joinable room on another server: { url, server, id, name, players }
+async function bestRemoteRoom(lv) {
+  const res = await fetchServerList().catch(() => ({ ok: false })); if (!res.ok) return null;
+  const here = SERVER_BASE, urls = res.list.map(s => { try { return { url: new URL(s.url).origin, name: s.name }; } catch (e) { return null; } }).filter(s => s && s.url !== here).slice(0, 8);
+  let best = null;
+  await Promise.all(urls.map(async u => {
+    try {
+      const ac = new AbortController(), t = setTimeout(() => ac.abort(), 3500); const r = await fetch(u.url + '/status', { signal: ac.signal, cache: 'no-store' }); clearTimeout(t); if (!r.ok) return;
+      const st = await r.json(); if (st.version && BC_VERSION && st.version.split('.')[0] !== BC_VERSION.split('.')[0]) return;
+      for (const room of st.servers || []) { const n = room.players | 0; if (n > 0 && (!best || n > best.players)) best = { url: u.url, server: st.server || u.name || u.url.replace(/^https?:\/\//, ''), id: room.id, name: room.name, players: n }; }
+    } catch (e) { }
+  }));
+  return best;
+}
+// switch servers and drop straight into a room there
+function goJoin(url, id) {
+  store.set('sfa.autoJoin', { url, id, t: Date.now() });
+  if (HOST && HOST.setServer) HOST.setServer(url); else location.href = url + '/#join=' + encodeURIComponent(id);
+}
+// on arrival: join the room the last server sent us to (or a #join= link)
+function autoJoinCheck() {
+  let id = (location.hash.match(/^#join=([\w-]+)/) || [])[1]; const aj = store.get('sfa.autoJoin', null);
+  if (!id && aj && Date.now() - aj.t < 120000 && aj.url === SERVER_BASE) id = aj.id;
+  store.set('sfa.autoJoin', null); if (location.hash.startsWith('#join=')) history.replaceState(null, '', location.pathname);
+  const sv = id && SERVERS.find(s => s.id === id); if (!sv || !canDeploy()) return;
+  toast(`Joining ${sv.name}.`); joinGame(sv.id, sv, null);
+}
 async function quickPlay() {
   if (!canDeploy()) return;
   showOverlay('<h2>Quick play</h2><p>Finding a battle…</p>');
@@ -7999,21 +8041,26 @@ async function quickPlay() {
   const cand = SERVERS.filter(s => !s.locked && (!s.ranked || BE.me) && lv >= (s.minLv || 1) && lv <= (s.maxLv || 10) && players(s.id) < s.n * 2)
     .map(s => { const h = (hosts.find(p => p.presence.host.code === s.id) || {}).presence; const ph = h && h.host ? h.host.phase : null; return { s, score: players(s.id) * 10 + (ph === 'live' ? 5 : ph === 'warmup' ? 3 : 0) + (s.n === 10 ? 1 : 0) - Math.min(25, srGap(s.id) / 20) }; })
     .sort((a, b) => b.score - a.score);
+  // other RoboBlocks servers (from the hub): go there if one has a busier room you can join
+  const best = cand[0] ? players(cand[0].s.id) : -1, far = await bestRemoteRoom(lv);
+  if (far && far.players > best) { toast(`Joining ${far.name} on ${far.server}.`); goJoin(far.url, far.id); return; }
   if (!cand.length) { showLobby(); toast('No open server fits right now. Pick one, or host a custom game.'); return; }
   toast(`Joining ${cand[0].s.name}.`); joinGame(cand[0].s.id, cand[0].s, null);
 }
 // ---------- floating damage numbers ----------
 const DMGN = { pool: [], acc: new Map() };
-function dmgNumber(victim, amt) {
+// one number per weapon per target, coloured by weapon, so mixed loadouts show what each gun is doing
+const DMG_COL = { blaster: '#8fe6ff', chain: '#ffe58a', plasma: '#c69bff', mortar: '#ffb066', rail: '#ffffff', seeker: '#ff8fb4', flak: '#ffd36a', arc: '#9fd8ff', mine: '#b8ff8a', lancer: '#e6f7ff', tesla: '#7fe8ff' };
+function dmgNumber(victim, amt, src) {
   if (HEADLESS || !victim || amt <= 0) return;
-  const a = DMGN.acc.get(victim) || { amt: 0, t: 0 }; a.amt += amt; DMGN.acc.set(victim, a);
+  const key = victim.netId + '|' + (src || '?'), a = DMGN.acc.get(key) || { amt: 0, t: 0, v: victim, src }; a.amt += amt; DMGN.acc.set(key, a);
 }
 function updateDmgNumbers(dt) {
   if (HEADLESS) return;
   const box = $('#dmgNums'); if (!box) return;
-  for (const [v, a] of DMGN.acc) { a.t += dt; if (a.t < .22 && a.amt < 2000) continue; DMGN.acc.delete(v); if (v.dead && a.amt < 1) continue;
+  for (const [key, a] of DMGN.acc) { const v = a.v; a.t += dt; if (a.t < .22 && a.amt < 2000) continue; DMGN.acc.delete(key); if (v.dead && a.amt < 1) continue;
     let el = DMGN.pool.find(x => x.life <= 0); if (!el) { if (DMGN.pool.length > 30) continue; el = { div: document.createElement('div'), life: 0 }; el.div.className = 'dn'; box.appendChild(el.div); DMGN.pool.push(el); }
-    el.div.textContent = Math.round(a.amt).toLocaleString(); el.div.classList.toggle('big', a.amt > 900); el.pos = v.center.clone().add(new T.Vector3(rand(-1, 1), v.height * .5 + rand(.5, 1.5), rand(-1, 1))); el.life = 1.1; el.div.style.display = 'block'; }
+    el.div.textContent = Math.round(a.amt).toLocaleString(); el.div.classList.toggle('big', a.amt > 900); el.div.style.color = DMG_COL[a.src] || ''; el.pos = v.center.clone().add(new T.Vector3(rand(-1, 1), v.height * .5 + rand(.5, 1.5), rand(-1, 1))); el.life = 1.1; el.div.style.display = 'block'; }
   for (const el of DMGN.pool) {
     if (el.life <= 0) continue; el.life -= dt; el.pos.y += dt * 2.2;
     const p = el.pos.clone().project(camera);
@@ -9049,8 +9096,19 @@ Object.assign(window.__sfa, { normCode, addFriendCode, get MY_FC() { return MY_F
 // points. Points come from levelling up (and every 2,000 XP past level 10) and from achievements.
 // Pilot level still gates every node, so other players can keep checking bots against the stamped level.
 const TECH_START = ['cube', 'wedge', 'slab', 'seat', 'wheel', 'blaster', 'flag', 'T1', 'mat_std'];
-const TECH_CPU = 25, TECH_CPU_LV = [2, 4, 5, 6, 8], TECH_CPU_MAX = TECH_CPU * TECH_CPU_LV.length;
+const TECH_CPU = 25, TECH_CPU_LV = [2, 4, 5, 6, 8, 9, 10], TECH_CPU_MAX = TECH_CPU * TECH_CPU_LV.length;
 const TECH_RANK_XP = 2000;
+// upgrades: ranked nodes that improve your own bot (never other players'). Each rank needs a higher pilot level.
+const TECH_UP = {
+  bal: { name: 'Calibrated Barrels', lv: [3, 6, 9], wps: ['blaster', 'chain', 'rail', 'lancer'], dmg: .04, desc: r => `Blasters, chain guns, rails and Rail Lancers deal ${4 * r}% more damage.` },
+  war: { name: 'Shaped Warheads', lv: [3, 6, 9], wps: ['mortar', 'plasma', 'flak', 'mine', 'seeker'], dmg: .04, splash: .04, desc: r => `Mortars, plasma, flak, gravity mines and seekers deal ${4 * r}% more damage over a ${4 * r}% wider blast.` },
+  cap: { name: 'Overcharged Capacitors', lv: [4, 7, 10], wps: ['tesla', 'arc'], dmg: .05, desc: r => `Tesla blades and Arc Lances deal ${5 * r}% more damage.` },
+  rel: { name: 'Autoloaders', lv: [5, 8], rel: .04, desc: r => `Every gun fires ${4 * r}% faster.` },
+  heat: { name: 'Heat Sinks', lv: [4, 7], heat: .12, desc: r => `Rapid-fire guns build up ${12 * r}% less heat.` },
+  fuel: { name: 'Fuel Cells', lv: [3, 6], fuel: .15, desc: r => `Jets burn ${15 * r}% less fuel.` },
+  mod: { name: 'Module Chargers', lv: [5, 8], mod: .1, desc: r => `Modules recharge ${10 * r}% faster.` },
+};
+const upKey = id => { const m = /^u_([a-z]+)(\d)$/.exec(id); return m && TECH_UP[m[1]] ? [m[1], +m[2]] : null; };
 // lines grow from a parent in a screen direction (x right, y down); see techLayout
 const TECH_LINES = [
   { from: 'start', dir: [0, -1], ids: ['T2', 'T3', 'T4', 'cpu1', 'T5', 'T6', 'T7', 'cpu4', 'T8', 'T9', 'T10'] },
@@ -9064,11 +9122,19 @@ const TECH_LINES = [
   { from: 'tesla', dir: [.55, .85], ids: ['mortar', 'plasma', 'flak', 'seeker'] },
   { from: 'start', dir: [.05, 1], ids: ['m_fly', 'm_shield', 'm_power', 'm_cloak', 'm_blink', 'cpu5', 'm_emp', 'm_disrupt'] },
   { from: 'm_shield', dir: [-.8, .6], ids: ['spike', 'shieldp', 'projector'] },
+  { from: 'T10', dir: [0, -1], ids: ['cpu7'] },
+  { from: 'm_disrupt', dir: [0, 1], ids: ['cpu6'] },
+  { from: 'lancer', dir: [.4, -1], ids: ['u_bal1', 'u_bal2', 'u_bal3'] },
+  { from: 'seeker', dir: [.6, .8], ids: ['u_war1', 'u_war2', 'u_war3'] },
+  { from: 'arc', dir: [1, 0], ids: ['u_cap1', 'u_cap2', 'u_cap3'] },
+  { from: 'arc', dir: [1, .6], ids: ['u_rel1', 'u_rel2', 'u_heat1', 'u_heat2'] },
+  { from: 'thruster', dir: [-1, 0], ids: ['u_fuel1', 'u_fuel2'] },
+  { from: 'm_disrupt', dir: [.8, .6], ids: ['u_mod1', 'u_mod2'] },
 ];
 const TECH = {};
 (function techBuild() {
-  const kindOf = id => /^T\d+$/.test(id) ? 'tier' : /^mat_/.test(id) ? 'mat' : /^cpu\d$/.test(id) ? 'cpu' : 'part';
-  const lvlOf = id => { const k = kindOf(id); if (k === 'tier') return TIERS[+id.slice(1)].lvl; if (k === 'mat') return MATERIALS[id.slice(4)].lvl; if (k === 'cpu') return TECH_CPU_LV[+id.slice(3) - 1]; return PARTS[id].lvl; };
+  const kindOf = id => upKey(id) ? 'up' : /^T\d+$/.test(id) ? 'tier' : /^mat_/.test(id) ? 'mat' : /^cpu\d$/.test(id) ? 'cpu' : 'part';
+  const lvlOf = id => { const k = kindOf(id); if (k === 'tier') return TIERS[+id.slice(1)].lvl; if (k === 'mat') return MATERIALS[id.slice(4)].lvl; if (k === 'cpu') return TECH_CPU_LV[+id.slice(3) - 1]; if (k === 'up') { const [u, r] = upKey(id); return TECH_UP[u].lv[r - 1]; } return PARTS[id].lvl; };
   // pointy-top hex grid in axial coordinates; pixel units where neighbouring cells are 1 apart
   const px = (q, r) => [q + r / 2, r * .866], NB = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
   const used = new Map([['0,0', 'start']]); TECH.start = { id: 'start', q: 0, r: 0 };
@@ -9082,13 +9148,13 @@ const TECH = {};
       if (!best) { for (let rad = 2; rad < 6 && !best; rad++) for (let dq = -rad; dq <= rad; dq++) for (let dr = -rad; dr <= rad; dr++) { const q = pp.q + dq, r = pp.r + dr; if (used.has(q + ',' + r)) continue; const [x, y] = px(q, r), d = Math.hypot(x - ideal[0], y - ideal[1]); if (d < bd) { bd = d; best = [q, r]; } } }
       used.set(best[0] + ',' + best[1], id);
       const kind = kindOf(id), lvl = lvlOf(id);
-      TECH[id] = { id, kind, lvl, parent, q: best[0], r: best[1], cost: kind === 'cpu' ? 2 : kind === 'tier' ? Math.ceil(lvl / 2) + 1 : Math.ceil(lvl / 2) };
+      TECH[id] = { id, kind, lvl, parent, q: best[0], r: best[1], cost: kind === 'cpu' ? 2 : kind === 'up' ? 2 + upKey(id)[1] : kind === 'tier' ? Math.ceil(lvl / 2) + 1 : Math.ceil(lvl / 2) };
       parent = id;
     });
   }
 })();
-const techName = id => { const n = TECH[id]; if (!n) return id; if (n.kind === 'tier') return `T${id.slice(1)} ${TIERS[+id.slice(1)].name} armor`; if (n.kind === 'mat') return MATERIALS[id.slice(4)].name; if (n.kind === 'cpu') return `CPU Core +${TECH_CPU}`; return PARTS[id].name; };
-const techDesc = id => { const n = TECH[id]; if (!n) return ''; if (n.kind === 'tier') { const T0 = TIERS[+id.slice(1)]; return `Armor tier ${id.slice(1)}: ${T0.hp} health per cube, ${T0.cpu} CPU each.`; } if (n.kind === 'mat') return MATERIALS[id.slice(4)].desc; if (n.kind === 'cpu') return `Raises your CPU limit by ${TECH_CPU}, so you can fit more on every bot.`; return PARTS[id].desc || ''; };
+const techName = id => { const n = TECH[id]; if (!n) return id; if (n.kind === 'tier') return `T${id.slice(1)} ${TIERS[+id.slice(1)].name} armor`; if (n.kind === 'mat') return MATERIALS[id.slice(4)].name; if (n.kind === 'cpu') return `CPU Core +${TECH_CPU}`; if (n.kind === 'up') { const [u, r] = upKey(id); return `${TECH_UP[u].name} ${['I', 'II', 'III'][r - 1]}`; } return PARTS[id].name; };
+const techDesc = id => { const n = TECH[id]; if (!n) return ''; if (n.kind === 'tier') { const T0 = TIERS[+id.slice(1)]; return `Armor tier ${id.slice(1)}: ${T0.hp} health per cube, ${T0.cpu} CPU each.`; } if (n.kind === 'mat') return MATERIALS[id.slice(4)].desc; if (n.kind === 'cpu') return `Raises your CPU limit by ${TECH_CPU}, so you can fit more on every bot.`; if (n.kind === 'up') { const [u, r] = upKey(id); return TECH_UP[u].desc(r) + (r > 1 ? ' (total with the ranks before it)' : '') + ' Only your own bot gets it.'; } return PARTS[id].desc || ''; };
 function techState() {
   if (!PROG.tech || typeof PROG.tech !== 'object' || !PROG.tech.got) {
     // pilots who played before the tree keep everything their level already gave them, free
@@ -9109,6 +9175,14 @@ function techSpent() { const g = techState().got; let s = 0; for (const id in g)
 const techAvail = () => techEarned() - techSpent();
 function techHas(id) { if (HEADLESS || UNLOCK_ALL) return true; if (TECH_START.includes(id) || !TECH[id]) return true; return !!techState().got[id]; }
 const techCpu = () => HEADLESS ? 0 : UNLOCK_ALL ? TECH_CPU_MAX : TECH_CPU * TECH_CPU_LV.filter((_, i) => techHas('cpu' + (i + 1))).length;
+// upgrade ranks your bot has: 0 for AI, other players, simulations and replays
+function upRank(b, u) { if (HEADLESS || !b || !b.isPlayer || b.remote || (match && match.replay)) return 0; const L = TECH_UP[u].lv; let r = 0; for (let i = 1; i <= L.length; i++) if (techHas('u_' + u + i)) r = i; else break; return r; }
+function upDmg(b, type) { if (!b || !b.isPlayer) return 1; for (const u in TECH_UP) { const U = TECH_UP[u]; if (U.wps && U.wps.includes(type)) return 1 + U.dmg * upRank(b, u); } return 1; }
+const upSplash = b => b && b.isPlayer ? 1 + TECH_UP.war.splash * upRank(b, 'war') : 1;
+const upRel = b => b && b.isPlayer ? 1 - TECH_UP.rel.rel * upRank(b, 'rel') : 1;
+const upHeat = b => b && b.isPlayer ? 1 - TECH_UP.heat.heat * upRank(b, 'heat') : 1;
+const upFuel = b => b && b.isPlayer ? 1 - TECH_UP.fuel.fuel * upRank(b, 'fuel') : 1;
+const upMod = b => b && b.isPlayer ? 1 - TECH_UP.mod.mod * upRank(b, 'mod') : 1;
 const ownCpuMax = () => cpuMax(unlockLv()) + techCpu();
 const partOpen = t => !!PARTS[t] && PARTS[t].lvl <= unlockLv() && !partLocked(t) && techHas(t);
 const tierOpen = k => !!TIERS[k] && TIERS[k].lvl <= unlockLv() && techHas('T' + k);
@@ -9139,6 +9213,7 @@ function techIcon(id) {
   if (n.kind === 'tier' && TIER_ICONS[+id.slice(1)]) return `<img alt="" src="${TIER_ICONS[+id.slice(1)]}">`;
   if (n.kind === 'mat') return TIER_ICONS[3] ? `<img alt="" class="mat-${id.slice(4)}" src="${TIER_ICONS[3]}">` : `<span class="tti mat-${id.slice(4)}">${MATERIALS[id.slice(4)].name.slice(0, 2).toUpperCase()}</span>`;
   if (n.kind === 'cpu') return `<span class="tti tcpu">+${TECH_CPU}</span>`;
+  if (n.kind === 'up') { const [u, r] = upKey(id); return `<span class="tti tup">${{ bal: '⌖', war: '✸', cap: 'ϟ', rel: '»', heat: '❄', fuel: '⛽', mod: '◈' }[u]}<sup>${r}</sup></span>`; }
   return '';
 }
 function showTechTree(back) {
@@ -9195,7 +9270,7 @@ function techRender() {
     const [x, y] = ttPos(n);
     if (id === 'start') { html += `<button class="tt-cell node start" style="left:${x}px;top:${y}px" data-id="start"><span class="in"><b>START</b></span></button>`; continue; }
     const st = techStatus(id), starter = TECH_START.includes(id);
-    html += `<button class="tt-cell node ${st}${TT.sel === id ? ' sel' : ''}" style="left:${x}px;top:${y}px" data-id="${id}" title="${esc(techName(id))}"><span class="in">${techIcon(id)}<span class="nm">${esc(n.kind === 'cpu' ? 'CPU Core' : techName(id).replace(/ armor$/, ''))}</span>${st === 'own' ? '' : st === 'level' ? `<span class="ct">LV ${n.lvl}</span>` : `<span class="ct">★ ${n.cost}</span>`}</span></button>`;
+    html += `<button class="tt-cell node ${st}${TT.sel === id ? ' sel' : ''}" style="left:${x}px;top:${y}px" data-id="${id}" title="${esc(techName(id))}"><span class="in">${techIcon(id)}<span class="nm">${esc(n.kind === 'cpu' ? 'CPU Core' : n.kind === 'up' ? techName(id).replace(/^\S+ /, '') : techName(id).replace(/ armor$/, ''))}</span>${st === 'own' ? '' : st === 'level' ? `<span class="ct">LV ${n.lvl}</span>` : `<span class="ct">★ ${n.cost}</span>`}</span></button>`;
   }
   svg.setAttribute('viewBox', `${minX - 200} ${minY - 200} ${maxX - minX + 400} ${maxY - minY + 400}`);
   svg.style.left = (minX - 200) + 'px'; svg.style.top = (minY - 200) + 'px'; svg.setAttribute('width', maxX - minX + 400); svg.setAttribute('height', maxY - minY + 400);
@@ -9221,12 +9296,12 @@ function techCard() {
   const n = TECH[id], st = techStatus(id), par = n.parent === 'start' ? 'START' : techName(n.parent);
   const why = { own: 'Unlocked.', ready: `Costs ${n.cost} tech point${n.cost > 1 ? 's' : ''}.`, poor: `Costs ${n.cost} tech points. You have ${techAvail()}.`, level: `Needs pilot level ${n.lvl}.`, far: `Unlock ${par} first.` }[st];
   const P = n.kind === 'part' ? PARTS[id] : null;
-  c.innerHTML = `<div class="tt-ci">${techIcon(id)}</div><b>${esc(techName(id))}</b><small>${n.kind === 'part' ? esc(P.cat) + ' · ' + P.cpu + ' CPU · ' + P.hp + ' HP' : n.kind === 'tier' ? 'Armor tier' : n.kind === 'mat' ? 'Armor material' : 'Upgrade'} · level ${n.lvl}</small>
+  c.innerHTML = `<div class="tt-ci">${techIcon(id)}</div><b>${esc(techName(id))}</b><small>${n.kind === 'part' ? esc(P.cat) + ' · ' + P.cpu + ' CPU · ' + P.hp + ' HP' : n.kind === 'tier' ? 'Armor tier' : n.kind === 'mat' ? 'Armor material' : n.kind === 'up' ? 'Bot upgrade' : 'Upgrade'} · level ${n.lvl}</small>
     <p>${esc(techDesc(id))}</p><p class="st ${st}">${why}${techState().got[id] === 'L' ? ' (kept from before the tech tree)' : ''}</p>
     ${st === 'ready' ? `<button class="primary" id="ttBuy">Unlock for ${n.cost} ★</button>` : ''}`;
   if ($('#ttBuy')) $('#ttBuy').onclick = () => techBuyUI(id);
 }
-Object.assign(window.__sfa, { TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
+Object.assign(window.__sfa, { TECH_UP, upRank, upDmg, TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
 Object.assign(window.__sfa, { SPLASH, mobility, Bot, WEAPONS, PARTS, TIERS, BAL, HEAT, TESLA, computeStats });
 // ---- 78-loadout.js ----
 // ================= LOADOUTS =================

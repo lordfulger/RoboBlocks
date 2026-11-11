@@ -1,0 +1,9 @@
+# RoboBlocks behind HTTPS with Caddy. Replace the domains and ports with yours.
+# Caddy gets and renews the certificates itself, and passes WebSockets through.
+play.example.com {
+	reverse_proxy 127.0.0.1:12001
+}
+
+hub.example.com {
+	reverse_proxy 127.0.0.1:12000
+}
