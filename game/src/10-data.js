@@ -106,11 +106,16 @@ const MATERIALS = {
 };
 const MAT_CODES = ['std', 'light', 'heavy', 'reactive', 'energy'];
 const matOf = b => MATERIALS[b.m] || MATERIALS.std;
-const partCpu = b => isShape(b.t) ? Math.ceil(TIERS[b.k || 1].cpu * matOf(b).cpu) : PARTS[b.t].cpu;
+// legs come in four sizes (stored in the block's k): longer, stronger, taller, heavier and dearer
+const LEG_BASE_DROP = .4; // every leg now reaches a bit below its block (the larger models)
+const isLeg = t => t === 'leg' || t === 'insect' || t === 'sprint';
+const LEG_SIZES = [null, { name: 'S', s: 1, cost: 1, drop: 0 }, { name: 'M', s: 1.45, cost: 1.6, drop: .78 }, { name: 'L', s: 1.9, cost: 2.3, drop: 1.58 }, { name: 'XL', s: 2.4, cost: 3.1, drop: 2.46 }];
+const legSize = b => LEG_SIZES[clamp(b.k | 0 || 1, 1, 4)];
+const partCpu = b => isShape(b.t) ? Math.ceil(TIERS[b.k || 1].cpu * matOf(b).cpu) : isLeg(b.t) ? Math.round(PARTS[b.t].cpu * legSize(b).cost) : PARTS[b.t].cpu;
 // guns are armored to match the bot they sit on: twice their base health, more on bots built from higher armor tiers
 const gunHpMul = topTier => 2 * Math.sqrt(TIERS[clamp(topTier | 0, 1, 10)].hp / TIERS[1].hp);
-const partHp = b => isShape(b.t) ? Math.round(TIERS[b.k || 1].hp * PARTS[b.t].hpF * matOf(b).hp) : PARTS[b.t].hp;
-const partMass = b => isShape(b.t) ? TIERS[b.k || 1].mass * PARTS[b.t].massF * matOf(b).mass : PARTS[b.t].mass;
+const partHp = b => isShape(b.t) ? Math.round(TIERS[b.k || 1].hp * PARTS[b.t].hpF * matOf(b).hp) : isLeg(b.t) ? Math.round(PARTS[b.t].hp * legSize(b).cost) : PARTS[b.t].hp;
+const partMass = b => isShape(b.t) ? TIERS[b.k || 1].mass * PARTS[b.t].massF * matOf(b).mass : isLeg(b.t) ? PARTS[b.t].mass * legSize(b).cost : PARTS[b.t].mass;
 const maxTier = l => { let k = 1; for (let i = 1; i < TIERS.length; i++) if (TIERS[i].lvl <= l) k = i; return k; };
 const OLD_TIER = [0, 1, 3, 4, 5, 6, 7]; // v2 had six tiers
 function migrateDesign(d) {
@@ -143,16 +148,17 @@ const WTYPES = ['blaster', 'plasma', 'mortar', 'rail', 'seeker', 'flak', 'chain'
 const SPLASH = { cap: 2.6 }; // a splash weapon deals at most this many times its damage to one bot per blast
 const TESLA = { tick: 0.12, dmg: 55, reach: 1.5, magnet: 9, pull: 40 }; // magnet: metres; pull: m/s² at point blank
 const TESLA_DPS = Math.round(TESLA.dmg / TESLA.tick);
-const tierScale = l => .75 * Math.pow(cpuMax(l) / 150, .5);
+// weapon marks follow the original CPU curve, so raising the CPU limit does not change damage or the server's damage caps
+const tierScale = l => .75 * Math.pow((150 + 40 * (l - 1)) / 150, .5);
 const TIER_NAMES = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 const hasWeapon = s => WTYPES.some(t => s.weapons[t]) || s.teslas > 0;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const xpForLevel = l => 250 * (l - 1) * l / 2;
 const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1)) l++; return l; };
-const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
+const cpuMax = l => 220 + 70 * (l - 1) + BAL.cpuBonus; // 220 at level 1, 850 at level 10 (plus CPU Core tech)
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.5';
+const BC_VERSION = '2.8.6';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -161,6 +167,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.']],
   ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.', 'Better flying: Space climbs and C descends quickly, and letting go holds your height. Helicopters respond faster, planes climb and dive toward where you aim, and C drops jump-jet bots faster.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
@@ -283,15 +290,16 @@ function computeStats(list) {
     if (b.t === 'prop') s.props++;
     if (b.t === 'balloon') s.balloons++;
     if (p.module) s.modules[p.module] = (s.modules[p.module] || 0) + 1;
-    const bt = b.y - (b.t === 'wheel' ? 0.56 : 0.5); if (bt < s.bottom) s.bottom = bt;
+    const bt = b.y - (b.t === 'wheel' ? 0.56 : 0.5) - (isLeg(b.t) ? LEG_BASE_DROP + legSize(b).drop : 0); if (bt < s.bottom) s.bottom = bt;
   }
   for (const b of list) {
     if (b.t === 'wheel' && b.y - 0.56 <= s.bottom + 0.3) s.wheels++;
     if (b.t === 'tread' && b.y - 0.5 <= s.bottom + 0.3) s.treads++;
-    if (b.t === 'leg' && b.y - 0.5 <= s.bottom + 0.3) s.legs++;
+    const lb = isLeg(b.t) ? b.y - 0.5 - LEG_BASE_DROP - legSize(b).drop : 0, lf = isLeg(b.t) ? legSize(b).s : 0; // a bigger leg carries more
+    if (b.t === 'leg' && lb <= s.bottom + 0.3) { s.legs += lf; s.legN = (s.legN || 0) + 1; s.legS = (s.legS || 0) + lf; }
     if (b.t === 'ski' && b.y - 0.5 <= s.bottom + 0.3) s.skis++;
-    if (b.t === 'insect' && b.y - 0.5 <= s.bottom + 0.3) s.insects++;
-    if (b.t === 'sprint' && b.y - 0.5 <= s.bottom + 0.3) s.sprints++;
+    if (b.t === 'insect' && lb <= s.bottom + 0.3) { s.insects += lf; s.legN = (s.legN || 0) + 1; s.legS = (s.legS || 0) + lf; }
+    if (b.t === 'sprint' && lb <= s.bottom + 0.3) { s.sprints += lf; s.legN = (s.legN || 0) + 1; s.legS = (s.legS || 0) + lf; }
   }
   if (!list.length) s.bottom = -0.5;
   s.mass = Math.max(1, s.mass);
@@ -306,7 +314,7 @@ function mobility(s) {
   const groundF = ground ? Math.min(1, ground / mass) : 0;
   const lift = s.hovers ? s.hovers * 26 / mass : 0;
   const rlift = s.rotors ? s.rotors * 22 / mass : 0;
-  const wlift = s.wings * 20 / mass, thrust = (s.thrusters * 25 + (s.props || 0) * 16) / mass;
+  const wlift = s.wings * 30 / mass, thrust = (s.thrusters * 25 + (s.props || 0) * 16) / mass;
   let mode = 'none';
   if (s.wings >= 2 && wlift >= .8 && thrust >= .5) mode = 'plane';
   else if (rlift >= .7) mode = 'rotor';
@@ -319,11 +327,11 @@ function mobility(s) {
   const legKind = mode !== 'leg' ? null : (s.sprints || 0) >= Math.max(s.legs, s.insects || 0) ? 'sprint' : (s.insects || 0) >= s.legs ? 'insect' : 'mech';
   const f = mode === 'plane' ? Math.min(1, thrust) : mode === 'rotor' ? Math.min(1, rlift) : mode === 'hover' ? Math.min(1, lift) : mode === 'none' ? 0 : groundF;
   const SP = { none: 0, wheel: 7 + 21 * Math.pow(f, 1.3), tread: 6 + 13 * f, leg: legKind === 'sprint' ? 8 + 16 * f : legKind === 'insect' ? 4 + 9 * f : 5 + 10 * f, ski: 9 + 22 * f, hover: 7 + 17 * f, rotor: 8 + 16 * f, plane: 22 + 26 * f };
-  const TU = { none: .7, wheel: .7 + 1.5 * f, tread: 1 + 1.3 * f, leg: 1 + 1.2 * f, ski: .5 + 1 * f, hover: .8 + 1.5 * f, rotor: .8 + 1.1 * f, plane: .6 + .8 * f };
+  const TU = { none: .7, wheel: .7 + 1.5 * f, tread: 1 + 1.3 * f, leg: 1 + 1.2 * f, ski: .5 + 1 * f, hover: .8 + 1.5 * f, rotor: .8 + 1.1 * f, plane: .9 + 1.1 * f };
   let maxSpeed = SP[mode];
   if ((s.thrusters || s.props) && mode !== 'plane' && mode !== 'none') maxSpeed *= 1 + Math.min(.4, thrust * .4);
   return {
-    mode, f, maxSpeed, turn: TU[mode], legKind, step: legKind === 'insect' ? 4.5 : legKind ? 2.6 : 0,
+    mode, f, maxSpeed: maxSpeed * (legKind && s.legN ? 1 + .18 * (s.legS / s.legN - 1) : 1), turn: TU[mode], legKind, step: (legKind === 'insect' ? 4.5 : legKind ? 2.6 : 0) * (legKind && s.legN ? s.legS / s.legN : 1),
     accel: mode === 'tread' || mode === 'leg' ? 6 + 22 * f : mode === 'rotor' ? 4 + 16 * f : mode === 'plane' ? 11 + 18 * f : 6 + 28 * f,
     hoverH: mode === 'hover' ? 1.5 * clamp((lift - 0.55) / 0.45, 0.25, 1) : 0,
     maxAlt: mode === 'plane' ? 80 : mode === 'rotor' ? 55 * clamp((rlift - .7) / .6, .35, 1) : mode === 'hover' ? 6 : 0,

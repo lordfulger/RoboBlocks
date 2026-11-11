@@ -341,7 +341,7 @@ GEO.hwedge = (() => { const g = new T.BufferGeometry(), p = [], h = -.5, t = 0; 
   g.setAttribute('position', new T.Float32BufferAttribute(p, 3)); const uv = []; for (let i = 0; i < p.length / 3; i++) uv.push(p[i * 3] + .5, p[i * 3 + 2] + .5); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g; })();
 const SHAPE_GEO = { box: GEO.box, wedge: GEO.wedge, pyr: GEO.pyr, inner: GEO.inner, tetra: GEO.tetra, round: GEO.round, slab: GEO.slab, plate: GEO.plate, strut: GEO.strut, cyl: GEO.cyl, hwedge: GEO.hwedge };
 // guns can be mounted at any of the 24 block orientations (sideways, under the hull, facing back); their turret aims from the mount
-const isMountable = t => !!(PARTS[t] && PARTS[t].weapon && t !== 'tesla');
+const isMountable = t => !!(PARTS[t] && (PARTS[t].weapon && t !== 'tesla' || t === 'wing'));
 const applyRot = (o, r) => o.rotation.set(((r >> 2) & 3) * HALF_PI, (r & 3) * HALF_PI, ((r >> 4) & 3) * HALF_PI, 'YXZ');
 const ROT_M = []; for (let r = 0; r < 64; r++) ROT_M.push(new T.Matrix4().makeRotationFromEuler(new T.Euler(((r >> 2) & 3) * HALF_PI, (r & 3) * HALF_PI, ((r >> 4) & 3) * HALF_PI, 'YXZ')));
 const ROT_MI = ROT_M.map(m => m.clone().transpose()); // inverses (pure rotations)
@@ -371,6 +371,10 @@ const M2 = {}; const m2 = (k, f) => M2[k] || (M2[k] = f());
 function makePart(t, ci, r = 0, k = 1, fin = 'standard', mat = 'std') {
   const out = makePartBase(t, ci, r, k, fin, mat);
   if (r && isMountable(t)) applyRot(out.root, r);
+  if (isLeg(t)) { // legs: 1.3x bigger than they used to be, and more again for M / L / XL; they grow downward from the hull
+    const S = 1.3 * legSize({ k }).s, inner = new T.Group(); for (const c of [...out.root.children]) inner.add(c);
+    inner.scale.setScalar(S); inner.position.y = .5 * (1 - S); out.root.add(inner);
+  }
   return out;
 }
 function makePartBase(t, ci, r = 0, k = 1, fin = 'standard', mat = 'std') {

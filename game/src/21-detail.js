@@ -134,6 +134,20 @@ const DETAIL = {
     }
     out.rotor = spin;
   },
+  // a real wing: airfoil section (round leading edge, thin trailing edge), panel lines, a moving aileron, tip lights
+  wing(c) {
+    const { mesh, root, out, P } = c;
+    const foil = g2('wingFoil', () => { const sh = new T.Shape(); sh.moveTo(.48, 0); sh.bezierCurveTo(.48, .09, .3, .1, .1, .085); sh.lineTo(-.28, .03); sh.lineTo(-.28, -.02); sh.lineTo(.1, -.05); sh.bezierCurveTo(.3, -.06, .48, -.05, .48, 0);
+      const g = new T.ExtrudeGeometry(sh, { depth: .98, bevelEnabled: false, curveSegments: 10 }); g.rotateY(-HALF_PI); g.translate(.49, 0, 0); return g; });
+    mesh(foil, P, 0, 0, 0);
+    mesh(DG.b(.98, .012, .02), DM.gunDark, 0, .066, .25); mesh(DG.b(.98, .012, .02), DM.gunDark, 0, .05, -.05); // panel lines
+    for (const x of [-.3, 0, .3]) mesh(DG.b(.02, .012, .55), DM.gunDark, x, .07, .08);
+    const hinge = new T.Group(); hinge.position.set(0, 0, -.28); root.add(hinge);
+    mesh(g2('wingFlap', () => { const g = new T.BoxGeometry(.9, .03, .22); g.translate(0, 0, -.11); return g; }), P, 0, 0, 0, hinge);
+    mesh(DG.cx(.022, .9, 8), DM.chrome, 0, 0, 0, hinge);
+    for (const x of [-.48, .48]) mesh(DG.sp(.035, 8), M.glowCyan, x, 0, .38);
+    out.flap = hinge;
+  },
   leg(c) {
     const { mesh, root, out, P } = c;
     mesh(DG.rb(.8, .34, .7, .05), P, 0, .3, 0);

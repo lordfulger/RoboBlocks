@@ -27,7 +27,7 @@ class Bot {
       p.root.position.set(b.x - cx, b.y - minY, b.z - cz);
       p.root.traverse(o => { if (o.isMesh && o.material !== M.flame) o.castShadow = true; });
       this.group.add(p.root);
-      const cell = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, k: b.k || 1, m: b.m, mr: isMountable(b.t) ? (b.r || 0) & 63 : 0, hp: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), max: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), obj: p.root, head: p.head, muzzle: p.muzzle, wheel: p.wheel, flame: p.flame, rotor: p.rotor, spin: p.spin, leg: p.leg, flag: p.flag, prop: p.prop, charge: p.charge, core: p.core, thrust: !!p.thrust, fly: !!p.fly, recoil: p.recoil, kick: 0, r: b.r || 0, alive: true, burnt: false };
+      const cell = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, k: b.k || 1, m: b.m, mr: isMountable(b.t) ? (b.r || 0) & 63 : 0, hp: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), max: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), obj: p.root, head: p.head, muzzle: p.muzzle, flap: p.flap, wheel: p.wheel, flame: p.flame, rotor: p.rotor, spin: p.spin, leg: p.leg, flag: p.flag, prop: p.prop, charge: p.charge, core: p.core, thrust: !!p.thrust, fly: !!p.fly, recoil: p.recoil, kick: 0, r: b.r || 0, alive: true, burnt: false };
       cell.idx = this.cellList.length; this.cells.set(ckey(b.x, b.y, b.z), cell); this.cellList.push(cell);
     }
     this.meshes = [];
@@ -50,11 +50,11 @@ class Bot {
     this.propFrac = pf;
     this.bottomLocal = this.stats.bottom - this.minY;
     this.hp = alive.reduce((a, c) => a + Math.max(0, c.hp), 0);
-    this.guns = {}; for (const t of WTYPES) this.guns[t] = []; this.wheels = []; this.flames = []; this.teslas = []; this.rotors = []; this.legs = []; this.flags = []; this.shields = []; this.props = []; this.energyCells = []; this.spikes = 0;
+    this.guns = {}; for (const t of WTYPES) this.guns[t] = []; this.wheels = []; this.flames = []; this.teslas = []; this.rotors = []; this.legs = []; this.flaps = []; this.flags = []; this.shields = []; this.props = []; this.energyCells = []; this.spikes = 0;
     let r = 0, r3 = 0;
     for (const c of alive) {
       if (PARTS[c.t].weapon) this.guns[c.t].push(c);
-      if (c.wheel) this.wheels.push(c); if (c.flame) this.flames.push(c); if (c.t === 'tesla') this.teslas.push(c); if (c.rotor) this.rotors.push(c); if (c.leg) this.legs.push(c); if (c.flag) this.flags.push(c); if (c.t === 'shieldp') this.shields.push(c); if (c.prop) this.props.push(c); if (c.m === 'energy') this.energyCells.push(c); if (c.t === 'spike') this.spikes++;
+      if (c.wheel) this.wheels.push(c); if (c.flame) this.flames.push(c); if (c.t === 'tesla') this.teslas.push(c); if (c.rotor) this.rotors.push(c); if (c.leg) this.legs.push(c); if (c.flap) this.flaps.push(c); if (c.flag) this.flags.push(c); if (c.t === 'shieldp') this.shields.push(c); if (c.prop) this.props.push(c); if (c.m === 'energy') this.energyCells.push(c); if (c.t === 'spike') this.spikes++;
       const lx = c.x - this.cx, lz = c.z - this.cz, ly = c.y - this.minY - this.centerLocal.y;
       r = Math.max(r, Math.hypot(lx, lz)); r3 = Math.max(r3, Math.hypot(lx, ly, lz));
     }
@@ -199,6 +199,8 @@ class Bot {
     } else if (world.space) { this.vel.y *= Math.exp(-.3 * dt); // a bot with nothing to push it just drifts
     } else if (m.mode === 'wheel' || m.mode === 'tread' || m.mode === 'leg' || m.mode === 'ski') driving = grounded;
     this.vel.y -= GRAV * dt;
+    // wings on a bot that isn't a plane let it glide down instead of dropping
+    if (!air && !fly && this.stats.wings && !grounded && this.vel.y < -2.5) this.vel.y += (-2.5 - this.vel.y) * Math.min(1, this.stats.wings * .3) * 3 * dt;
     if (!world.space && above > (air ? (m.maxAlt || 6) + 22 : 40) && this.vel.y > 0) this.vel.y *= Math.exp(-6 * dt); // a hard sky limit
     this.jetting = false;
     // jets lose their push near a ceiling: ~28 m over the ground for ground bots, a little above a flier's normal ceiling
@@ -266,6 +268,7 @@ class Bot {
     for (const c of this.flames) { const on = c.fly ? this.flyT > 0 : c.thrust ? thrusting : this.jetting; c.flame.userData.off = !on; if (on) c.flame.scale.set(1, .8 + Math.random() * .5, 1); }
     if (this.legs.length) { this.walk = (this.walk || 0) + vf * dt * 1.6; const amp = Math.min(1, Math.abs(vf) / 3) * .5; for (const c of this.legs) c.leg.rotation.x = Math.sin(this.walk + (c.idx % 2) * Math.PI) * amp; }
     for (const c of this.flags) c.flag.rotation.y = Math.sin(clock * 4 + c.idx) * .35 - this.yawVel * .3;
+    for (const c of this.flaps) c.flap.rotation.x = clamp(this.vel.y * .03 + (c.x < this.cx ? 1 : -1) * this.yawVel * .3, -.5, .5); // ailerons follow the turn
     if (this.energyCells && clock - this.lastHitT > 4) for (const c of this.energyCells) if (c.alive && c.hp < c.max) { const add = Math.min(c.max - c.hp, c.max * .1 * dt); c.hp += add; this.hp += add; }
     if (this.barrierMax && clock - (this.barrierHitT || -9) > 6 && this.barrier < this.barrierMax) this.barrier = Math.min(this.barrierMax, this.barrier + this.barrierMax * .2 * dt);
     // back at your team's base pad and out of combat (not hit or firing for 5 s): blocks repair and lost ones grow back

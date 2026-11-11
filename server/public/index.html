@@ -540,6 +540,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     </div>
   </div>
   <div id="parts" class="panel">
+    <div id="legRow" hidden><div class="tierHead"><span class="label">Leg size</span><span id="legName"></span></div><div class="seg" id="legSizes"><button data-k="1">S</button><button data-k="2">M</button><button data-k="3">L</button><button data-k="4">XL</button></div></div>
     <div id="tierRow"><div class="tierHead"><span class="label">Armor tier</span><span id="tierName"></span></div><div id="tiers"></div><div class="tierHead"><span class="label">Material</span><span id="matName"></span></div><div id="mats"></div></div>
     <div class="partsHead"><span class="label partsLabel">Parts</span><input id="partSearch" placeholder="Search parts" spellcheck="false" autocomplete="off"></div>
     <div id="recentParts"></div>
@@ -734,11 +735,16 @@ const MATERIALS = {
 };
 const MAT_CODES = ['std', 'light', 'heavy', 'reactive', 'energy'];
 const matOf = b => MATERIALS[b.m] || MATERIALS.std;
-const partCpu = b => isShape(b.t) ? Math.ceil(TIERS[b.k || 1].cpu * matOf(b).cpu) : PARTS[b.t].cpu;
+// legs come in four sizes (stored in the block's k): longer, stronger, taller, heavier and dearer
+const LEG_BASE_DROP = .4; // every leg now reaches a bit below its block (the larger models)
+const isLeg = t => t === 'leg' || t === 'insect' || t === 'sprint';
+const LEG_SIZES = [null, { name: 'S', s: 1, cost: 1, drop: 0 }, { name: 'M', s: 1.45, cost: 1.6, drop: .78 }, { name: 'L', s: 1.9, cost: 2.3, drop: 1.58 }, { name: 'XL', s: 2.4, cost: 3.1, drop: 2.46 }];
+const legSize = b => LEG_SIZES[clamp(b.k | 0 || 1, 1, 4)];
+const partCpu = b => isShape(b.t) ? Math.ceil(TIERS[b.k || 1].cpu * matOf(b).cpu) : isLeg(b.t) ? Math.round(PARTS[b.t].cpu * legSize(b).cost) : PARTS[b.t].cpu;
 // guns are armored to match the bot they sit on: twice their base health, more on bots built from higher armor tiers
 const gunHpMul = topTier => 2 * Math.sqrt(TIERS[clamp(topTier | 0, 1, 10)].hp / TIERS[1].hp);
-const partHp = b => isShape(b.t) ? Math.round(TIERS[b.k || 1].hp * PARTS[b.t].hpF * matOf(b).hp) : PARTS[b.t].hp;
-const partMass = b => isShape(b.t) ? TIERS[b.k || 1].mass * PARTS[b.t].massF * matOf(b).mass : PARTS[b.t].mass;
+const partHp = b => isShape(b.t) ? Math.round(TIERS[b.k || 1].hp * PARTS[b.t].hpF * matOf(b).hp) : isLeg(b.t) ? Math.round(PARTS[b.t].hp * legSize(b).cost) : PARTS[b.t].hp;
+const partMass = b => isShape(b.t) ? TIERS[b.k || 1].mass * PARTS[b.t].massF * matOf(b).mass : isLeg(b.t) ? PARTS[b.t].mass * legSize(b).cost : PARTS[b.t].mass;
 const maxTier = l => { let k = 1; for (let i = 1; i < TIERS.length; i++) if (TIERS[i].lvl <= l) k = i; return k; };
 const OLD_TIER = [0, 1, 3, 4, 5, 6, 7]; // v2 had six tiers
 function migrateDesign(d) {
@@ -771,16 +777,17 @@ const WTYPES = ['blaster', 'plasma', 'mortar', 'rail', 'seeker', 'flak', 'chain'
 const SPLASH = { cap: 2.6 }; // a splash weapon deals at most this many times its damage to one bot per blast
 const TESLA = { tick: 0.12, dmg: 55, reach: 1.5, magnet: 9, pull: 40 }; // magnet: metres; pull: m/s² at point blank
 const TESLA_DPS = Math.round(TESLA.dmg / TESLA.tick);
-const tierScale = l => .75 * Math.pow(cpuMax(l) / 150, .5);
+// weapon marks follow the original CPU curve, so raising the CPU limit does not change damage or the server's damage caps
+const tierScale = l => .75 * Math.pow((150 + 40 * (l - 1)) / 150, .5);
 const TIER_NAMES = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
 const hasWeapon = s => WTYPES.some(t => s.weapons[t]) || s.teslas > 0;
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const xpForLevel = l => 250 * (l - 1) * l / 2;
 const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1)) l++; return l; };
-const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
+const cpuMax = l => 220 + 70 * (l - 1) + BAL.cpuBonus; // 220 at level 1, 850 at level 10 (plus CPU Core tech)
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.5';
+const BC_VERSION = '2.8.6';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -789,6 +796,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.']],
   ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.', 'Better flying: Space climbs and C descends quickly, and letting go holds your height. Helicopters respond faster, planes climb and dive toward where you aim, and C drops jump-jet bots faster.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
@@ -911,15 +919,16 @@ function computeStats(list) {
     if (b.t === 'prop') s.props++;
     if (b.t === 'balloon') s.balloons++;
     if (p.module) s.modules[p.module] = (s.modules[p.module] || 0) + 1;
-    const bt = b.y - (b.t === 'wheel' ? 0.56 : 0.5); if (bt < s.bottom) s.bottom = bt;
+    const bt = b.y - (b.t === 'wheel' ? 0.56 : 0.5) - (isLeg(b.t) ? LEG_BASE_DROP + legSize(b).drop : 0); if (bt < s.bottom) s.bottom = bt;
   }
   for (const b of list) {
     if (b.t === 'wheel' && b.y - 0.56 <= s.bottom + 0.3) s.wheels++;
     if (b.t === 'tread' && b.y - 0.5 <= s.bottom + 0.3) s.treads++;
-    if (b.t === 'leg' && b.y - 0.5 <= s.bottom + 0.3) s.legs++;
+    const lb = isLeg(b.t) ? b.y - 0.5 - LEG_BASE_DROP - legSize(b).drop : 0, lf = isLeg(b.t) ? legSize(b).s : 0; // a bigger leg carries more
+    if (b.t === 'leg' && lb <= s.bottom + 0.3) { s.legs += lf; s.legN = (s.legN || 0) + 1; s.legS = (s.legS || 0) + lf; }
     if (b.t === 'ski' && b.y - 0.5 <= s.bottom + 0.3) s.skis++;
-    if (b.t === 'insect' && b.y - 0.5 <= s.bottom + 0.3) s.insects++;
-    if (b.t === 'sprint' && b.y - 0.5 <= s.bottom + 0.3) s.sprints++;
+    if (b.t === 'insect' && lb <= s.bottom + 0.3) { s.insects += lf; s.legN = (s.legN || 0) + 1; s.legS = (s.legS || 0) + lf; }
+    if (b.t === 'sprint' && lb <= s.bottom + 0.3) { s.sprints += lf; s.legN = (s.legN || 0) + 1; s.legS = (s.legS || 0) + lf; }
   }
   if (!list.length) s.bottom = -0.5;
   s.mass = Math.max(1, s.mass);
@@ -934,7 +943,7 @@ function mobility(s) {
   const groundF = ground ? Math.min(1, ground / mass) : 0;
   const lift = s.hovers ? s.hovers * 26 / mass : 0;
   const rlift = s.rotors ? s.rotors * 22 / mass : 0;
-  const wlift = s.wings * 20 / mass, thrust = (s.thrusters * 25 + (s.props || 0) * 16) / mass;
+  const wlift = s.wings * 30 / mass, thrust = (s.thrusters * 25 + (s.props || 0) * 16) / mass;
   let mode = 'none';
   if (s.wings >= 2 && wlift >= .8 && thrust >= .5) mode = 'plane';
   else if (rlift >= .7) mode = 'rotor';
@@ -947,11 +956,11 @@ function mobility(s) {
   const legKind = mode !== 'leg' ? null : (s.sprints || 0) >= Math.max(s.legs, s.insects || 0) ? 'sprint' : (s.insects || 0) >= s.legs ? 'insect' : 'mech';
   const f = mode === 'plane' ? Math.min(1, thrust) : mode === 'rotor' ? Math.min(1, rlift) : mode === 'hover' ? Math.min(1, lift) : mode === 'none' ? 0 : groundF;
   const SP = { none: 0, wheel: 7 + 21 * Math.pow(f, 1.3), tread: 6 + 13 * f, leg: legKind === 'sprint' ? 8 + 16 * f : legKind === 'insect' ? 4 + 9 * f : 5 + 10 * f, ski: 9 + 22 * f, hover: 7 + 17 * f, rotor: 8 + 16 * f, plane: 22 + 26 * f };
-  const TU = { none: .7, wheel: .7 + 1.5 * f, tread: 1 + 1.3 * f, leg: 1 + 1.2 * f, ski: .5 + 1 * f, hover: .8 + 1.5 * f, rotor: .8 + 1.1 * f, plane: .6 + .8 * f };
+  const TU = { none: .7, wheel: .7 + 1.5 * f, tread: 1 + 1.3 * f, leg: 1 + 1.2 * f, ski: .5 + 1 * f, hover: .8 + 1.5 * f, rotor: .8 + 1.1 * f, plane: .9 + 1.1 * f };
   let maxSpeed = SP[mode];
   if ((s.thrusters || s.props) && mode !== 'plane' && mode !== 'none') maxSpeed *= 1 + Math.min(.4, thrust * .4);
   return {
-    mode, f, maxSpeed, turn: TU[mode], legKind, step: legKind === 'insect' ? 4.5 : legKind ? 2.6 : 0,
+    mode, f, maxSpeed: maxSpeed * (legKind && s.legN ? 1 + .18 * (s.legS / s.legN - 1) : 1), turn: TU[mode], legKind, step: (legKind === 'insect' ? 4.5 : legKind ? 2.6 : 0) * (legKind && s.legN ? s.legS / s.legN : 1),
     accel: mode === 'tread' || mode === 'leg' ? 6 + 22 * f : mode === 'rotor' ? 4 + 16 * f : mode === 'plane' ? 11 + 18 * f : 6 + 28 * f,
     hoverH: mode === 'hover' ? 1.5 * clamp((lift - 0.55) / 0.45, 0.25, 1) : 0,
     maxAlt: mode === 'plane' ? 80 : mode === 'rotor' ? 55 * clamp((rlift - .7) / .6, .35, 1) : mode === 'hover' ? 6 : 0,
@@ -1481,7 +1490,7 @@ GEO.hwedge = (() => { const g = new T.BufferGeometry(), p = [], h = -.5, t = 0; 
   g.setAttribute('position', new T.Float32BufferAttribute(p, 3)); const uv = []; for (let i = 0; i < p.length / 3; i++) uv.push(p[i * 3] + .5, p[i * 3 + 2] + .5); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g; })();
 const SHAPE_GEO = { box: GEO.box, wedge: GEO.wedge, pyr: GEO.pyr, inner: GEO.inner, tetra: GEO.tetra, round: GEO.round, slab: GEO.slab, plate: GEO.plate, strut: GEO.strut, cyl: GEO.cyl, hwedge: GEO.hwedge };
 // guns can be mounted at any of the 24 block orientations (sideways, under the hull, facing back); their turret aims from the mount
-const isMountable = t => !!(PARTS[t] && PARTS[t].weapon && t !== 'tesla');
+const isMountable = t => !!(PARTS[t] && (PARTS[t].weapon && t !== 'tesla' || t === 'wing'));
 const applyRot = (o, r) => o.rotation.set(((r >> 2) & 3) * HALF_PI, (r & 3) * HALF_PI, ((r >> 4) & 3) * HALF_PI, 'YXZ');
 const ROT_M = []; for (let r = 0; r < 64; r++) ROT_M.push(new T.Matrix4().makeRotationFromEuler(new T.Euler(((r >> 2) & 3) * HALF_PI, (r & 3) * HALF_PI, ((r >> 4) & 3) * HALF_PI, 'YXZ')));
 const ROT_MI = ROT_M.map(m => m.clone().transpose()); // inverses (pure rotations)
@@ -1511,6 +1520,10 @@ const M2 = {}; const m2 = (k, f) => M2[k] || (M2[k] = f());
 function makePart(t, ci, r = 0, k = 1, fin = 'standard', mat = 'std') {
   const out = makePartBase(t, ci, r, k, fin, mat);
   if (r && isMountable(t)) applyRot(out.root, r);
+  if (isLeg(t)) { // legs: 1.3x bigger than they used to be, and more again for M / L / XL; they grow downward from the hull
+    const S = 1.3 * legSize({ k }).s, inner = new T.Group(); for (const c of [...out.root.children]) inner.add(c);
+    inner.scale.setScalar(S); inner.position.y = .5 * (1 - S); out.root.add(inner);
+  }
   return out;
 }
 function makePartBase(t, ci, r = 0, k = 1, fin = 'standard', mat = 'std') {
@@ -1880,6 +1893,20 @@ const DETAIL = {
       mesh(DG.b(.12, .04, .21), DM.hazard, 1.0, .025, 0, p);
     }
     out.rotor = spin;
+  },
+  // a real wing: airfoil section (round leading edge, thin trailing edge), panel lines, a moving aileron, tip lights
+  wing(c) {
+    const { mesh, root, out, P } = c;
+    const foil = g2('wingFoil', () => { const sh = new T.Shape(); sh.moveTo(.48, 0); sh.bezierCurveTo(.48, .09, .3, .1, .1, .085); sh.lineTo(-.28, .03); sh.lineTo(-.28, -.02); sh.lineTo(.1, -.05); sh.bezierCurveTo(.3, -.06, .48, -.05, .48, 0);
+      const g = new T.ExtrudeGeometry(sh, { depth: .98, bevelEnabled: false, curveSegments: 10 }); g.rotateY(-HALF_PI); g.translate(.49, 0, 0); return g; });
+    mesh(foil, P, 0, 0, 0);
+    mesh(DG.b(.98, .012, .02), DM.gunDark, 0, .066, .25); mesh(DG.b(.98, .012, .02), DM.gunDark, 0, .05, -.05); // panel lines
+    for (const x of [-.3, 0, .3]) mesh(DG.b(.02, .012, .55), DM.gunDark, x, .07, .08);
+    const hinge = new T.Group(); hinge.position.set(0, 0, -.28); root.add(hinge);
+    mesh(g2('wingFlap', () => { const g = new T.BoxGeometry(.9, .03, .22); g.translate(0, 0, -.11); return g; }), P, 0, 0, 0, hinge);
+    mesh(DG.cx(.022, .9, 8), DM.chrome, 0, 0, 0, hinge);
+    for (const x of [-.48, .48]) mesh(DG.sp(.035, 8), M.glowCyan, x, 0, .38);
+    out.flap = hinge;
   },
   leg(c) {
     const { mesh, root, out, P } = c;
@@ -2605,8 +2632,8 @@ function setupGarage() {
 }
 function gAdd(b) {
   const k = ckey(b.x, b.y, b.z); if (garage.blocks.has(k)) return;
-  const kk = isShape(b.t) ? (b.k || 1) : undefined;
-  const mm = kk && b.m && b.m !== 'std' ? b.m : undefined;
+  const kk = isShape(b.t) || isLeg(b.t) ? (b.k || 1) : undefined;
+  const mm = kk && isShape(b.t) && b.m && b.m !== 'std' ? b.m : undefined;
   const p = makePart(b.t, b.c, b.r || 0, kk, design.f || 'standard', mm); p.root.position.set(b.x, b.y, b.z); p.root.userData.key = k;
   p.root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   const rec = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, r: b.r || 0, obj: p.root }; if (kk) rec.k = kk; if (mm) rec.m = mm;
@@ -2616,7 +2643,9 @@ function gRemove(k) { const b = garage.blocks.get(k); if (!b) return; garage.gro
 function gClear() { for (const k of [...garage.blocks.keys()]) gRemove(k); }
 function gSerialize() { return { name: design.name || 'Bay ' + (bayIdx + 1), v: 3, f: design.f || 'standard', wg: design.wg || undefined, blocks: [...garage.blocks.values()].map(({ x, y, z, t, c, r, k, m }) => k ? (m ? { x, y, z, t, c, r, k, m } : { x, y, z, t, c, r, k }) : { x, y, z, t, c, r }) }; }
 function gLoad(d) { migrateDesign(d); if (d.name && d.name !== 'Bot') design.name = d.name; design.f = d.f || 'standard'; design.wg = Array.isArray(d.wg) ? d.wg : undefined; gClear(); for (const b of d.blocks) if (PARTS[b.t]) gAdd(b); onDesignChanged(); if ($('#botName')) $('#botName').value = design.name; }
-function onDesignChanged() { design = gSerialize(); saveBays(); updateStats(); if (WEAK.on) weakSpots(true); if (garage.layer != null) setLayer(garage.layer); if (garage.bal) drawBalance(); if ($('#bayTabs').children.length) { const t = $('#bay' + bayIdx); if (t) t.classList.toggle('empty', !design.blocks.length); } }
+// legs reach below their blocks: stand the garage bot on them (and keep its block grid lined up for building)
+function garageLift() { const list = [...garage.blocks.values()]; if (!list.length) { garage.group.position.y = 0; garage.floorPlane.constant = .5; return; } const minY = Math.min(...list.map(b => b.y)), bottom = computeStats(list).bottom; garage.group.position.y = Math.max(0, (minY - .5) - bottom); garage.floorPlane.constant = .5 - garage.group.position.y; }
+function onDesignChanged() { design = gSerialize(); saveBays(); updateStats(); garageLift(); if (WEAK.on) weakSpots(true); if (garage.layer != null) setLayer(garage.layer); if (garage.bal) drawBalance(); if ($('#bayTabs').children.length) { const t = $('#bay' + bayIdx); if (t) t.classList.toggle('empty', !design.blocks.length); } }
 function pushUndo() { garage.undo.push(JSON.stringify(gSerialize().blocks)); if (garage.undo.length > 80) garage.undo.shift(); if (garage.redo) garage.redo.length = 0; }
 function doUndo() { const s = garage.undo.pop(); if (!s) { toast('Nothing to undo.'); return; } if (garage.redo) garage.redo.push(JSON.stringify(gSerialize().blocks)); gClear(); for (const b of JSON.parse(s)) gAdd(b); onDesignChanged(); SFX.pop(); }
 function usedCpu() { let c = 0; for (const b of garage.blocks.values()) c += partCpu(b); return c; }
@@ -2645,11 +2674,12 @@ function placementPlan(p) {
   const r0 = toolRot(t, garage.rot);
   const list = [{ x: p.x, y: p.y, z: p.z, t, c: garage.color, r: r0 }];
   if (P.shape) { list[0].k = garage.tier; if (garage.mat !== 'std') list[0].m = garage.mat; }
+  if (isLeg(t)) list[0].k = garage.legSize || 1;
   if (P.shape && MATERIALS[garage.mat].lvl > unlockLv()) return { ok: false, why: `${MATERIALS[garage.mat].name} unlocks at pilot level ${MATERIALS[garage.mat].lvl}.` };
   if (P.shape && !matOpen(garage.mat)) return { ok: false, why: `${MATERIALS[garage.mat].name}: unlock it in the Tech Tree.` };
   if (garage.mirror && mirOff(p)) {
     const m = mirPos(p);
-    if (inBounds(m) && !garage.blocks.has(ckey(m.x, m.y, m.z)) && hasNeighbor(m.x, m.y, m.z)) { const mb = { ...m, t, c: garage.color, r: mirRot(t, r0) }; if (P.shape) { mb.k = garage.tier; if (garage.mat !== 'std') mb.m = garage.mat; } list.push(mb); }
+    if (inBounds(m) && !garage.blocks.has(ckey(m.x, m.y, m.z)) && hasNeighbor(m.x, m.y, m.z)) { const mb = { ...m, t, c: garage.color, r: mirRot(t, r0) }; if (P.shape) { mb.k = garage.tier; if (garage.mat !== 'std') mb.m = garage.mat; } if (isLeg(t)) mb.k = garage.legSize || 1; list.push(mb); }
   }
   if (t === 'seat') {
     const seats = [...garage.blocks.values()].filter(b => b.t === 'seat').length;
@@ -2692,17 +2722,17 @@ function updateGhost(cx, cy) {
     if (!pk.block) return;
     garage.dirPivot.visible = false;
     const b = pk.block; setGhostShape(g, b.t, b.r);
-    g.position.set(b.x, b.y, b.z); setGhostColor(garage.erase ? 0xff5444 : 0xffcf3d); g.visible = true;
+    g.position.set(b.x, b.y + garage.group.position.y, b.z); setGhostColor(garage.erase ? 0xff5444 : 0xffcf3d); g.visible = true;
     const mp = mirPos(b), mb = garage.mirror && mirOff(b) && garage.blocks.get(ckey(mp.x, mp.y, mp.z));
-    if (mb) { setGhostShape(mg, mb.t, mb.r); mg.position.set(mb.x, mb.y, mb.z); mg.visible = true; }
+    if (mb) { setGhostShape(mg, mb.t, mb.r); mg.position.set(mb.x, mb.y + garage.group.position.y, mb.z); mg.visible = true; }
     return;
   }
   const plan = placementPlan(pk.place);
   const r0 = toolRot(garage.tool, garage.rot);
   setGhostShape(g, garage.tool, r0);
   garage.dirPivot.visible = garage.tool === 'tesla' || isMountable(garage.tool); // which way the barrel points
-  g.position.set(pk.place.x, pk.place.y, pk.place.z); setGhostColor(plan.ok ? 0x62e08f : 0xff5444); g.visible = inBounds(pk.place);
-  if (plan.ok && plan.list.length > 1) { setGhostShape(mg, garage.tool, plan.list[1].r); mg.position.set(plan.list[1].x, plan.list[1].y, plan.list[1].z); mg.visible = true; }
+  g.position.set(pk.place.x, pk.place.y + garage.group.position.y, pk.place.z); setGhostColor(plan.ok ? 0x62e08f : 0xff5444); g.visible = inBounds(pk.place);
+  if (plan.ok && plan.list.length > 1) { setGhostShape(mg, garage.tool, plan.list[1].r); mg.position.set(plan.list[1].x, plan.list[1].y + garage.group.position.y, plan.list[1].z); mg.visible = true; }
 }
 function setGhostShape(g, t, r) {
   const P = PARTS[t], geo = P.shape ? SHAPE_GEO[P.shape] : GEO.box;
@@ -2839,6 +2869,7 @@ function syncToolButtons() {
   $('#btnErase').classList.toggle('on', garage.erase);
   $('#btnPaint').classList.toggle('on', garage.paint);
   const rotatable = isShape(garage.tool) || garage.tool === 'tesla' || isMountable(garage.tool);
+  if ($('#legRow')) { const lg = isLeg(garage.tool) && !garage.erase && !garage.paint; $('#legRow').hidden = !lg; if (lg) { const k = garage.legSize || 1; document.querySelectorAll('#legSizes button').forEach(b => b.classList.toggle('sel', +b.dataset.k === k)); $('#legName').textContent = `${LEG_SIZES[k].name}: ${Math.round(PARTS[garage.tool].cpu * LEG_SIZES[k].cost)} CPU, ${Math.round(PARTS[garage.tool].hp * LEG_SIZES[k].cost)} HP`; } }
   $('#btnRot').disabled = !rotatable; $('#btnTilt').disabled = $('#btnRoll').disabled = !(isShape(garage.tool) || isMountable(garage.tool));
 }
 function updateStats() {
@@ -2938,6 +2969,7 @@ $('#btnRoll').onclick = () => bumpRot(4);
 $('#btnPaint').onclick = () => { garage.paint = !garage.paint; if (garage.paint) garage.erase = false; syncToolButtons(); refreshGhost(); };
 // Mirror cycles: left/right, front/back, off
 // Mirror is a plain on/off switch; the second button picks the direction
+document.querySelectorAll('#legSizes button').forEach(b => b.onclick = () => { garage.legSize = +b.dataset.k; syncToolButtons(); refreshGhost(); SFX.ui(); });
 $('#btnMirror').onclick = () => { garage.mirror = !garage.mirror; store.set('sfa.mirror', garage.mirror); if (!garage.mirAxis) garage.mirAxis = 'x'; syncToolButtons(); refreshGhost(); toast(garage.mirror ? (garage.mirAxis === 'z' ? 'Mirror on: front and back' : 'Mirror on: left and right') : 'Mirror off: blocks go only where you click'); };
 $('#btnMirAxis').onclick = () => { garage.mirAxis = garage.mirAxis === 'z' ? 'x' : 'z'; garage.mirror = true; store.set('sfa.mirror', true); syncToolButtons(); refreshGhost(); toast(garage.mirAxis === 'z' ? 'Mirror: front and back' : 'Mirror: left and right'); };
 $('#btnErase').onclick = () => { garage.erase = !garage.erase; if (garage.erase) garage.paint = false; syncToolButtons(); refreshGhost(); };
@@ -3048,7 +3080,7 @@ function setTool2(t) {
 // copy a block's part, color, armor tier, material and rotation (picker tool, Alt+click or middle click)
 function pickBlock(b) {
   garage.color = b.c; if (b.k && tierOpen(b.k)) garage.tier = b.k; if (b.m && matOpen(b.m)) garage.mat = b.m; else if (isShape(b.t)) garage.mat = 'std';
-  if (partOpen(b.t)) { selectTool(b.t); if (typeof b.r === 'number') garage.rot = b.r; }
+  if (partOpen(b.t)) { selectTool(b.t); if (typeof b.r === 'number') garage.rot = b.r; if (isLeg(b.t)) garage.legSize = b.k || 1; }
   garage.tool2 = null; syncToolButtons(); buildSwatches(); buildPartsUI(); refreshGhost(); SFX.ui();
   toast(partOpen(b.t) ? `Picked ${PARTS[b.t].name}${b.k ? ' · ' + TIERS[b.k].name : ''}.` : `${PARTS[b.t].name} is locked; picked its color.`);
 }
@@ -4502,7 +4534,7 @@ class Bot {
       p.root.position.set(b.x - cx, b.y - minY, b.z - cz);
       p.root.traverse(o => { if (o.isMesh && o.material !== M.flame) o.castShadow = true; });
       this.group.add(p.root);
-      const cell = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, k: b.k || 1, m: b.m, mr: isMountable(b.t) ? (b.r || 0) & 63 : 0, hp: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), max: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), obj: p.root, head: p.head, muzzle: p.muzzle, wheel: p.wheel, flame: p.flame, rotor: p.rotor, spin: p.spin, leg: p.leg, flag: p.flag, prop: p.prop, charge: p.charge, core: p.core, thrust: !!p.thrust, fly: !!p.fly, recoil: p.recoil, kick: 0, r: b.r || 0, alive: true, burnt: false };
+      const cell = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, k: b.k || 1, m: b.m, mr: isMountable(b.t) ? (b.r || 0) & 63 : 0, hp: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), max: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), obj: p.root, head: p.head, muzzle: p.muzzle, flap: p.flap, wheel: p.wheel, flame: p.flame, rotor: p.rotor, spin: p.spin, leg: p.leg, flag: p.flag, prop: p.prop, charge: p.charge, core: p.core, thrust: !!p.thrust, fly: !!p.fly, recoil: p.recoil, kick: 0, r: b.r || 0, alive: true, burnt: false };
       cell.idx = this.cellList.length; this.cells.set(ckey(b.x, b.y, b.z), cell); this.cellList.push(cell);
     }
     this.meshes = [];
@@ -4525,11 +4557,11 @@ class Bot {
     this.propFrac = pf;
     this.bottomLocal = this.stats.bottom - this.minY;
     this.hp = alive.reduce((a, c) => a + Math.max(0, c.hp), 0);
-    this.guns = {}; for (const t of WTYPES) this.guns[t] = []; this.wheels = []; this.flames = []; this.teslas = []; this.rotors = []; this.legs = []; this.flags = []; this.shields = []; this.props = []; this.energyCells = []; this.spikes = 0;
+    this.guns = {}; for (const t of WTYPES) this.guns[t] = []; this.wheels = []; this.flames = []; this.teslas = []; this.rotors = []; this.legs = []; this.flaps = []; this.flags = []; this.shields = []; this.props = []; this.energyCells = []; this.spikes = 0;
     let r = 0, r3 = 0;
     for (const c of alive) {
       if (PARTS[c.t].weapon) this.guns[c.t].push(c);
-      if (c.wheel) this.wheels.push(c); if (c.flame) this.flames.push(c); if (c.t === 'tesla') this.teslas.push(c); if (c.rotor) this.rotors.push(c); if (c.leg) this.legs.push(c); if (c.flag) this.flags.push(c); if (c.t === 'shieldp') this.shields.push(c); if (c.prop) this.props.push(c); if (c.m === 'energy') this.energyCells.push(c); if (c.t === 'spike') this.spikes++;
+      if (c.wheel) this.wheels.push(c); if (c.flame) this.flames.push(c); if (c.t === 'tesla') this.teslas.push(c); if (c.rotor) this.rotors.push(c); if (c.leg) this.legs.push(c); if (c.flap) this.flaps.push(c); if (c.flag) this.flags.push(c); if (c.t === 'shieldp') this.shields.push(c); if (c.prop) this.props.push(c); if (c.m === 'energy') this.energyCells.push(c); if (c.t === 'spike') this.spikes++;
       const lx = c.x - this.cx, lz = c.z - this.cz, ly = c.y - this.minY - this.centerLocal.y;
       r = Math.max(r, Math.hypot(lx, lz)); r3 = Math.max(r3, Math.hypot(lx, ly, lz));
     }
@@ -4674,6 +4706,8 @@ class Bot {
     } else if (world.space) { this.vel.y *= Math.exp(-.3 * dt); // a bot with nothing to push it just drifts
     } else if (m.mode === 'wheel' || m.mode === 'tread' || m.mode === 'leg' || m.mode === 'ski') driving = grounded;
     this.vel.y -= GRAV * dt;
+    // wings on a bot that isn't a plane let it glide down instead of dropping
+    if (!air && !fly && this.stats.wings && !grounded && this.vel.y < -2.5) this.vel.y += (-2.5 - this.vel.y) * Math.min(1, this.stats.wings * .3) * 3 * dt;
     if (!world.space && above > (air ? (m.maxAlt || 6) + 22 : 40) && this.vel.y > 0) this.vel.y *= Math.exp(-6 * dt); // a hard sky limit
     this.jetting = false;
     // jets lose their push near a ceiling: ~28 m over the ground for ground bots, a little above a flier's normal ceiling
@@ -4741,6 +4775,7 @@ class Bot {
     for (const c of this.flames) { const on = c.fly ? this.flyT > 0 : c.thrust ? thrusting : this.jetting; c.flame.userData.off = !on; if (on) c.flame.scale.set(1, .8 + Math.random() * .5, 1); }
     if (this.legs.length) { this.walk = (this.walk || 0) + vf * dt * 1.6; const amp = Math.min(1, Math.abs(vf) / 3) * .5; for (const c of this.legs) c.leg.rotation.x = Math.sin(this.walk + (c.idx % 2) * Math.PI) * amp; }
     for (const c of this.flags) c.flag.rotation.y = Math.sin(clock * 4 + c.idx) * .35 - this.yawVel * .3;
+    for (const c of this.flaps) c.flap.rotation.x = clamp(this.vel.y * .03 + (c.x < this.cx ? 1 : -1) * this.yawVel * .3, -.5, .5); // ailerons follow the turn
     if (this.energyCells && clock - this.lastHitT > 4) for (const c of this.energyCells) if (c.alive && c.hp < c.max) { const add = Math.min(c.max - c.hp, c.max * .1 * dt); c.hp += add; this.hp += add; }
     if (this.barrierMax && clock - (this.barrierHitT || -9) > 6 && this.barrier < this.barrierMax) this.barrier = Math.min(this.barrierMax, this.barrier + this.barrierMax * .2 * dt);
     // back at your team's base pad and out of combat (not hit or firing for 5 s): blocks repair and lost ones grow back
@@ -5932,7 +5967,7 @@ function decodeDesign(s) {
     let v = 0; for (let j = 0; j < 6; j++) v |= (B64I[s[i + j]] | 0) << (j * 6);
     const t = PART_CODES[((v >>> 12) & 31) | (((v >>> 31) & 1) << 5)]; if (!t) continue;
     const b = { x: (v & 15) - 8, y: (v >>> 4) & 15, z: ((v >>> 8) & 15) - 8, t, c: ((v >>> 17) & 15) % COLORS.length, r: (v >>> 21) & 63 };
-    if (isShape(t)) b.k = ((v >>> 27) & 15) + 1;
+    if (isShape(t) || isLeg(t)) b.k = ((v >>> 27) & 15) + 1; // armor tier, or a leg's size
     blocks.push(b);
   }
   for (let i = 0; i + 2 <= high.length; i += 2) { const b = blocks[((B64I[high[i]] | 0) << 6) | (B64I[high[i + 1]] | 0)]; if (b) b.y += 16; }
@@ -6476,6 +6511,7 @@ function netMove(b, dt) { // smooth remote bots toward their owner's latest stat
   for (const c of b.flames) { c.flame.userData.off = c.fly ? !(b.flyT > 0) : c.thrust ? b.vf < 4 : !b.jetting; }
   if (b.legs.length) { b.walk = (b.walk || 0) + b.vf * dt * 1.6; const amp = Math.min(1, Math.abs(b.vf) / 3) * .5; for (const c of b.legs) c.leg.rotation.x = Math.sin(b.walk + (c.idx % 2) * Math.PI) * amp; }
   for (const c of b.flags) c.flag.rotation.y = Math.sin(clock * 4 + c.idx) * .35;
+  for (const c of b.flaps || []) c.flap.rotation.x = clamp(b.vel.y * .03 + (c.x < b.cx ? 1 : -1) * (b.yawVel || 0) * .3, -.5, .5);
   if (b.shield) b.shield.visible = b.shieldT > 0;
 }
 
@@ -9013,7 +9049,7 @@ Object.assign(window.__sfa, { normCode, addFriendCode, get MY_FC() { return MY_F
 // points. Points come from levelling up (and every 2,000 XP past level 10) and from achievements.
 // Pilot level still gates every node, so other players can keep checking bots against the stamped level.
 const TECH_START = ['cube', 'wedge', 'slab', 'seat', 'wheel', 'blaster', 'flag', 'T1', 'mat_std'];
-const TECH_CPU = 15, TECH_CPU_LV = [2, 4, 5, 6, 8], TECH_CPU_MAX = TECH_CPU * TECH_CPU_LV.length;
+const TECH_CPU = 25, TECH_CPU_LV = [2, 4, 5, 6, 8], TECH_CPU_MAX = TECH_CPU * TECH_CPU_LV.length;
 const TECH_RANK_XP = 2000;
 // lines grow from a parent in a screen direction (x right, y down); see techLayout
 const TECH_LINES = [
@@ -9275,7 +9311,7 @@ function drawLoadoutBar(force) {
   el.querySelectorAll('.lc b').forEach((b, k) => b.textContent = cleanName(list[k].d.name || '') || 'Bay ' + (list[k].i + 1));
 }
 Object.assign(window.__sfa, { LOADOUT, loadoutPick, loadoutList, deployDesign, deployBay, drawLoadoutBar, get bays() { return bays; } });
-Object.assign(window.__sfa, { post, cam, encState, mirrorR, gPaintAt, get garage() { return garage; } });
+Object.assign(window.__sfa, { post, cam, computeStats, mobility, isShape, encState, mirrorR, gPaintAt, get garage() { return garage; } });
 // ---- 99-end.js ----
 start();
 // end of RoboBlocks

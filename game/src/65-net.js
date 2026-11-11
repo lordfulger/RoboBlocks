@@ -31,7 +31,7 @@ function decodeDesign(s) {
     let v = 0; for (let j = 0; j < 6; j++) v |= (B64I[s[i + j]] | 0) << (j * 6);
     const t = PART_CODES[((v >>> 12) & 31) | (((v >>> 31) & 1) << 5)]; if (!t) continue;
     const b = { x: (v & 15) - 8, y: (v >>> 4) & 15, z: ((v >>> 8) & 15) - 8, t, c: ((v >>> 17) & 15) % COLORS.length, r: (v >>> 21) & 63 };
-    if (isShape(t)) b.k = ((v >>> 27) & 15) + 1;
+    if (isShape(t) || isLeg(t)) b.k = ((v >>> 27) & 15) + 1; // armor tier, or a leg's size
     blocks.push(b);
   }
   for (let i = 0; i + 2 <= high.length; i += 2) { const b = blocks[((B64I[high[i]] | 0) << 6) | (B64I[high[i + 1]] | 0)]; if (b) b.y += 16; }
@@ -575,6 +575,7 @@ function netMove(b, dt) { // smooth remote bots toward their owner's latest stat
   for (const c of b.flames) { c.flame.userData.off = c.fly ? !(b.flyT > 0) : c.thrust ? b.vf < 4 : !b.jetting; }
   if (b.legs.length) { b.walk = (b.walk || 0) + b.vf * dt * 1.6; const amp = Math.min(1, Math.abs(b.vf) / 3) * .5; for (const c of b.legs) c.leg.rotation.x = Math.sin(b.walk + (c.idx % 2) * Math.PI) * amp; }
   for (const c of b.flags) c.flag.rotation.y = Math.sin(clock * 4 + c.idx) * .35;
+  for (const c of b.flaps || []) c.flap.rotation.x = clamp(b.vel.y * .03 + (c.x < b.cx ? 1 : -1) * (b.yawVel || 0) * .3, -.5, .5);
   if (b.shield) b.shield.visible = b.shieldT > 0;
 }
 

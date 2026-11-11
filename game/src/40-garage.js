@@ -37,8 +37,8 @@ function setupGarage() {
 }
 function gAdd(b) {
   const k = ckey(b.x, b.y, b.z); if (garage.blocks.has(k)) return;
-  const kk = isShape(b.t) ? (b.k || 1) : undefined;
-  const mm = kk && b.m && b.m !== 'std' ? b.m : undefined;
+  const kk = isShape(b.t) || isLeg(b.t) ? (b.k || 1) : undefined;
+  const mm = kk && isShape(b.t) && b.m && b.m !== 'std' ? b.m : undefined;
   const p = makePart(b.t, b.c, b.r || 0, kk, design.f || 'standard', mm); p.root.position.set(b.x, b.y, b.z); p.root.userData.key = k;
   p.root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   const rec = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, r: b.r || 0, obj: p.root }; if (kk) rec.k = kk; if (mm) rec.m = mm;
@@ -48,7 +48,9 @@ function gRemove(k) { const b = garage.blocks.get(k); if (!b) return; garage.gro
 function gClear() { for (const k of [...garage.blocks.keys()]) gRemove(k); }
 function gSerialize() { return { name: design.name || 'Bay ' + (bayIdx + 1), v: 3, f: design.f || 'standard', wg: design.wg || undefined, blocks: [...garage.blocks.values()].map(({ x, y, z, t, c, r, k, m }) => k ? (m ? { x, y, z, t, c, r, k, m } : { x, y, z, t, c, r, k }) : { x, y, z, t, c, r }) }; }
 function gLoad(d) { migrateDesign(d); if (d.name && d.name !== 'Bot') design.name = d.name; design.f = d.f || 'standard'; design.wg = Array.isArray(d.wg) ? d.wg : undefined; gClear(); for (const b of d.blocks) if (PARTS[b.t]) gAdd(b); onDesignChanged(); if ($('#botName')) $('#botName').value = design.name; }
-function onDesignChanged() { design = gSerialize(); saveBays(); updateStats(); if (WEAK.on) weakSpots(true); if (garage.layer != null) setLayer(garage.layer); if (garage.bal) drawBalance(); if ($('#bayTabs').children.length) { const t = $('#bay' + bayIdx); if (t) t.classList.toggle('empty', !design.blocks.length); } }
+// legs reach below their blocks: stand the garage bot on them (and keep its block grid lined up for building)
+function garageLift() { const list = [...garage.blocks.values()]; if (!list.length) { garage.group.position.y = 0; garage.floorPlane.constant = .5; return; } const minY = Math.min(...list.map(b => b.y)), bottom = computeStats(list).bottom; garage.group.position.y = Math.max(0, (minY - .5) - bottom); garage.floorPlane.constant = .5 - garage.group.position.y; }
+function onDesignChanged() { design = gSerialize(); saveBays(); updateStats(); garageLift(); if (WEAK.on) weakSpots(true); if (garage.layer != null) setLayer(garage.layer); if (garage.bal) drawBalance(); if ($('#bayTabs').children.length) { const t = $('#bay' + bayIdx); if (t) t.classList.toggle('empty', !design.blocks.length); } }
 function pushUndo() { garage.undo.push(JSON.stringify(gSerialize().blocks)); if (garage.undo.length > 80) garage.undo.shift(); if (garage.redo) garage.redo.length = 0; }
 function doUndo() { const s = garage.undo.pop(); if (!s) { toast('Nothing to undo.'); return; } if (garage.redo) garage.redo.push(JSON.stringify(gSerialize().blocks)); gClear(); for (const b of JSON.parse(s)) gAdd(b); onDesignChanged(); SFX.pop(); }
 function usedCpu() { let c = 0; for (const b of garage.blocks.values()) c += partCpu(b); return c; }
@@ -77,11 +79,12 @@ function placementPlan(p) {
   const r0 = toolRot(t, garage.rot);
   const list = [{ x: p.x, y: p.y, z: p.z, t, c: garage.color, r: r0 }];
   if (P.shape) { list[0].k = garage.tier; if (garage.mat !== 'std') list[0].m = garage.mat; }
+  if (isLeg(t)) list[0].k = garage.legSize || 1;
   if (P.shape && MATERIALS[garage.mat].lvl > unlockLv()) return { ok: false, why: `${MATERIALS[garage.mat].name} unlocks at pilot level ${MATERIALS[garage.mat].lvl}.` };
   if (P.shape && !matOpen(garage.mat)) return { ok: false, why: `${MATERIALS[garage.mat].name}: unlock it in the Tech Tree.` };
   if (garage.mirror && mirOff(p)) {
     const m = mirPos(p);
-    if (inBounds(m) && !garage.blocks.has(ckey(m.x, m.y, m.z)) && hasNeighbor(m.x, m.y, m.z)) { const mb = { ...m, t, c: garage.color, r: mirRot(t, r0) }; if (P.shape) { mb.k = garage.tier; if (garage.mat !== 'std') mb.m = garage.mat; } list.push(mb); }
+    if (inBounds(m) && !garage.blocks.has(ckey(m.x, m.y, m.z)) && hasNeighbor(m.x, m.y, m.z)) { const mb = { ...m, t, c: garage.color, r: mirRot(t, r0) }; if (P.shape) { mb.k = garage.tier; if (garage.mat !== 'std') mb.m = garage.mat; } if (isLeg(t)) mb.k = garage.legSize || 1; list.push(mb); }
   }
   if (t === 'seat') {
     const seats = [...garage.blocks.values()].filter(b => b.t === 'seat').length;
@@ -124,17 +127,17 @@ function updateGhost(cx, cy) {
     if (!pk.block) return;
     garage.dirPivot.visible = false;
     const b = pk.block; setGhostShape(g, b.t, b.r);
-    g.position.set(b.x, b.y, b.z); setGhostColor(garage.erase ? 0xff5444 : 0xffcf3d); g.visible = true;
+    g.position.set(b.x, b.y + garage.group.position.y, b.z); setGhostColor(garage.erase ? 0xff5444 : 0xffcf3d); g.visible = true;
     const mp = mirPos(b), mb = garage.mirror && mirOff(b) && garage.blocks.get(ckey(mp.x, mp.y, mp.z));
-    if (mb) { setGhostShape(mg, mb.t, mb.r); mg.position.set(mb.x, mb.y, mb.z); mg.visible = true; }
+    if (mb) { setGhostShape(mg, mb.t, mb.r); mg.position.set(mb.x, mb.y + garage.group.position.y, mb.z); mg.visible = true; }
     return;
   }
   const plan = placementPlan(pk.place);
   const r0 = toolRot(garage.tool, garage.rot);
   setGhostShape(g, garage.tool, r0);
   garage.dirPivot.visible = garage.tool === 'tesla' || isMountable(garage.tool); // which way the barrel points
-  g.position.set(pk.place.x, pk.place.y, pk.place.z); setGhostColor(plan.ok ? 0x62e08f : 0xff5444); g.visible = inBounds(pk.place);
-  if (plan.ok && plan.list.length > 1) { setGhostShape(mg, garage.tool, plan.list[1].r); mg.position.set(plan.list[1].x, plan.list[1].y, plan.list[1].z); mg.visible = true; }
+  g.position.set(pk.place.x, pk.place.y + garage.group.position.y, pk.place.z); setGhostColor(plan.ok ? 0x62e08f : 0xff5444); g.visible = inBounds(pk.place);
+  if (plan.ok && plan.list.length > 1) { setGhostShape(mg, garage.tool, plan.list[1].r); mg.position.set(plan.list[1].x, plan.list[1].y + garage.group.position.y, plan.list[1].z); mg.visible = true; }
 }
 function setGhostShape(g, t, r) {
   const P = PARTS[t], geo = P.shape ? SHAPE_GEO[P.shape] : GEO.box;
@@ -271,6 +274,7 @@ function syncToolButtons() {
   $('#btnErase').classList.toggle('on', garage.erase);
   $('#btnPaint').classList.toggle('on', garage.paint);
   const rotatable = isShape(garage.tool) || garage.tool === 'tesla' || isMountable(garage.tool);
+  if ($('#legRow')) { const lg = isLeg(garage.tool) && !garage.erase && !garage.paint; $('#legRow').hidden = !lg; if (lg) { const k = garage.legSize || 1; document.querySelectorAll('#legSizes button').forEach(b => b.classList.toggle('sel', +b.dataset.k === k)); $('#legName').textContent = `${LEG_SIZES[k].name}: ${Math.round(PARTS[garage.tool].cpu * LEG_SIZES[k].cost)} CPU, ${Math.round(PARTS[garage.tool].hp * LEG_SIZES[k].cost)} HP`; } }
   $('#btnRot').disabled = !rotatable; $('#btnTilt').disabled = $('#btnRoll').disabled = !(isShape(garage.tool) || isMountable(garage.tool));
 }
 function updateStats() {
@@ -370,6 +374,7 @@ $('#btnRoll').onclick = () => bumpRot(4);
 $('#btnPaint').onclick = () => { garage.paint = !garage.paint; if (garage.paint) garage.erase = false; syncToolButtons(); refreshGhost(); };
 // Mirror cycles: left/right, front/back, off
 // Mirror is a plain on/off switch; the second button picks the direction
+document.querySelectorAll('#legSizes button').forEach(b => b.onclick = () => { garage.legSize = +b.dataset.k; syncToolButtons(); refreshGhost(); SFX.ui(); });
 $('#btnMirror').onclick = () => { garage.mirror = !garage.mirror; store.set('sfa.mirror', garage.mirror); if (!garage.mirAxis) garage.mirAxis = 'x'; syncToolButtons(); refreshGhost(); toast(garage.mirror ? (garage.mirAxis === 'z' ? 'Mirror on: front and back' : 'Mirror on: left and right') : 'Mirror off: blocks go only where you click'); };
 $('#btnMirAxis').onclick = () => { garage.mirAxis = garage.mirAxis === 'z' ? 'x' : 'z'; garage.mirror = true; store.set('sfa.mirror', true); syncToolButtons(); refreshGhost(); toast(garage.mirAxis === 'z' ? 'Mirror: front and back' : 'Mirror: left and right'); };
 $('#btnErase').onclick = () => { garage.erase = !garage.erase; if (garage.erase) garage.paint = false; syncToolButtons(); refreshGhost(); };

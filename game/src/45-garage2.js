@@ -61,7 +61,7 @@ function setTool2(t) {
 // copy a block's part, color, armor tier, material and rotation (picker tool, Alt+click or middle click)
 function pickBlock(b) {
   garage.color = b.c; if (b.k && tierOpen(b.k)) garage.tier = b.k; if (b.m && matOpen(b.m)) garage.mat = b.m; else if (isShape(b.t)) garage.mat = 'std';
-  if (partOpen(b.t)) { selectTool(b.t); if (typeof b.r === 'number') garage.rot = b.r; }
+  if (partOpen(b.t)) { selectTool(b.t); if (typeof b.r === 'number') garage.rot = b.r; if (isLeg(b.t)) garage.legSize = b.k || 1; }
   garage.tool2 = null; syncToolButtons(); buildSwatches(); buildPartsUI(); refreshGhost(); SFX.ui();
   toast(partOpen(b.t) ? `Picked ${PARTS[b.t].name}${b.k ? ' · ' + TIERS[b.k].name : ''}.` : `${PARTS[b.t].name} is locked; picked its color.`);
 }

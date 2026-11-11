@@ -4,7 +4,7 @@
 // points. Points come from levelling up (and every 2,000 XP past level 10) and from achievements.
 // Pilot level still gates every node, so other players can keep checking bots against the stamped level.
 const TECH_START = ['cube', 'wedge', 'slab', 'seat', 'wheel', 'blaster', 'flag', 'T1', 'mat_std'];
-const TECH_CPU = 15, TECH_CPU_LV = [2, 4, 5, 6, 8], TECH_CPU_MAX = TECH_CPU * TECH_CPU_LV.length;
+const TECH_CPU = 25, TECH_CPU_LV = [2, 4, 5, 6, 8], TECH_CPU_MAX = TECH_CPU * TECH_CPU_LV.length;
 const TECH_RANK_XP = 2000;
 // lines grow from a parent in a screen direction (x right, y down); see techLayout
 const TECH_LINES = [

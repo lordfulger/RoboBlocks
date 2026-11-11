@@ -80,4 +80,4 @@ function drawLoadoutBar(force) {
   el.querySelectorAll('.lc b').forEach((b, k) => b.textContent = cleanName(list[k].d.name || '') || 'Bay ' + (list[k].i + 1));
 }
 Object.assign(window.__sfa, { LOADOUT, loadoutPick, loadoutList, deployDesign, deployBay, drawLoadoutBar, get bays() { return bays; } });
-Object.assign(window.__sfa, { post, cam, encState, mirrorR, gPaintAt, get garage() { return garage; } });
+Object.assign(window.__sfa, { post, cam, computeStats, mobility, isShape, encState, mirrorR, gPaintAt, get garage() { return garage; } });
