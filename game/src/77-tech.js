@@ -76,7 +76,7 @@ function techEarned(xp) {
   xp = xp == null ? progress.xp || 0 : xp; const lv = levelFromXp(xp);
   let p = 5; for (let l = 2; l <= lv; l++) p += l + 1;
   if (lv >= 10) p += 4 * Math.floor(Math.max(0, xp - xpForLevel(10)) / TECH_RANK_XP);
-  return p + 3 * ACH.filter(a => achDone(a.id)).length;
+  return p + 3 * ACH.filter(a => achDone(a.id)).length + (PROG.life.wkTech | 0);
 }
 const techRank = () => level() >= 10 ? Math.floor(Math.max(0, (progress.xp || 0) - xpForLevel(10)) / TECH_RANK_XP) : 0;
 function techSpent() { const g = techState().got; let s = 0; for (const id in g) if (g[id] === 'B' && TECH[id]) s += TECH[id].cost; return s; }
@@ -209,5 +209,6 @@ function techCard() {
     ${st === 'ready' ? `<button class="primary" id="ttBuy">Unlock for ${n.cost} ★</button>` : ''}`;
   if ($('#ttBuy')) $('#ttBuy').onclick = () => techBuyUI(id);
 }
+Object.assign(window.__sfa, { weeklyNow, WEEKLY, PROG, showQuests, eventXp, get progress() { return progress; } });
 Object.assign(window.__sfa, { TECH_UP, upRank, upDmg, TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
 Object.assign(window.__sfa, { SPLASH, mobility, Bot, WEAPONS, PARTS, TIERS, BAL, HEAT, TESLA, computeStats });

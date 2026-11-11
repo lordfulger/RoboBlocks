@@ -95,6 +95,10 @@ function cleanBalance(b) {
   return o;
 }
 let BALANCE = BAL_DEFAULT;
+// weekend XP event: Saturday and Sunday (UTC) every battle gives BC_WEEKEND_XP times the XP (1 turns it off)
+const WEEKEND_XP = Math.max(1, Math.min(5, +(env.BC_WEEKEND_XP == null || env.BC_WEEKEND_XP === '' ? 1.5 : env.BC_WEEKEND_XP) || 1));
+const weekendMul = (t = Date.now()) => { const d = new Date(t).getUTCDay(); return d === 6 || d === 0 ? WEEKEND_XP : 1; };
+const balanceNow = () => ({ ...BALANCE, weekendXp: WEEKEND_XP });
 try { BALANCE = cleanBalance(JSON.parse(fs.readFileSync(BAL_FILE, 'utf8'))); } catch (e) { try { fs.writeFileSync(BAL_FILE, JSON.stringify(BAL_DEFAULT, null, 2)); } catch (e2) { } }
 const threeMin = fs.readFileSync(path.join(ROOT, 'vendor', 'three.min.js'));
 // ---------- desktop app updates: the launcher downloads the game from the server it plays on ----------
@@ -163,12 +167,12 @@ const api = new Api({ db, log, ext: {
   update: apply => runUpdate(!!apply, 'admin'),
   updateState: () => ({ ...UPD, version: VERSION, auto: AUTO_UPDATE, hours: UPDATE_HOURS }),
   logLines: () => LOG.slice(-200),
-  status: () => ({ players: relay.humanCount, maxPlayers: MAX_CLIENTS, uptime: (Date.now() - startedAt) / 1000, servers: hosts.map(h => ({ id: h.id, name: (SERVERS.find(s => s.id === h.id) || {}).name, ...h.status() })) }),
+  status: () => ({ players: relay.humanCount, maxPlayers: MAX_CLIENTS, weekendXp: weekendMul(), uptime: (Date.now() - startedAt) / 1000, servers: hosts.map(h => ({ id: h.id, name: (SERVERS.find(s => s.id === h.id) || {}).name, ...h.status() })) }),
   readServers: () => { try { return fs.readFileSync(path.join(ROOT, 'servers.json'), 'utf8'); } catch (e) { return JSON.stringify(SERVERS, null, 2); } },
   writeServers: text => fs.writeFileSync(path.join(ROOT, 'servers.json'), text),
-  balance: () => BALANCE,
+  balance: balanceNow, xpRate: () => BALANCE.xpRate * weekendMul(),
   readBalance: () => JSON.stringify(BALANCE, null, 2),
-  writeBalance: text => { let b; try { b = JSON.parse(text); } catch (e) { return { e: 'Not valid JSON: ' + e.message }; } BALANCE = cleanBalance(b); fs.writeFileSync(BAL_FILE, JSON.stringify(BALANCE, null, 2)); relay.broadcastAll({ t: 'balance', balance: BALANCE }); return {}; },
+  writeBalance: text => { let b; try { b = JSON.parse(text); } catch (e) { return { e: 'Not valid JSON: ' + e.message }; } BALANCE = cleanBalance(b); fs.writeFileSync(BAL_FILE, JSON.stringify(BALANCE, null, 2)); relay.broadcastAll({ t: 'balance', balance: balanceNow() }); return {}; },
   onBug: (who, text) => discordText(`🐞 Bug report from ${who}: ${text.slice(0, 300)}`),
 } });
 // ---------- Discord: post match results to a channel webhook ----------
@@ -201,7 +205,7 @@ function backup() {
 }
 setTimeout(backup, 60000); setInterval(backup, 6 * 3600 * 1000);
 const SERVER_NAME = String(env.BC_NAME || 'RoboBlocks server').replace(/[<>]/g, '').slice(0, 40);
-const relay = new Relay({ servers: SERVERS, maxClients: MAX_CLIENTS, log, db, api, requireAccount: REQUIRE_ACCOUNT, unlockAll: UNLOCK_ALL, serverName: SERVER_NAME, version: VERSION, balance: () => BALANCE });
+const relay = new Relay({ servers: SERVERS, maxClients: MAX_CLIENTS, log, db, api, requireAccount: REQUIRE_ACCOUNT, unlockAll: UNLOCK_ALL, serverName: SERVER_NAME, version: VERSION, balance: balanceNow });
 // a hosted match ended: award XP (and rating on ranked servers) to the signed-in pilots who played it
 function onMatchReport(server, r) {
   if (!r || !Array.isArray(r.humans)) return;
@@ -217,7 +221,7 @@ function onMatchReport(server, r) {
   for (const { h, a } of accts) {
     if (!a) continue;
     const result = r.winner === -1 ? 'draw' : r.winner === h.team ? 'win' : 'loss';
-    const xp = db.record(a, { xpRate: BALANCE.xpRate, mode: r.mode, map: r.map, result, kills: num(h.kills, 200) | 0, deaths: num(h.deaths, 200) | 0, dmg: num(h.dmg, 2e6), healed: num(h.healed, 1e6), eloDelta: server.ranked ? deltas[h.team] : 0, server: server.name, cap: 3000 });
+    const xp = db.record(a, { xpRate: BALANCE.xpRate * weekendMul(), mode: r.mode, map: r.map, result, kills: num(h.kills, 200) | 0, deaths: num(h.deaths, 200) | 0, dmg: num(h.dmg, 2e6), healed: num(h.healed, 1e6), eloDelta: server.ranked ? deltas[h.team] : 0, server: server.name, cap: 3000 });
     for (const [id, p] of relay.peers) if (p.acct === a) relay.restamp(id);
     log(`[${server.id}] ${a.name}: ${result}, +${xp} XP${server.ranked ? `, rating ${deltas[h.team] >= 0 ? '+' : ''}${Math.round(deltas[h.team])}` : ''}`);
   }
@@ -338,7 +342,7 @@ const httpServer = http.createServer((req, res) => {
   if (url === '/hub/beat' && IS_HUB && req.method === 'POST') { const fwd = TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); hubBeat(req, res, (fwd || req.socket.remoteAddress || '').replace(/^::ffff:/, '')).catch(() => { try { res.writeHead(500); res.end(); } catch (e) { } }); return; }
   if (url === '/status') {
     res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
-    res.end(JSON.stringify({ name: 'RoboBlocks', server: SERVER_NAME, version: VERSION, serverVersion: (() => { try { return require('../package.json').version; } catch (e) { return VERSION; } })(), players: relay.humanCount, maxPlayers: MAX_CLIENTS, servers: hosts.map(h => ({ id: h.id, name: (SERVERS.find(s => s.id === h.id) || {}).name, ...h.status() })) }));
+    res.end(JSON.stringify({ name: 'RoboBlocks', server: SERVER_NAME, version: VERSION, serverVersion: (() => { try { return require('../package.json').version; } catch (e) { return VERSION; } })(), players: relay.humanCount, maxPlayers: MAX_CLIENTS, weekendXp: weekendMul(), servers: hosts.map(h => ({ id: h.id, name: (SERVERS.find(s => s.id === h.id) || {}).name, ...h.status() })) }));
     return;
   }
   res.writeHead(404, { ...headers, 'Content-Type': 'text/plain' }); res.end('Not found');

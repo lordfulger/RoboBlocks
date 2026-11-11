@@ -269,6 +269,16 @@
             "user_editable": true,
             "rules": "required|string|in:0,1",
             "field_type": "text"
+        },
+        {
+            "name": "Weekend XP multiplier",
+            "description": "Every battle on Saturday and Sunday (UTC) gives this many times the XP. 1 turns the weekend event off.",
+            "env_variable": "BC_WEEKEND_XP",
+            "default_value": "1.5",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|between:1,5",
+            "field_type": "text"
         }
     ]
 }

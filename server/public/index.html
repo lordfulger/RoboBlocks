@@ -478,7 +478,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 #techTree .node.start{background:#fff}#techTree .node.start .in{background:#e9edf0;color:#111}#techTree .node.start b{font-size:16px;letter-spacing:.06em}
 #techTree .node.pulse{animation:ttPop .4s ease-out}
 @keyframes ttGlow{50%{background:#3a6b8a}}@keyframes ttPop{0%{transform:scale(1.25)}100%{transform:scale(1)}}
-#techTree .tti{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid #5b6b78}#techTree .tti.tcpu{color:#7ff0a0;border-color:#3f8a5a;background:#12261a}#techTree .tti.tup{color:#ffd27a;border-color:#8a6a2f;background:#2a1f0e;font-size:17px;position:relative}#techTree .tti.tup sup{position:absolute;right:-4px;top:-6px;font-size:10px;background:#8a6a2f;color:#fff;border-radius:7px;padding:0 4px;line-height:14px}
+#techTree .tti{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid #5b6b78}#techTree .tti.tcpu{color:#7ff0a0;border-color:#3f8a5a;background:#12261a}#evStrip{margin-top:10px;display:inline-block;padding:6px 12px;border-radius:6px;background:rgba(255,170,40,.16);border:1px solid rgba(255,170,40,.55);color:#ffd27a;font-weight:600;font-size:14px}.evline{padding:8px 12px;border-radius:6px;background:rgba(255,170,40,.14);border:1px solid rgba(255,170,40,.5);color:#ffd27a;font-weight:600;margin:6px 0 4px}#techTree .tti.tup{color:#ffd27a;border-color:#8a6a2f;background:#2a1f0e;font-size:17px;position:relative}#techTree .tti.tup sup{position:absolute;right:-4px;top:-6px;font-size:10px;background:#8a6a2f;color:#fff;border-radius:7px;padding:0 4px;line-height:14px}
 #techTree img.mat-light{filter:brightness(1.35) saturate(.4) hue-rotate(180deg)}#techTree img.mat-heavy{filter:brightness(.7) contrast(1.3) saturate(.2)}#techTree img.mat-reactive{filter:sepia(1) saturate(3) hue-rotate(-20deg)}#techTree img.mat-energy{filter:sepia(1) saturate(4) hue-rotate(140deg) brightness(1.2)}
 #techTree .tt-side{width:360px;flex-shrink:0;margin:14px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;z-index:2}
 #techTree .tt-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);letter-spacing:.12em;font-size:20px}#techTree .tt-head button{padding:4px 10px}
@@ -497,7 +497,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 <div id="loading">BOOTING ROBOBLOCKS…</div>
 
 <div id="menu" hidden>
-  <div class="mtitle"><div class="logo">ROBO<i>BLOCKS</i></div><div class="tag">Build it from blocks. Break it apart in battle.</div></div>
+  <div class="mtitle"><div class="logo">ROBO<i>BLOCKS</i></div><div class="tag">Build it from blocks. Break it apart in battle.</div><div id="evStrip" hidden></div></div>
   <nav class="mnav">
     <button id="mPlay" class="primary big">Play</button>
     <button id="mQuick" class="big">Quick play</button>
@@ -797,7 +797,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
-  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.', 'Quick Play looks across every RoboBlocks server and takes you to the busiest room at your level, even on another server.', 'Damage numbers are coloured by the weapon that dealt them, and every hit varies a little (90 to 110%).', 'A short guide explains Play online the first time you open it.', 'Tech Tree upgrades: Calibrated Barrels, Shaped Warheads, Overcharged Capacitors, Autoloaders, Heat Sinks, Fuel Cells and Module Chargers improve your own bot, rank by rank. Two more CPU Cores at levels 9 and 10.']],
+  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.', 'Quick Play looks across every RoboBlocks server and takes you to the busiest room at your level, even on another server.', 'Damage numbers are coloured by the weapon that dealt them, and every hit varies a little (90 to 110%).', 'A short guide explains Play online the first time you open it.', 'Tech Tree upgrades: Calibrated Barrels, Shaped Warheads, Overcharged Capacitors, Autoloaders, Heat Sinks, Fuel Cells and Module Chargers improve your own bot, rank by rank. Two more CPU Cores at levels 9 and 10.', 'Weekly challenges: three bigger goals every week, each worth up to 900 XP and 2 tech points, next to your daily quests.', 'Weekend events: every battle on Saturday and Sunday gives 1.5× XP (servers can change this with BC_WEEKEND_XP).']],
   ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.', 'Better flying: Space climbs and C descends quickly, and letting go holds your height. Helicopters respond faster, planes climb and dive toward where you aim, and C drops jump-jet bots faster.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
@@ -5475,7 +5475,7 @@ const CLOUD = { timer: null, busy: false, pulled: false, last: '' };
 const cloudOn = () => !HEADLESS && ((BE.kind === 'server' && !!BE.me) || (BE.kind === 'artifact' && !!BE.uid));
 function cloudSnapshot() {
   const { quality, detail, ...portable } = settings; // graphics quality and model detail stay per device
-  return { v: 1, bays: bays.map(d => d && d.blocks && d.blocks.length ? { n: cleanName(d.name || '') || '', d: encodeDesign(d), wg: d.wg || undefined } : (d ? { n: cleanName(d.name || ''), d: '' } : null)), bay: bayIdx, settings: portable, tut: !!TUT.done, muted: [...CHAT.muted].slice(0, 100), cs: NET.name, prog: { life: PROG.life, ach: PROG.ach, q: PROG.q, badge: PROG.badge, clan: PROG.clan, bp: PROG.bp, tech: PROG.tech, title: PROG.title || '', hangar: PROG.hangar || '', sr: progress.sr || 0 }, fr: FRIENDS.list, fc: MY_FC || undefined, t: Date.now() };
+  return { v: 1, bays: bays.map(d => d && d.blocks && d.blocks.length ? { n: cleanName(d.name || '') || '', d: encodeDesign(d), wg: d.wg || undefined } : (d ? { n: cleanName(d.name || ''), d: '' } : null)), bay: bayIdx, settings: portable, tut: !!TUT.done, muted: [...CHAT.muted].slice(0, 100), cs: NET.name, prog: { life: PROG.life, ach: PROG.ach, q: PROG.q, w: PROG.w, badge: PROG.badge, clan: PROG.clan, bp: PROG.bp, tech: PROG.tech, title: PROG.title || '', hangar: PROG.hangar || '', sr: progress.sr || 0 }, fr: FRIENDS.list, fc: MY_FC || undefined, t: Date.now() };
 }
 function cloudDirty() { try { if (!cloudOn() || !CLOUD.pulled) return; setSaveBadge('Saving…'); clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 2000); } catch (e) { /* called during load, before this file has run */ } }
 async function cloudPush() {
@@ -5511,7 +5511,7 @@ function cloudApply(s) {
   if (normCode(s.fc)) { MY_FC = normCode(s.fc); store.set('sfa.fc', MY_FC); if (NET.room) lobbyPresence(); } // your code follows your account
   if (Array.isArray(s.fr)) { FRIENDS.list = s.fr.filter(f => f && typeof f.k === 'string').slice(0, 100).map(f => ({ k: f.k.slice(0, 80), name: cleanName(f.name) || 'Pilot', t: +f.t || 0 })); store.set('sfa.friends', FRIENDS.list); }
   if (Array.isArray(s.muted)) { CHAT.muted = new Set(s.muted.map(String).slice(0, 100)); store.set('sfa.muted', [...CHAT.muted]); }
-  if (s.prog && typeof s.prog === 'object') { if (s.prog.life) PROG.life = Object.assign(PROG.life, s.prog.life); if (s.prog.ach) PROG.ach = Object.assign({}, s.prog.ach); if (s.prog.q && s.prog.q.day >= ((PROG.q || {}).day || 0)) PROG.q = s.prog.q; if (typeof s.prog.badge === 'string') PROG.badge = s.prog.badge; if (s.prog.bp && typeof s.prog.bp === 'object' && (s.prog.bp.s | 0) >= ((PROG.bp || {}).s | 0) && (s.prog.bp.xp | 0) >= (((PROG.bp || {}).s === s.prog.bp.s && PROG.bp.xp) | 0)) PROG.bp = { s: s.prog.bp.s | 0, xp: s.prog.bp.xp | 0 }; if (typeof s.prog.title === 'string') PROG.title = s.prog.title.slice(0, 40); if (s.prog.tech && typeof s.prog.tech === 'object' && s.prog.tech.got && typeof s.prog.tech.got === 'object') { const got = {}; for (const [k2, v2] of Object.entries(s.prog.tech.got)) if (TECH[k2] && (v2 === 'B' || v2 === 'L')) got[k2] = v2; PROG.tech = { got, v: 1 }; } else PROG.tech = null; /* saved before the tech tree: rebuilt from the account level */ if (typeof s.prog.hangar === 'string') PROG.hangar = s.prog.hangar.slice(0, 20); if (typeof s.prog.sr === 'number' && s.prog.sr > 0) { progress.sr = s.prog.sr; store.set('sfa.progress', progress); } if (s.prog.clan !== undefined && BE.kind === 'artifact') PROG.clan = s.prog.clan; store.set('sfa.prog', PROG); }
+  if (s.prog && typeof s.prog === 'object') { if (s.prog.life) PROG.life = Object.assign(PROG.life, s.prog.life); if (s.prog.ach) PROG.ach = Object.assign({}, s.prog.ach); if (s.prog.q && s.prog.q.day >= ((PROG.q || {}).day || 0)) PROG.q = s.prog.q; if (s.prog.w && typeof s.prog.w === 'object' && Array.isArray(s.prog.w.list) && (s.prog.w.wk | 0) >= ((PROG.w || {}).wk | 0)) PROG.w = s.prog.w; if (typeof s.prog.badge === 'string') PROG.badge = s.prog.badge; if (s.prog.bp && typeof s.prog.bp === 'object' && (s.prog.bp.s | 0) >= ((PROG.bp || {}).s | 0) && (s.prog.bp.xp | 0) >= (((PROG.bp || {}).s === s.prog.bp.s && PROG.bp.xp) | 0)) PROG.bp = { s: s.prog.bp.s | 0, xp: s.prog.bp.xp | 0 }; if (typeof s.prog.title === 'string') PROG.title = s.prog.title.slice(0, 40); if (s.prog.tech && typeof s.prog.tech === 'object' && s.prog.tech.got && typeof s.prog.tech.got === 'object') { const got = {}; for (const [k2, v2] of Object.entries(s.prog.tech.got)) if (TECH[k2] && (v2 === 'B' || v2 === 'L')) got[k2] = v2; PROG.tech = { got, v: 1 }; } else PROG.tech = null; /* saved before the tech tree: rebuilt from the account level */ if (typeof s.prog.hangar === 'string') PROG.hangar = s.prog.hangar.slice(0, 20); if (typeof s.prog.sr === 'number' && s.prog.sr > 0) { progress.sr = s.prog.sr; store.set('sfa.progress', progress); } if (s.prog.clan !== undefined && BE.kind === 'artifact') PROG.clan = s.prog.clan; store.set('sfa.prog', PROG); }
   if (BE.kind === 'artifact' && s.cs) { NET.name = cleanName(s.cs) || NET.name; store.set('sfa.callsign', NET.name); }
   CLOUD.last = JSON.stringify({ ...cloudSnapshot(), t: 0 });
   gLoad(design); buildBaysUI(); buildFinishUI(); updateStats(); applyHangarTheme(); if (state === 'menu') buildPilotCard();
@@ -5890,7 +5890,35 @@ const QUESTS = [
 const dayNo = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
 function dailyQuestIds(day) { const r = mulberry32(day * 7919 + 13), pool = QUESTS.map(q => q.id); for (let i = pool.length - 1; i > 0; i--) { const j = r() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
 const PROG = Object.assign({ life: {}, ach: {}, q: null, badge: '', clan: null }, store.get('sfa.prog', {}));
-PROG.life = Object.assign({ kills: 0, dmg: 0, heal: 0, wins: 0, moverWins: {}, reactorWins: 0, pitWins: 0, questsDone: 0 }, PROG.life);
+PROG.life = Object.assign({ kills: 0, dmg: 0, heal: 0, wins: 0, moverWins: {}, reactorWins: 0, pitWins: 0, questsDone: 0, wkTech: 0 }, PROG.life);
+// weekly challenges: three bigger goals a week (weeks start on Monday, UTC), worth more XP and 2 tech points each
+const WEEKLY = [
+  { id: 'w_win10', text: 'Win 10 battles', goal: 10, xp: 900, key: s => s.win ? 1 : 0 },
+  { id: 'w_kill75', text: 'Destroy 75 bots', goal: 75, xp: 900, key: s => s.kills },
+  { id: 'w_dmg300', text: 'Deal 300,000 damage', goal: 300000, xp: 850, key: s => s.dmg },
+  { id: 'w_online', text: 'Play 6 online battles', goal: 6, xp: 800, key: s => s.net ? 1 : 0 },
+  { id: 'w_heal', text: 'Repair 30,000 armor with Nano Menders', goal: 30000, xp: 850, key: s => s.heal },
+  { id: 'w_brawl', text: 'Play 4 Weekly Brawl battles', goal: 4, xp: 750, key: s => s.mode === 'brawl' ? 1 : 0 },
+  { id: 'w_horde', text: 'Play 3 Horde battles', goal: 3, xp: 750, key: s => s.mode === 'horde' ? 1 : 0 },
+  { id: 'w_fly', text: 'Destroy 20 bots with a flying bot', goal: 20, xp: 900, key: s => s.move === 'rotor' || s.move === 'plane' || s.move === 'jet' ? s.kills : 0 },
+  { id: 'w_boom', text: 'Deal 100,000 damage with mortars, plasma, flak or mines', goal: 100000, xp: 850, key: s => ['mortar', 'plasma', 'flak', 'mine'].reduce((a, w) => a + (s.dmgW[w] || 0), 0) },
+  { id: 'w_beam', text: 'Deal 80,000 damage with rails, Rail Lancers or Arc Lances', goal: 80000, xp: 850, key: s => ['rail', 'lancer', 'arc'].reduce((a, w) => a + (s.dmgW[w] || 0), 0) },
+  { id: 'w_mods', text: 'Use modules 40 times', goal: 40, xp: 700, key: s => s.mods },
+  { id: 'w_arena', text: 'Win 3 Battle Arena or Capture the Core battles', goal: 3, xp: 900, key: s => s.win && (s.mode === 'arena' || s.mode === 'ctc') ? 1 : 0 },
+];
+const WEEKLY_TECH = 2;
+const weekNo = () => Math.floor((Date.now() / 864e5 + 3) / 7);
+function weeklyIds(wk) { const r = mulberry32(wk * 104729 + 7), pool = WEEKLY.map(q => q.id); for (let i = pool.length - 1; i > 0; i--) { const j = r() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
+function weeklyNow() { const w = weekNo(); if (!PROG.w || PROG.w.wk !== w) PROG.w = { wk: w, list: weeklyIds(w).map(id => ({ id, n: 0, done: false })) }; return PROG.w; }
+// weekend event: every battle on Saturday and Sunday (UTC) gives more XP. On a RoboBlocks server the server sets how much.
+const isWeekend = (t = Date.now()) => { const d = new Date(t).getUTCDay(); return d === 6 || d === 0; };
+const eventXp = () => !isWeekend() ? 1 : BE.kind === 'server' ? Math.max(1, +BAL.weekendXp || 1) : 1.5;
+function eventLine() {
+  const m = eventXp(); if (m <= 1) return '';
+  const now = Date.now(), d = new Date(now).getUTCDay(), end = (Math.floor(now / 864e5) + (d === 6 ? 2 : 1)) * 864e5, h = Math.ceil((end - now) / 36e5);
+  return `Weekend event: ${m}× XP from every battle · ends in ${h > 24 ? Math.floor(h / 24) + ' d ' + (h % 24) + ' h' : h + ' h'}`;
+}
+function drawEventStrip() { const el = $('#evStrip'); if (!el) return; const t = eventLine(); el.hidden = !t; el.textContent = t ? '★ ' + t : ''; }
 function progSave() { store.set('sfa.prog', PROG); cloudDirty(); }
 function questsToday() {
   const d = dayNo();
@@ -5909,7 +5937,7 @@ function statKill(att) { if (!att || !att.qs) return; att.qs.kills++; const w = 
 // called once per finished battle (not test drives)
 async function progMatchEnd(p, r) {
   if (!p.qs) return [];
-  const s = { ...p.qs, heal: p.healed || 0, win: r.result === 'win', mode: r.mode, map: r.map, move: p.mob ? p.mob.mode : '' }, L = PROG.life, notes = [];
+  const s = { ...p.qs, heal: p.healed || 0, win: r.result === 'win', mode: r.mode, map: r.map, net: !!(match && match.net), move: p.mob ? p.mob.mode : '' }, L = PROG.life, notes = [];
   L.kills += s.kills; L.dmg += s.dmg; L.heal += s.heal;
   if (s.win) { L.wins++; const mv = s.move === 'plane' || s.move === 'rotor' ? 'fly' : s.move; if (mv && mv !== 'none') L.moverWins[mv] = 1; if (r.mode === 'pit') L.pitWins++; if (r.mode === 'arena' && match.rx && match.rx[1 - p.team] <= 0) L.reactorWins++; }
   const Q = questsToday(); let xp = 0;
@@ -5919,7 +5947,14 @@ async function progMatchEnd(p, r) {
     if (q.n >= def.goal) { q.done = true; L.questsDone++; xp += def.xp; notes.push(`Quest complete: ${def.text} (+${def.xp} XP)`); }
   }
   for (const a of ACH) if (!achDone(a.id) && a.test(L)) { PROG.ach[a.id] = Date.now(); notes.push(`Achievement: ${a.name}${a.badge ? ` (badge ${a.badge})` : a.reward ? ` (unlocks ${a.reward})` : ''} · +3 tech points`); }
+  const Wk = weeklyNow(); let wxp = 0;
+  for (const q of Wk.list) {
+    if (q.done) continue; const def = WEEKLY.find(x => x.id === q.id); if (!def) continue;
+    q.n = Math.min(def.goal, q.n + def.key(s));
+    if (q.n >= def.goal) { q.done = true; L.wkTech = (L.wkTech | 0) + WEEKLY_TECH; wxp += def.xp; notes.push(`Weekly challenge complete: ${def.text} (+${def.xp} XP, +${WEEKLY_TECH} tech points)`); }
+  }
   if (xp) await questReward(xp, Q.day);
+  if (wxp) await weeklyReward(wxp, Wk.wk);
   notes.push(...bpAdd((r.xp || 0) + xp));
   progSave();
   return notes;
@@ -5929,11 +5964,19 @@ async function questReward(xp, day) {
   progress.xp += xp; if (!progress.remote) store.set('sfa.progress', progress);
   if (BE.kind === 'artifact' && BE.me) { BE.me.xp = progress.xp; try { await artSave(); } catch (e) { } }
 }
+async function weeklyReward(xp, wk) {
+  if (BE.kind === 'server' && BE.me) { try { const res = await beApi('weekly.claim', { wk, xp }); BE.onSignedIn(res.me); } catch (e) { toast(e.message); } return; }
+  progress.xp += xp; if (!progress.remote) store.set('sfa.progress', progress);
+  if (BE.kind === 'artifact' && BE.me) { BE.me.xp = progress.xp; try { await artSave(); } catch (e) { } }
+}
 function showQuests() {
   const Q = questsToday(), left = 86400000 - ((Date.now() - new Date().getTimezoneOffset() * 60000) % 86400000);
   const qrows = Q.list.map(q => { const def = QUESTS.find(x => x.id === q.id) || { text: q.id, goal: 1, xp: 0 }; const f = Math.min(1, q.n / def.goal); return `<div class="qrow${q.done ? ' done' : ''}"><div><b>${esc(def.text)}</b><span>${q.done ? 'Done' : `${fmtN(q.n)} / ${fmtN(def.goal)}`} · +${def.xp} XP</span></div><div class="bar"><i style="width:${f * 100}%"></i></div></div>`; }).join('');
   const arows = ACH.map(a => `<div class="arow${achDone(a.id) ? ' got' : ''}"><span class="ab">${a.badge || '◆'}</span><div><b>${esc(a.name)}</b><span>${esc(a.desc)}${a.reward ? ' Unlocks the ' + esc(a.reward) + '.' : a.badge ? ' Badge: ' + a.badge : ''}</span></div>${achDone(a.id) && a.badge ? `<button data-b="${a.badge}" class="${PROG.badge === a.badge ? 'on' : ''}">${PROG.badge === a.badge ? 'Wearing' : 'Wear'}</button>` : ''}</div>`).join('');
-  showOverlay(`<h2>Quests & achievements</h2><h3>TODAY'S QUESTS · new ones in ${Math.floor(left / 3600000)} h ${Math.floor(left % 3600000 / 60000)} min</h3><div class="qlist">${qrows}</div>
+  const Wk = weeklyNow(), wleft = ((Wk.wk + 1) * 7 - 3) * 864e5 - Date.now();
+  const wrows = Wk.list.map(q => { const def = WEEKLY.find(x => x.id === q.id) || { text: q.id, goal: 1, xp: 0 }; const f = Math.min(1, q.n / def.goal); return `<div class="qrow${q.done ? ' done' : ''}"><div><b>${esc(def.text)}</b><span>${q.done ? 'Done' : `${fmtN(q.n)} / ${fmtN(def.goal)}`} · +${def.xp} XP · +${WEEKLY_TECH} ★</span></div><div class="bar"><i style="width:${f * 100}%"></i></div></div>`; }).join('');
+  const ev = eventLine();
+  showOverlay(`<h2>Quests & achievements</h2>${ev ? `<div class="evline">★ ${esc(ev)}</div>` : ''}<h3>THIS WEEK'S CHALLENGES · new ones in ${Math.floor(wleft / 864e5)} d ${Math.floor(wleft % 864e5 / 3600000)} h</h3><div class="qlist">${wrows}</div><h3>TODAY'S QUESTS · new ones in ${Math.floor(left / 3600000)} h ${Math.floor(left % 3600000 / 60000)} min</h3><div class="qlist">${qrows}</div>
     <h3>ACHIEVEMENTS · ${ACH.filter(a => achDone(a.id)).length} of ${ACH.length}</h3><div class="alist">${arows}</div>
     <p style="font-size:13px">Badges show next to your name in battle, chat and the lobby.</p><div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true);
   $('#ovBack').onclick = backToMenu;
@@ -7346,7 +7389,7 @@ function finishMatch() {
     $('#ovLobby').onclick = () => { hideOverlay(); toMenu(); showLobby(); }; match.done = true; return;
   }
   const p = match.player, win = match.winner === p.team;
-  const xp = 80 + Math.round(p.dmgDealt / 12) + Math.round((p.healed || 0) / 10) + p.kills * 60 + (win ? 250 : match.winner === -1 ? 100 : 0);
+  const evx = eventXp(), xp = Math.round((80 + Math.round(p.dmgDealt / 12) + Math.round((p.healed || 0) / 10) + p.kills * 60 + (win ? 250 : match.winner === -1 ? 100 : 0)) * evx);
   const before = level(), tpBefore = techEarned(); progress.xp += xp; progress.matches++; if (win) progress.wins++; if (!progress.remote) store.set('sfa.progress', progress);
   const result = win ? 'win' : match.winner === -1 ? 'draw' : 'loss';
   const srD = skillUpdate(win, match.winner === -1);
@@ -7360,7 +7403,7 @@ function finishMatch() {
   let html = `<h2 class="${win ? 'win' : match.winner === 1 ? 'lose' : ''}">${title}</h2>
     <p>${MODES[match.mode].name} on ${MAPS[match.mapId].name} · ${match.mode === 'pit' ? `winner <b>${esc((pitLeader() || { name: '?' }).name)}</b> with ${(pitLeader() || { kills: 0 }).kills} kills` : `final score <b class="num">${match.score[0]} – ${match.score[1]}</b>`}</p>
     <div class="grid"><div><span class="label">Kills</span><b class="num">${p.kills}</b></div><div><span class="label">Damage</span><b class="num">${Math.round(p.dmgDealt).toLocaleString()}</b></div><div><span class="label">${p.healed ? 'Repaired' : 'Deaths'}</span><b class="num">${p.healed ? Math.round(p.healed).toLocaleString() : p.deaths}</b></div></div>
-    <p>+${xp} XP${BE.kind === 'server' && BE.me && match.net ? ' (confirmed by the server shortly)' : ''}${srD ? ` · skill ${mySR()} (${srD > 0 ? '+' : ''}${srD})` : ''}${after > before ? ` · <b style="color:var(--accent)">Pilot level ${after}</b>: CPU limit ${cpuMax(after)}, weapons Mk ${TIER_NAMES[after - 1]}` : ''}</p>`;
+    <p>+${xp} XP${evx > 1 ? ` (weekend ${evx}×)` : ''}${BE.kind === 'server' && BE.me && match.net ? ' (confirmed by the server shortly)' : ''}${srD ? ` · skill ${mySR()} (${srD > 0 ? '+' : ''}${srD})` : ''}${after > before ? ` · <b style="color:var(--accent)">Pilot level ${after}</b>: CPU limit ${cpuMax(after)}, weapons Mk ${TIER_NAMES[after - 1]}` : ''}</p>`;
   if (unlocked.length) html += `<div class="unlock">Now available in the Tech Tree: ${unlocked.join(', ')}</div>`;
   { const tp = techEarned() - tpBefore; if (tp > 0) html += `<div class="unlock">+${tp} tech points${after > before ? ' for reaching level ' + after : ' for a new rank'}. You have ${techAvail()} to spend in the <a href="#" id="ovTech">Tech Tree</a>.</div>`; }
   html += medalsHtml() + surveyHtml();
@@ -7401,6 +7444,7 @@ function toMenu() {
   buildPilotCard(); Music.play('menu');
 }
 function buildPilotCard() {
+  drawEventStrip();
   const lv = level(), a = xpForLevel(lv), b = xpForLevel(lv + 1);
   $('#pcard').innerHTML = `<span class="label">Pilot rank</span><span class="lvl num">${lv}</span>
     <div class="bar"><i style="width:${lv >= 10 ? 100 : (progress.xp - a) / (b - a) * 100}%"></i></div>
@@ -8306,7 +8350,7 @@ function applyBalance(b) {
   const wd = b.weaponDamage || {};
   for (const t of WTYPES) { const k = Number.isFinite(+wd[t]) ? +wd[t] : 1; if (BASE_DMG[t].dmg != null) WEAPONS[t].dmg = BASE_DMG[t].dmg * k; if (BASE_DMG[t].heal != null) WEAPONS[t].heal = BASE_DMG[t].heal * k; }
   TESLA.dmg = BASE_DMG.tesla.dmg * (Number.isFinite(+wd.tesla) ? +wd.tesla : 1);
-  BAL.weaponDamage = wd; BAL.xpRate = +b.xpRate || 1; BAL.cpuBonus = Math.round(+b.cpuBonus || 0); BAL.reactorHealth = +b.reactorHealth || 1; BAL.respawnSeconds = +b.respawnSeconds || 6;
+  BAL.weaponDamage = wd; BAL.xpRate = +b.xpRate || 1; BAL.cpuBonus = Math.round(+b.cpuBonus || 0); BAL.reactorHealth = +b.reactorHealth || 1; BAL.respawnSeconds = +b.respawnSeconds || 6; BAL.weekendXp = +b.weekendXp || 1; if (typeof drawEventStrip === 'function') drawEventStrip();
   if (!HEADLESS && state === 'garage') updateStats();
 }
 function netBanner(lost) { const el = $('#netBanner'); if (el && !HEADLESS) { el.hidden = !lost; document.body.classList.toggle('netlost', !!lost); } }
@@ -9168,7 +9212,7 @@ function techEarned(xp) {
   xp = xp == null ? progress.xp || 0 : xp; const lv = levelFromXp(xp);
   let p = 5; for (let l = 2; l <= lv; l++) p += l + 1;
   if (lv >= 10) p += 4 * Math.floor(Math.max(0, xp - xpForLevel(10)) / TECH_RANK_XP);
-  return p + 3 * ACH.filter(a => achDone(a.id)).length;
+  return p + 3 * ACH.filter(a => achDone(a.id)).length + (PROG.life.wkTech | 0);
 }
 const techRank = () => level() >= 10 ? Math.floor(Math.max(0, (progress.xp || 0) - xpForLevel(10)) / TECH_RANK_XP) : 0;
 function techSpent() { const g = techState().got; let s = 0; for (const id in g) if (g[id] === 'B' && TECH[id]) s += TECH[id].cost; return s; }
@@ -9301,6 +9345,7 @@ function techCard() {
     ${st === 'ready' ? `<button class="primary" id="ttBuy">Unlock for ${n.cost} ★</button>` : ''}`;
   if ($('#ttBuy')) $('#ttBuy').onclick = () => techBuyUI(id);
 }
+Object.assign(window.__sfa, { weeklyNow, WEEKLY, PROG, showQuests, eventXp, get progress() { return progress; } });
 Object.assign(window.__sfa, { TECH_UP, upRank, upDmg, TECH, techState, techEarned, techAvail, techBuy, techStatus, showTechTree, ownCpuMax });
 Object.assign(window.__sfa, { SPLASH, mobility, Bot, WEAPONS, PARTS, TIERS, BAL, HEAT, TESLA, computeStats });
 // ---- 78-loadout.js ----

@@ -77,7 +77,7 @@ class Api {
         const last = acct.lastPractice || 0; if (Date.now() - last < 60000) return { e: 'Practice XP is limited to one battle a minute.' };
         acct.lastPractice = Date.now();
         const num = (v, max) => Math.max(0, Math.min(max, +v || 0));
-        const r = { mode: String(a.mode || 'tdm').slice(0, 8), map: String(a.map || '').slice(0, 8), result: ['win', 'loss', 'draw'].includes(a.result) ? a.result : 'loss', kills: num(a.kills, 40) | 0, deaths: num(a.deaths, 40) | 0, dmg: num(a.dmg, 400000), healed: num(a.healed, 200000), practice: true, cap: 900, xpRate: this.ext.balance ? this.ext.balance().xpRate : 1 };
+        const r = { mode: String(a.mode || 'tdm').slice(0, 8), map: String(a.map || '').slice(0, 8), result: ['win', 'loss', 'draw'].includes(a.result) ? a.result : 'loss', kills: num(a.kills, 40) | 0, deaths: num(a.deaths, 40) | 0, dmg: num(a.dmg, 400000), healed: num(a.healed, 200000), practice: true, cap: 900, xpRate: this.ext.xpRate ? this.ext.xpRate() : this.ext.balance ? this.ext.balance().xpRate : 1 };
         const xp = db.record(acct, r); relay.restamp(id); return { xp, me: this.me(peer) };
       }
       // daily quest rewards: at most three a day, 300 XP each
@@ -88,6 +88,16 @@ class Api {
         const q = acct.quests && acct.quests.day === day ? acct.quests : (acct.quests = { day, n: 0 });
         if (q.n >= 3) return { e: 'All of today\'s quest rewards are claimed.' };
         q.n++; const p = acct.p; p.xp += xp; db.save(); relay.restamp(id);
+        return { xp, me: this.me(peer) };
+      }
+      // weekly challenge rewards: at most three a week, 1,000 XP each
+      case 'weekly.claim': {
+        if (!acct) return { e: 'Not signed in.' };
+        const wk = a.wk | 0, now = Math.floor((Date.now() / 864e5 + 3) / 7), xp = Math.max(0, Math.min(1000, a.xp | 0));
+        if (Math.abs(wk - now) > 1 || !xp) return { e: 'That challenge has expired.' };
+        const q = acct.weekly && acct.weekly.wk === wk ? acct.weekly : (acct.weekly = { wk, n: 0 });
+        if (q.n >= 3) return { e: 'All of this week\'s challenge rewards are claimed.' };
+        q.n++; acct.p.xp += xp; db.save(); relay.restamp(id);
         return { xp, me: this.me(peer) };
       }
       case 'clan.create': if (!acct) return { e: 'Sign in to start a clan.' }; { const r = db.clanCreate(acct, a.tag, a.name); if (!r.e) relay.restamp(id); return r; }

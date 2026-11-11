@@ -165,7 +165,7 @@ function finishMatch() {
     $('#ovLobby').onclick = () => { hideOverlay(); toMenu(); showLobby(); }; match.done = true; return;
   }
   const p = match.player, win = match.winner === p.team;
-  const xp = 80 + Math.round(p.dmgDealt / 12) + Math.round((p.healed || 0) / 10) + p.kills * 60 + (win ? 250 : match.winner === -1 ? 100 : 0);
+  const evx = eventXp(), xp = Math.round((80 + Math.round(p.dmgDealt / 12) + Math.round((p.healed || 0) / 10) + p.kills * 60 + (win ? 250 : match.winner === -1 ? 100 : 0)) * evx);
   const before = level(), tpBefore = techEarned(); progress.xp += xp; progress.matches++; if (win) progress.wins++; if (!progress.remote) store.set('sfa.progress', progress);
   const result = win ? 'win' : match.winner === -1 ? 'draw' : 'loss';
   const srD = skillUpdate(win, match.winner === -1);
@@ -179,7 +179,7 @@ function finishMatch() {
   let html = `<h2 class="${win ? 'win' : match.winner === 1 ? 'lose' : ''}">${title}</h2>
     <p>${MODES[match.mode].name} on ${MAPS[match.mapId].name} · ${match.mode === 'pit' ? `winner <b>${esc((pitLeader() || { name: '?' }).name)}</b> with ${(pitLeader() || { kills: 0 }).kills} kills` : `final score <b class="num">${match.score[0]} – ${match.score[1]}</b>`}</p>
     <div class="grid"><div><span class="label">Kills</span><b class="num">${p.kills}</b></div><div><span class="label">Damage</span><b class="num">${Math.round(p.dmgDealt).toLocaleString()}</b></div><div><span class="label">${p.healed ? 'Repaired' : 'Deaths'}</span><b class="num">${p.healed ? Math.round(p.healed).toLocaleString() : p.deaths}</b></div></div>
-    <p>+${xp} XP${BE.kind === 'server' && BE.me && match.net ? ' (confirmed by the server shortly)' : ''}${srD ? ` · skill ${mySR()} (${srD > 0 ? '+' : ''}${srD})` : ''}${after > before ? ` · <b style="color:var(--accent)">Pilot level ${after}</b>: CPU limit ${cpuMax(after)}, weapons Mk ${TIER_NAMES[after - 1]}` : ''}</p>`;
+    <p>+${xp} XP${evx > 1 ? ` (weekend ${evx}×)` : ''}${BE.kind === 'server' && BE.me && match.net ? ' (confirmed by the server shortly)' : ''}${srD ? ` · skill ${mySR()} (${srD > 0 ? '+' : ''}${srD})` : ''}${after > before ? ` · <b style="color:var(--accent)">Pilot level ${after}</b>: CPU limit ${cpuMax(after)}, weapons Mk ${TIER_NAMES[after - 1]}` : ''}</p>`;
   if (unlocked.length) html += `<div class="unlock">Now available in the Tech Tree: ${unlocked.join(', ')}</div>`;
   { const tp = techEarned() - tpBefore; if (tp > 0) html += `<div class="unlock">+${tp} tech points${after > before ? ' for reaching level ' + after : ' for a new rank'}. You have ${techAvail()} to spend in the <a href="#" id="ovTech">Tech Tree</a>.</div>`; }
   html += medalsHtml() + surveyHtml();
@@ -220,6 +220,7 @@ function toMenu() {
   buildPilotCard(); Music.play('menu');
 }
 function buildPilotCard() {
+  drawEventStrip();
   const lv = level(), a = xpForLevel(lv), b = xpForLevel(lv + 1);
   $('#pcard').innerHTML = `<span class="label">Pilot rank</span><span class="lvl num">${lv}</span>
     <div class="bar"><i style="width:${lv >= 10 ? 100 : (progress.xp - a) / (b - a) * 100}%"></i></div>

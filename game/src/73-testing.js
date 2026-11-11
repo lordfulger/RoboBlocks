@@ -134,7 +134,7 @@ function applyBalance(b) {
   const wd = b.weaponDamage || {};
   for (const t of WTYPES) { const k = Number.isFinite(+wd[t]) ? +wd[t] : 1; if (BASE_DMG[t].dmg != null) WEAPONS[t].dmg = BASE_DMG[t].dmg * k; if (BASE_DMG[t].heal != null) WEAPONS[t].heal = BASE_DMG[t].heal * k; }
   TESLA.dmg = BASE_DMG.tesla.dmg * (Number.isFinite(+wd.tesla) ? +wd.tesla : 1);
-  BAL.weaponDamage = wd; BAL.xpRate = +b.xpRate || 1; BAL.cpuBonus = Math.round(+b.cpuBonus || 0); BAL.reactorHealth = +b.reactorHealth || 1; BAL.respawnSeconds = +b.respawnSeconds || 6;
+  BAL.weaponDamage = wd; BAL.xpRate = +b.xpRate || 1; BAL.cpuBonus = Math.round(+b.cpuBonus || 0); BAL.reactorHealth = +b.reactorHealth || 1; BAL.respawnSeconds = +b.respawnSeconds || 6; BAL.weekendXp = +b.weekendXp || 1; if (typeof drawEventStrip === 'function') drawEventStrip();
   if (!HEADLESS && state === 'garage') updateStats();
 }
 function netBanner(lost) { const el = $('#netBanner'); if (el && !HEADLESS) { el.hidden = !lost; document.body.classList.toggle('netlost', !!lost); } }

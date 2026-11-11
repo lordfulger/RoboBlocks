@@ -32,7 +32,35 @@ const QUESTS = [
 const dayNo = () => Math.floor((Date.now() - new Date().getTimezoneOffset() * 60000) / 86400000);
 function dailyQuestIds(day) { const r = mulberry32(day * 7919 + 13), pool = QUESTS.map(q => q.id); for (let i = pool.length - 1; i > 0; i--) { const j = r() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
 const PROG = Object.assign({ life: {}, ach: {}, q: null, badge: '', clan: null }, store.get('sfa.prog', {}));
-PROG.life = Object.assign({ kills: 0, dmg: 0, heal: 0, wins: 0, moverWins: {}, reactorWins: 0, pitWins: 0, questsDone: 0 }, PROG.life);
+PROG.life = Object.assign({ kills: 0, dmg: 0, heal: 0, wins: 0, moverWins: {}, reactorWins: 0, pitWins: 0, questsDone: 0, wkTech: 0 }, PROG.life);
+// weekly challenges: three bigger goals a week (weeks start on Monday, UTC), worth more XP and 2 tech points each
+const WEEKLY = [
+  { id: 'w_win10', text: 'Win 10 battles', goal: 10, xp: 900, key: s => s.win ? 1 : 0 },
+  { id: 'w_kill75', text: 'Destroy 75 bots', goal: 75, xp: 900, key: s => s.kills },
+  { id: 'w_dmg300', text: 'Deal 300,000 damage', goal: 300000, xp: 850, key: s => s.dmg },
+  { id: 'w_online', text: 'Play 6 online battles', goal: 6, xp: 800, key: s => s.net ? 1 : 0 },
+  { id: 'w_heal', text: 'Repair 30,000 armor with Nano Menders', goal: 30000, xp: 850, key: s => s.heal },
+  { id: 'w_brawl', text: 'Play 4 Weekly Brawl battles', goal: 4, xp: 750, key: s => s.mode === 'brawl' ? 1 : 0 },
+  { id: 'w_horde', text: 'Play 3 Horde battles', goal: 3, xp: 750, key: s => s.mode === 'horde' ? 1 : 0 },
+  { id: 'w_fly', text: 'Destroy 20 bots with a flying bot', goal: 20, xp: 900, key: s => s.move === 'rotor' || s.move === 'plane' || s.move === 'jet' ? s.kills : 0 },
+  { id: 'w_boom', text: 'Deal 100,000 damage with mortars, plasma, flak or mines', goal: 100000, xp: 850, key: s => ['mortar', 'plasma', 'flak', 'mine'].reduce((a, w) => a + (s.dmgW[w] || 0), 0) },
+  { id: 'w_beam', text: 'Deal 80,000 damage with rails, Rail Lancers or Arc Lances', goal: 80000, xp: 850, key: s => ['rail', 'lancer', 'arc'].reduce((a, w) => a + (s.dmgW[w] || 0), 0) },
+  { id: 'w_mods', text: 'Use modules 40 times', goal: 40, xp: 700, key: s => s.mods },
+  { id: 'w_arena', text: 'Win 3 Battle Arena or Capture the Core battles', goal: 3, xp: 900, key: s => s.win && (s.mode === 'arena' || s.mode === 'ctc') ? 1 : 0 },
+];
+const WEEKLY_TECH = 2;
+const weekNo = () => Math.floor((Date.now() / 864e5 + 3) / 7);
+function weeklyIds(wk) { const r = mulberry32(wk * 104729 + 7), pool = WEEKLY.map(q => q.id); for (let i = pool.length - 1; i > 0; i--) { const j = r() * (i + 1) | 0; [pool[i], pool[j]] = [pool[j], pool[i]]; } return pool.slice(0, 3); }
+function weeklyNow() { const w = weekNo(); if (!PROG.w || PROG.w.wk !== w) PROG.w = { wk: w, list: weeklyIds(w).map(id => ({ id, n: 0, done: false })) }; return PROG.w; }
+// weekend event: every battle on Saturday and Sunday (UTC) gives more XP. On a RoboBlocks server the server sets how much.
+const isWeekend = (t = Date.now()) => { const d = new Date(t).getUTCDay(); return d === 6 || d === 0; };
+const eventXp = () => !isWeekend() ? 1 : BE.kind === 'server' ? Math.max(1, +BAL.weekendXp || 1) : 1.5;
+function eventLine() {
+  const m = eventXp(); if (m <= 1) return '';
+  const now = Date.now(), d = new Date(now).getUTCDay(), end = (Math.floor(now / 864e5) + (d === 6 ? 2 : 1)) * 864e5, h = Math.ceil((end - now) / 36e5);
+  return `Weekend event: ${m}× XP from every battle · ends in ${h > 24 ? Math.floor(h / 24) + ' d ' + (h % 24) + ' h' : h + ' h'}`;
+}
+function drawEventStrip() { const el = $('#evStrip'); if (!el) return; const t = eventLine(); el.hidden = !t; el.textContent = t ? '★ ' + t : ''; }
 function progSave() { store.set('sfa.prog', PROG); cloudDirty(); }
 function questsToday() {
   const d = dayNo();
@@ -51,7 +79,7 @@ function statKill(att) { if (!att || !att.qs) return; att.qs.kills++; const w = 
 // called once per finished battle (not test drives)
 async function progMatchEnd(p, r) {
   if (!p.qs) return [];
-  const s = { ...p.qs, heal: p.healed || 0, win: r.result === 'win', mode: r.mode, map: r.map, move: p.mob ? p.mob.mode : '' }, L = PROG.life, notes = [];
+  const s = { ...p.qs, heal: p.healed || 0, win: r.result === 'win', mode: r.mode, map: r.map, net: !!(match && match.net), move: p.mob ? p.mob.mode : '' }, L = PROG.life, notes = [];
   L.kills += s.kills; L.dmg += s.dmg; L.heal += s.heal;
   if (s.win) { L.wins++; const mv = s.move === 'plane' || s.move === 'rotor' ? 'fly' : s.move; if (mv && mv !== 'none') L.moverWins[mv] = 1; if (r.mode === 'pit') L.pitWins++; if (r.mode === 'arena' && match.rx && match.rx[1 - p.team] <= 0) L.reactorWins++; }
   const Q = questsToday(); let xp = 0;
@@ -61,7 +89,14 @@ async function progMatchEnd(p, r) {
     if (q.n >= def.goal) { q.done = true; L.questsDone++; xp += def.xp; notes.push(`Quest complete: ${def.text} (+${def.xp} XP)`); }
   }
   for (const a of ACH) if (!achDone(a.id) && a.test(L)) { PROG.ach[a.id] = Date.now(); notes.push(`Achievement: ${a.name}${a.badge ? ` (badge ${a.badge})` : a.reward ? ` (unlocks ${a.reward})` : ''} · +3 tech points`); }
+  const Wk = weeklyNow(); let wxp = 0;
+  for (const q of Wk.list) {
+    if (q.done) continue; const def = WEEKLY.find(x => x.id === q.id); if (!def) continue;
+    q.n = Math.min(def.goal, q.n + def.key(s));
+    if (q.n >= def.goal) { q.done = true; L.wkTech = (L.wkTech | 0) + WEEKLY_TECH; wxp += def.xp; notes.push(`Weekly challenge complete: ${def.text} (+${def.xp} XP, +${WEEKLY_TECH} tech points)`); }
+  }
   if (xp) await questReward(xp, Q.day);
+  if (wxp) await weeklyReward(wxp, Wk.wk);
   notes.push(...bpAdd((r.xp || 0) + xp));
   progSave();
   return notes;
@@ -71,11 +106,19 @@ async function questReward(xp, day) {
   progress.xp += xp; if (!progress.remote) store.set('sfa.progress', progress);
   if (BE.kind === 'artifact' && BE.me) { BE.me.xp = progress.xp; try { await artSave(); } catch (e) { } }
 }
+async function weeklyReward(xp, wk) {
+  if (BE.kind === 'server' && BE.me) { try { const res = await beApi('weekly.claim', { wk, xp }); BE.onSignedIn(res.me); } catch (e) { toast(e.message); } return; }
+  progress.xp += xp; if (!progress.remote) store.set('sfa.progress', progress);
+  if (BE.kind === 'artifact' && BE.me) { BE.me.xp = progress.xp; try { await artSave(); } catch (e) { } }
+}
 function showQuests() {
   const Q = questsToday(), left = 86400000 - ((Date.now() - new Date().getTimezoneOffset() * 60000) % 86400000);
   const qrows = Q.list.map(q => { const def = QUESTS.find(x => x.id === q.id) || { text: q.id, goal: 1, xp: 0 }; const f = Math.min(1, q.n / def.goal); return `<div class="qrow${q.done ? ' done' : ''}"><div><b>${esc(def.text)}</b><span>${q.done ? 'Done' : `${fmtN(q.n)} / ${fmtN(def.goal)}`} · +${def.xp} XP</span></div><div class="bar"><i style="width:${f * 100}%"></i></div></div>`; }).join('');
   const arows = ACH.map(a => `<div class="arow${achDone(a.id) ? ' got' : ''}"><span class="ab">${a.badge || '◆'}</span><div><b>${esc(a.name)}</b><span>${esc(a.desc)}${a.reward ? ' Unlocks the ' + esc(a.reward) + '.' : a.badge ? ' Badge: ' + a.badge : ''}</span></div>${achDone(a.id) && a.badge ? `<button data-b="${a.badge}" class="${PROG.badge === a.badge ? 'on' : ''}">${PROG.badge === a.badge ? 'Wearing' : 'Wear'}</button>` : ''}</div>`).join('');
-  showOverlay(`<h2>Quests & achievements</h2><h3>TODAY'S QUESTS · new ones in ${Math.floor(left / 3600000)} h ${Math.floor(left % 3600000 / 60000)} min</h3><div class="qlist">${qrows}</div>
+  const Wk = weeklyNow(), wleft = ((Wk.wk + 1) * 7 - 3) * 864e5 - Date.now();
+  const wrows = Wk.list.map(q => { const def = WEEKLY.find(x => x.id === q.id) || { text: q.id, goal: 1, xp: 0 }; const f = Math.min(1, q.n / def.goal); return `<div class="qrow${q.done ? ' done' : ''}"><div><b>${esc(def.text)}</b><span>${q.done ? 'Done' : `${fmtN(q.n)} / ${fmtN(def.goal)}`} · +${def.xp} XP · +${WEEKLY_TECH} ★</span></div><div class="bar"><i style="width:${f * 100}%"></i></div></div>`; }).join('');
+  const ev = eventLine();
+  showOverlay(`<h2>Quests & achievements</h2>${ev ? `<div class="evline">★ ${esc(ev)}</div>` : ''}<h3>THIS WEEK'S CHALLENGES · new ones in ${Math.floor(wleft / 864e5)} d ${Math.floor(wleft % 864e5 / 3600000)} h</h3><div class="qlist">${wrows}</div><h3>TODAY'S QUESTS · new ones in ${Math.floor(left / 3600000)} h ${Math.floor(left % 3600000 / 60000)} min</h3><div class="qlist">${qrows}</div>
     <h3>ACHIEVEMENTS · ${ACH.filter(a => achDone(a.id)).length} of ${ACH.length}</h3><div class="alist">${arows}</div>
     <p style="font-size:13px">Badges show next to your name in battle, chat and the lobby.</p><div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true);
   $('#ovBack').onclick = backToMenu;

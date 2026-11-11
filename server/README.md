@@ -70,6 +70,7 @@ A release only installs when it is newer: either the game version (`BC_VERSION`)
 | `UPDATE_FROM` | empty | Another RoboBlocks server to copy updates from. |
 | `BC_BOTS` | `1` | `0` makes every room players only: no AI bots fill the empty slots. One room at a time: `"bots": false` in `servers.json`. |
 | `BC_UNLOCK_ALL` | `0` | `1` unlocks every part, armor tier, material, finish and CPU core for everyone on this server (players' own progress is untouched). |
+| `BC_WEEKEND_XP` | `1.5` | Weekend XP event: every battle on Saturday and Sunday (UTC) gives this many times the XP. `1` turns it off. |
 | `BC_UPDATE_CHECK_HOURS` | `1` | How often a running server checks for updates; `0` turns it off. |
 | `BC_AUTO_RESTART` | `1` | After installing an update while running, restart when nobody is playing. `0` waits for you. |
 | `BC_RESTART_MAX_HOURS` | `6` | Longest wait for an empty server before restarting anyway (with a warning). `0` waits until empty. |
