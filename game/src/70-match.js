@@ -78,7 +78,7 @@ function startBattle(opts) {
       const d = addAiExtras(genDesign(rnd, budget * (team === 0 ? lerp(.75, 1, rnd()) : lerp(.72, .98, rnd()) * (net ? 1 : aiBudgetMul())), enemyArch(rnd, aiLv), undefined, tierFor()), rnd, aiLv);
       world.bots.push(new Bot(d, pit ? 100 + k : team, names.pop() || 'Bot ' + k, { ai: owned, remote: !owned, netId: 'a' + k }));
     }
-    if (horde) { for (const b of hordePool(rnd, budget, aiLv, names, k)) { if (!owned) { b.remote = true; b.brain = null; } world.bots.push(b); } hordeStart(world.bots.filter(b => b.human).length); }
+    if (horde) { for (const b of hordePool(rnd, budget, Math.max(1, aiLv - 1), names, k)) { if (!owned) { b.remote = true; b.brain = null; } world.bots.push(b); } hordeStart(world.bots.filter(b => b.human).length); }
     for (const b of world.bots) if (!b.remote && !b.bench) b.spawn(spawnPoint(b.team), pit ? rand(0, 6.28) : b.team === 0 ? 0 : Math.PI);
   } else {
     player.spawn(spawnPoint(0), 0);

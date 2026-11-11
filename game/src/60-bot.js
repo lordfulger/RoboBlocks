@@ -86,6 +86,7 @@ class Bot {
   cellWorld(c, out) { return out.set(c.x - this.cx, c.y - this.minY, c.z - this.cz).applyMatrix4(this.group.matrixWorld); }
   damageCell(c, dmg, attacker) {
     if (!c.alive || this.dead) return dmg;
+    if (attacker && attacker.dmgMul) dmg *= attacker.dmgMul; // e.g. horde enemies
     if (this.shieldT > 0) return 0;
     if (this.remote && attacker && !attacker.remote) netReportHit(attacker, this, c.idx, dmg);
     if (this.barrier > 0) { const soak = Math.min(this.barrier, dmg); this.barrier -= soak; dmg -= soak; this.barrierFlash = 1; if (!HEADLESS && clock - (this.barrierHitT || -9) > .15) SFX.shieldHit(this.center); this.barrierHitT = clock; if (!HEADLESS && Math.random() < .3) sparks(this.cellWorld(c, _v3), 0x5fe8ff, 3, 5, .14, .25); if (dmg <= 0) { this.lastHitT = clock; return 0; } }

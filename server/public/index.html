@@ -779,7 +779,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
-  ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.']],
+  ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
   ['2.8.2', ['Servers keep themselves up to date: they check for new releases every hour, install them, and restart when nobody is playing.', 'The desktop app updates itself from each new release automatically.']],
@@ -4389,6 +4389,7 @@ class Bot {
   cellWorld(c, out) { return out.set(c.x - this.cx, c.y - this.minY, c.z - this.cz).applyMatrix4(this.group.matrixWorld); }
   damageCell(c, dmg, attacker) {
     if (!c.alive || this.dead) return dmg;
+    if (attacker && attacker.dmgMul) dmg *= attacker.dmgMul; // e.g. horde enemies
     if (this.shieldT > 0) return 0;
     if (this.remote && attacker && !attacker.remote) netReportHit(attacker, this, c.idx, dmg);
     if (this.barrier > 0) { const soak = Math.min(this.barrier, dmg); this.barrier -= soak; dmg -= soak; this.barrierFlash = 1; if (!HEADLESS && clock - (this.barrierHitT || -9) > .15) SFX.shieldHit(this.center); this.barrierHitT = clock; if (!HEADLESS && Math.random() < .3) sparks(this.cellWorld(c, _v3), 0x5fe8ff, 3, 5, .14, .25); if (dmg <= 0) { this.lastHitT = clock; return 0; } }
@@ -6983,7 +6984,7 @@ function startBattle(opts) {
       const d = addAiExtras(genDesign(rnd, budget * (team === 0 ? lerp(.75, 1, rnd()) : lerp(.72, .98, rnd()) * (net ? 1 : aiBudgetMul())), enemyArch(rnd, aiLv), undefined, tierFor()), rnd, aiLv);
       world.bots.push(new Bot(d, pit ? 100 + k : team, names.pop() || 'Bot ' + k, { ai: owned, remote: !owned, netId: 'a' + k }));
     }
-    if (horde) { for (const b of hordePool(rnd, budget, aiLv, names, k)) { if (!owned) { b.remote = true; b.brain = null; } world.bots.push(b); } hordeStart(world.bots.filter(b => b.human).length); }
+    if (horde) { for (const b of hordePool(rnd, budget, Math.max(1, aiLv - 1), names, k)) { if (!owned) { b.remote = true; b.brain = null; } world.bots.push(b); } hordeStart(world.bots.filter(b => b.human).length); }
     for (const b of world.bots) if (!b.remote && !b.bench) b.spawn(spawnPoint(b.team), pit ? rand(0, 6.28) : b.team === 0 ? 0 : Math.PI);
   } else {
     player.spawn(spawnPoint(0), 0);
@@ -8441,7 +8442,7 @@ function coreHud() {
 }
 
 // ---------- Horde (co-op) ----------
-const HORDE = { waves: 10, pool: 26, light: 12, std: 10, heavy: 2, boss: 2, rest: 8 };
+const HORDE = { waves: 10, pool: 26, light: 12, std: 10, heavy: 2, boss: 2, rest: 10, enemyDmg: .75 };
 function hordeSquad(N) { return Math.min(N, 4); }
 // the enemy pool is built up front from the match seed so every client makes the same bots
 function hordePool(rnd, budget, aiLv, names, startK) {
@@ -8451,22 +8452,23 @@ function hordePool(rnd, budget, aiLv, names, startK) {
     const b = new Bot(d, 1, boss ? 'BOSS ' + (names.pop() || 'Titan') : names.pop() || 'Drone ' + k, { ai: true, netId: 'a' + k }); b.bench = true; b.respawnT = Infinity; b.boss = !!boss; b.hTier = i; k++; out.push(b);
   };
   const tier = maxTier(Math.min(10, aiLv)), t1 = Math.max(1, tier - 1);
-  for (let i = 0; i < HORDE.light; i++) mk(0, lerp(.45, .65, rnd()), ['car', 'hover', 'car', 'brawler'][i % 4], t1);
-  for (let i = 0; i < HORDE.std; i++) mk(1, lerp(.8, 1, rnd()), enemyArch(rnd, aiLv), tier);
-  for (let i = 0; i < HORDE.heavy; i++) mk(2, 1.5, 'tank', tier);
-  for (let i = 0; i < HORDE.boss; i++) mk(3, 3.2, i ? 'walker' : 'tank', Math.min(10, tier + 1), true);
+  for (let i = 0; i < HORDE.light; i++) mk(0, lerp(.38, .55, rnd()), ['car', 'hover', 'car', 'brawler'][i % 4], t1);
+  for (let i = 0; i < HORDE.std; i++) mk(1, lerp(.65, .85, rnd()), enemyArch(rnd, aiLv), t1);
+  for (let i = 0; i < HORDE.heavy; i++) mk(2, 1.25, 'tank', tier);
+  for (let i = 0; i < HORDE.boss; i++) mk(3, 2.6, i ? 'walker' : 'tank', tier, true);
+  for (const b of out) b.dmgMul = HORDE.enemyDmg; // the horde hits a little softer than a real opponent
   return out;
 }
 function hordeStart(humans) {
-  match.horde = { wave: 0, lives: 6 + 3 * Math.max(1, humans), restT: 6, live: false };
+  match.horde = { wave: 0, lives: 8 + 4 * Math.max(1, humans), restT: 6, live: false };
   match.score = [0, 0];
 }
 function hordeWaveList(w, humans) {
-  const n = Math.min(18, 3 + w * 2 + (humans - 1) * 2), list = [];
+  const n = Math.min(12, 2 + w + (humans - 1) * 2), list = [];
   const boss = w % 5 === 0 ? (w === 10 ? 2 : 1) : 0;
   for (let i = 0; i < boss; i++) list.push(3);
-  const heavy = w >= 4 ? Math.min(2, Math.floor((w - 2) / 3)) : 0; for (let i = 0; i < heavy; i++) list.push(2);
-  while (list.length < n) list.push(w <= 2 || Math.random() < Math.max(.15, .8 - w * .09) ? 0 : 1);
+  const heavy = w >= 6 ? Math.min(2, Math.floor((w - 4) / 3)) : 0; for (let i = 0; i < heavy; i++) list.push(2);
+  while (list.length < n) list.push(w <= 3 || Math.random() < Math.max(.3, .9 - w * .07) ? 0 : 1);
   return list;
 }
 function hordeSpawnWave() {
@@ -8487,6 +8489,9 @@ function hordeSpawnWave() {
 function updateHorde(dt) {
   const H = match.horde; if (!H || match.over) return;
   const P = match.player;
+  // a wave cleared: every bot on the squad is fully repaired
+  if (H.prevLive && !H.live) for (const b of world.bots) if (b.team === 0 && !b.dead && !b.remote) { for (const c of b.cellList) if (!c.alive) b.reviveCell(c, 1); for (const c of b.cellList) if (c.alive && c.hp < c.max) { b.hp += c.max - c.hp; c.hp = c.max; } b.needCheck = true; if (b.isPlayer) toastCenter('Squad repaired', 1.6); }
+  H.prevLive = H.live;
   // between waves, everyone who ran out of rebuilds comes back for free
   if (!H.live && P && P.dead && P.respawnT === Infinity && !match.spectator && H.wave > 0) P.respawnT = 2;
   if (!match.isHost) return;

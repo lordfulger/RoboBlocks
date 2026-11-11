@@ -135,7 +135,7 @@ function coreHud() {
 }
 
 // ---------- Horde (co-op) ----------
-const HORDE = { waves: 10, pool: 26, light: 12, std: 10, heavy: 2, boss: 2, rest: 8 };
+const HORDE = { waves: 10, pool: 26, light: 12, std: 10, heavy: 2, boss: 2, rest: 10, enemyDmg: .75 };
 function hordeSquad(N) { return Math.min(N, 4); }
 // the enemy pool is built up front from the match seed so every client makes the same bots
 function hordePool(rnd, budget, aiLv, names, startK) {
@@ -145,22 +145,23 @@ function hordePool(rnd, budget, aiLv, names, startK) {
     const b = new Bot(d, 1, boss ? 'BOSS ' + (names.pop() || 'Titan') : names.pop() || 'Drone ' + k, { ai: true, netId: 'a' + k }); b.bench = true; b.respawnT = Infinity; b.boss = !!boss; b.hTier = i; k++; out.push(b);
   };
   const tier = maxTier(Math.min(10, aiLv)), t1 = Math.max(1, tier - 1);
-  for (let i = 0; i < HORDE.light; i++) mk(0, lerp(.45, .65, rnd()), ['car', 'hover', 'car', 'brawler'][i % 4], t1);
-  for (let i = 0; i < HORDE.std; i++) mk(1, lerp(.8, 1, rnd()), enemyArch(rnd, aiLv), tier);
-  for (let i = 0; i < HORDE.heavy; i++) mk(2, 1.5, 'tank', tier);
-  for (let i = 0; i < HORDE.boss; i++) mk(3, 3.2, i ? 'walker' : 'tank', Math.min(10, tier + 1), true);
+  for (let i = 0; i < HORDE.light; i++) mk(0, lerp(.38, .55, rnd()), ['car', 'hover', 'car', 'brawler'][i % 4], t1);
+  for (let i = 0; i < HORDE.std; i++) mk(1, lerp(.65, .85, rnd()), enemyArch(rnd, aiLv), t1);
+  for (let i = 0; i < HORDE.heavy; i++) mk(2, 1.25, 'tank', tier);
+  for (let i = 0; i < HORDE.boss; i++) mk(3, 2.6, i ? 'walker' : 'tank', tier, true);
+  for (const b of out) b.dmgMul = HORDE.enemyDmg; // the horde hits a little softer than a real opponent
   return out;
 }
 function hordeStart(humans) {
-  match.horde = { wave: 0, lives: 6 + 3 * Math.max(1, humans), restT: 6, live: false };
+  match.horde = { wave: 0, lives: 8 + 4 * Math.max(1, humans), restT: 6, live: false };
   match.score = [0, 0];
 }
 function hordeWaveList(w, humans) {
-  const n = Math.min(18, 3 + w * 2 + (humans - 1) * 2), list = [];
+  const n = Math.min(12, 2 + w + (humans - 1) * 2), list = [];
   const boss = w % 5 === 0 ? (w === 10 ? 2 : 1) : 0;
   for (let i = 0; i < boss; i++) list.push(3);
-  const heavy = w >= 4 ? Math.min(2, Math.floor((w - 2) / 3)) : 0; for (let i = 0; i < heavy; i++) list.push(2);
-  while (list.length < n) list.push(w <= 2 || Math.random() < Math.max(.15, .8 - w * .09) ? 0 : 1);
+  const heavy = w >= 6 ? Math.min(2, Math.floor((w - 4) / 3)) : 0; for (let i = 0; i < heavy; i++) list.push(2);
+  while (list.length < n) list.push(w <= 3 || Math.random() < Math.max(.3, .9 - w * .07) ? 0 : 1);
   return list;
 }
 function hordeSpawnWave() {
@@ -181,6 +182,9 @@ function hordeSpawnWave() {
 function updateHorde(dt) {
   const H = match.horde; if (!H || match.over) return;
   const P = match.player;
+  // a wave cleared: every bot on the squad is fully repaired
+  if (H.prevLive && !H.live) for (const b of world.bots) if (b.team === 0 && !b.dead && !b.remote) { for (const c of b.cellList) if (!c.alive) b.reviveCell(c, 1); for (const c of b.cellList) if (c.alive && c.hp < c.max) { b.hp += c.max - c.hp; c.hp = c.max; } b.needCheck = true; if (b.isPlayer) toastCenter('Squad repaired', 1.6); }
+  H.prevLive = H.live;
   // between waves, everyone who ran out of rebuilds comes back for free
   if (!H.live && P && P.dead && P.respawnT === Infinity && !match.spectator && H.wave > 0) P.respawnT = 2;
   if (!match.isHost) return;
