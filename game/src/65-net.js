@@ -167,7 +167,7 @@ function renderLobbyList() {
     const h = (hosts.find(p => p.presence.host.code === sv.id) || {}).presence;
     const inRoom = others.filter(p => p.presence.sv === sv.id), cnt = inRoom.length, meIn = NET.game && NET.game.code === sv.id;
     const who = inRoom.slice(0, 4).map(p => pilotTag(p.presence)).join(', ') + (cnt > 4 ? ` +${cnt - 4}` : '');
-    const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
+    const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', sv.noAi ? 'PLAYERS ONLY' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
     want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.rot && sv.rot.length && sv.rot.every(r => r[0] === 'pit') ? sv.n * 2 + ' pilots' : sv.n + 'v' + sv.n}. ${cnt || meIn ? `👤 ${cnt + (meIn ? 1 : 0)} playing${cnt ? ': ' + who : ''}${meIn ? (cnt ? ', you' : ' (you)') : ''} · ` : 'Nobody here yet · '}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
   }
   for (const p of hosts.filter(p => !p.presence.host.server && String(p.presence.host.code).startsWith('c'))) {
@@ -234,7 +234,7 @@ function resolveMap(mode, map) { return mode === 'space' ? (MAPS[map] && MAPS[ma
 function freshInfo() {
   const g = NET.game, sv = g.server, s = g.setup || setupSel;
   const first = sv ? sv.rot[0] : [s.mode, s.mode === 'space' ? s.smap : s.map, s.size], n = sv ? sv.n : s.n;
-  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: resolveMap(first[0], first[1]), size: mapSizeOf(first[2], n), n, roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
+  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: resolveMap(first[0], first[1]), size: mapSizeOf(first[2], n), n, noAi: sv ? !!sv.noAi : s.ai === 'none', roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
 }
 function slowPresence(withDesign) {
   if (!NET.slow || !NET.game) return;
@@ -357,7 +357,7 @@ function launchMatch() {
   const teams = skillTeams(pilots, ptOf, id => id === NET.me ? (HEADLESS ? null : mySR()) : peerSR(id));
   info.roster = {}; pilots.forEach((id, i) => { info.roster[id] = info.mode === 'pit' ? 10 + i : info.mode === 'horde' ? 0 : teams[id]; });
   const c = [0, 0]; for (const t of Object.values(info.roster)) if (t < 2) c[t]++;
-  info.ai = info.mode === 'pit' ? [Math.max(0, info.n * 2 - pilots.length), 0] : info.mode === 'horde' ? [Math.max(0, hordeSquad(info.n) - pilots.length), 0] : [Math.max(0, info.n - c[0]), Math.max(0, info.n - c[1])];
+  info.ai = info.noAi ? [0, 0] : info.mode === 'pit' ? [Math.max(0, info.n * 2 - pilots.length), 0] : info.mode === 'horde' ? [Math.max(0, hordeSquad(info.n) - pilots.length), 0] : [Math.max(0, info.n - c[0]), Math.max(0, info.n - c[1])];
   info.seed = (Math.random() * 1e9) | 0; info.lv = level(); info.matchId = (info.matchId | 0) + 1;
   info.brawl = brawlNow().id; info.phase = 'live'; info.tl = modeTime(info.mode) || (info.mode === 'elim' ? 420 : 600); info.score = [0, 0]; info.over = false; info.winner = null; info.pts = [];
   slowPresence(false); lobbyPresence();
@@ -368,7 +368,7 @@ function showWaiting() {
   const title = g.server ? g.server.name : g.isHost || g.created ? 'Your custom game' : 'Custom game';
   showOverlay(`<h2>${title}</h2><p id="wsub"></p><p id="nextIn" class="next"></p>
     <div class="teams"><div><h3 id="wh1" style="color:var(--ally)">BLUE TEAM</h3><div id="wroster"></div></div><div><h3 id="wh2" style="color:var(--enemy)">RED TEAM</h3><div id="wroster2"></div></div></div>
-    <p style="font-size:13px">Empty slots are filled with AI bots.${g.server ? ' Matches start automatically and rotate maps.' : ''}</p>
+    <p style="font-size:13px" id="wai">Empty slots are filled with AI bots.${g.server ? ' Matches start automatically and rotate maps.' : ''}</p>
     <div class="btns"><button class="primary" id="ovStart" hidden>Start battle</button><button id="ovLeave">Leave</button></div>`, true);
   $('#ovStart').onclick = () => { if (NET.game && NET.game.isHost && NET.game.info.phase === 'lobby') launchMatch(); };
   $('#ovLeave').onclick = () => { netLeave(); showLobby(); };
@@ -385,6 +385,7 @@ function renderWaiting() {
   if ($('#ovStart')) $('#ovStart').hidden = !(g.isHost && info && info.phase === 'lobby');
   if (!$('#wroster')) return;
   const ffa = info && info.mode === 'pit';
+  if ($('#wai')) $('#wai').textContent = (info && info.noAi ? (info.mode === 'horde' ? 'Players only: no AI teammates (the waves still come).' : 'Players only: no AI bots.') : 'Empty slots are filled with AI bots.') + (g.server ? ' Matches start automatically and rotate maps.' : '');
   $('#wsub').textContent = info ? `${(MODES[info.mode] || MODES.tdm).name} on ${(MAPS[info.map] || MAPS.dust).name} (${(MAP_SIZES[info.size] || MAP_SIZES.medium).name.toLowerCase()}), ${ffa ? `free-for-all: everyone against everyone, ${info.n * 2} pilots and bots` : `${info.n}v${info.n}`}.` : '';
   // The Pit has no teams: one list of pilots
   if ($('#wh1')) { $('#wh1').textContent = ffa ? 'PILOTS · EVERY ONE FOR THEMSELVES' : 'BLUE TEAM'; $('#wh1').style.color = ffa ? '#ffd36a' : 'var(--ally)'; $('#wh2').parentNode.hidden = ffa; }

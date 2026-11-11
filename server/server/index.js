@@ -62,7 +62,8 @@ function loadServers() {
     if (!id || !rot.length) { log(`skipping server entry ${JSON.stringify(s).slice(0, 80)}: needs an id and a rotation of [mode, map] pairs`); continue; }
     const lv = v => Math.min(10, Math.max(1, parseInt(v, 10) || 1));
     clean.push({ id: id.startsWith('sv-') ? id : 'sv-' + id, name: String(s.name || id).slice(0, 32), blurb: String(s.blurb || '').slice(0, 80), n, rot,
-      password: s.password ? String(s.password).slice(0, 64) : '', ranked: !!s.ranked, minLv: s.minLv ? lv(s.minLv) : 1, maxLv: s.maxLv ? lv(s.maxLv) : 10 });
+      password: s.password ? String(s.password).slice(0, 64) : '', ranked: !!s.ranked, minLv: s.minLv ? lv(s.minLv) : 1, maxLv: s.maxLv ? lv(s.maxLv) : 10,
+      noAi: s.bots === false || /^(0|false|no|off)$/i.test(env.BC_BOTS || '1') }); // players only: no AI bots fill the empty slots
   }
   return clean.length ? clean : DEFAULT_SERVERS;
 }

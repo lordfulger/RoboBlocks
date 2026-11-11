@@ -68,6 +68,7 @@ A release only installs when it is newer: either the game version (`BC_VERSION`)
 | `BC_DISCORD_INVITE` | empty | A Discord invite link shown on the tester page (`/join`). |
 | `AUTO_UPDATE` | `1` | Install a newer release on every restart (see Updates). |
 | `UPDATE_FROM` | empty | Another RoboBlocks server to copy updates from. |
+| `BC_BOTS` | `1` | `0` makes every room players only: no AI bots fill the empty slots. One room at a time: `"bots": false` in `servers.json`. |
 | `BC_UNLOCK_ALL` | `0` | `1` unlocks every part, armor tier, material, finish and CPU core for everyone on this server (players' own progress is untouched). |
 | `BC_UPDATE_CHECK_HOURS` | `1` | How often a running server checks for updates; `0` turns it off. |
 | `BC_AUTO_RESTART` | `1` | After installing an update while running, restart when nobody is playing. `0` waits for you. |
@@ -97,7 +98,7 @@ A release only installs when it is newer: either the game version (`BC_VERSION`)
 - `password` (optional) makes players type a password to join.
 - `ranked: true` (optional) needs a signed-in account and changes players' rating after each match.
 - `minLv` and `maxLv` (optional, 1 to 10) limit which pilot levels may join; they also need an account, so levels can't be faked.
-- `rot` is the rotation, as `[mode, map]` or `[mode, map, size]` entries. Modes are `tdm` (Team Deathmatch), `arena` (Battle Arena, with reactors), `elim` (Elimination), `pit` (The Pit, free-for-all), `ctc` (Capture the Core), `koth` (King of the Hill), `horde` (co-op against ten waves of AI, every player on one team), `brawl` (Weekly Brawl: team deathmatch with a rule that changes every Monday) and `space` (Space Battle: zero gravity, flying bots only). Ground maps are `dust`, `frost`, `ash`, `city` (Rustgate Ruins, with buildings that crumble) and `moon` (Lunar Outpost, low gravity and jump pads). Space maps, for `space` only, are `space` (Orbital Wreckfield), `nebula` (Crimson Nebula), `shipyard` (Dry Dock) and `rings` (Ring Belt). `random` picks a fitting map each match. Size is `small`, `medium`, `large` or `auto` (the default: 5v5 small, 10v10 medium, 20v20 large). Each match also picks a time of day and weather.
+- `rot` is the rotation, as `[mode, map]` or `[mode, map, size]` entries. Modes are `tdm` (Team Deathmatch), `arena` (Battle Arena, with reactors), `elim` (Elimination), `pit` (The Pit, free-for-all), `ctc` (Capture the Core), `koth` (King of the Hill), `horde` (co-op against ten waves of AI, every player on one team), `brawl` (Weekly Brawl: team deathmatch with a rule that changes every Monday) and `space` (Space Battle: zero gravity, flying bots only). Ground maps are `dust`, `frost`, `ash`, `city` (Rustgate Ruins, with buildings that crumble) and `moon` (Lunar Outpost, low gravity and jump pads). Space maps, for `space` only, are `space` (Orbital Wreckfield), `nebula` (Crimson Nebula), `shipyard` (Dry Dock) and `rings` (Ring Belt). `random` picks a fitting map each match. Add `"bots": false` to a room to make it players only (no AI bots). Size is `small`, `medium`, `large` or `auto` (the default: 5v5 small, 10v10 medium, 20v20 large). Each match also picks a time of day and weather.
 - `id` may use letters, numbers and dashes; `sv-` is added if missing.
 
 Example with all the options:

@@ -273,13 +273,14 @@ function setupOptsHtml(net) {
     <h3 id="oMapH">${setupSel.mode === 'space' ? 'SPACE MAP' : 'MAP'}</h3><div id="oMapBox">${mapOptsHtml()}</div>
     <h3>MAP SIZE</h3>${optButtons('oMsz', [['auto', 'Auto', 'Matches the team size.'], ...Object.entries(MAP_SIZES).map(([k, z]) => [k, z.name, z.blurb])], setupSel.size || 'auto')}
     <div id="oLoadBox">${loadoutOptsHtml(setupSel.mode)}</div>
+    ${net ? `<h3>AI BOTS</h3>${optButtons('oAi', [['fill', 'Fill with AI', 'Empty slots get AI bots, so a match always has two full teams.'], ['none', 'Players only', 'No AI bots: just the pilots who join.']], setupSel.ai || 'fill')}` : ''}
     <h3>TEAM SIZE</h3>${optButtons('oSize', net ? [[5, '5 v 5', 'AI fills empty slots.'], [10, '10 v 10', 'AI fills empty slots.'], [20, '20 v 20', 'AI fills empty slots.']] : [[5, '5 v 5', 'Quick skirmish.'], [10, '10 v 10', 'Mid-size brawl.'], [20, '20 v 20', 'Full-scale war.']], setupSel.n)}`;
 }
 function wireSetupOpts() {
   const wire = (id, key, num, after) => document.querySelectorAll(`#${id} .opt`).forEach(b => b.onclick = () => { setupSel[key] = num ? +b.dataset.k : b.dataset.k; document.querySelectorAll(`#${id} .opt`).forEach(x => x.classList.toggle('sel', x === b)); SFX.ui(); if (after) after(); });
   const maps = () => { $('#oMapBox').innerHTML = mapOptsHtml(); $('#oMapH').textContent = setupSel.mode === 'space' ? 'SPACE MAP' : 'MAP'; wire('oMap', setupSel.mode === 'space' ? 'smap' : 'map'); };
   const loads = () => { $('#oLoadBox').innerHTML = loadoutOptsHtml(setupSel.mode); wireLoadoutOpts(); };
-  wire('oMode', 'mode', false, () => { maps(); loads(); }); maps(); loads(); wire('oMsz', 'size'); wire('oSize', 'n', true);
+  wire('oMode', 'mode', false, () => { maps(); loads(); }); maps(); loads(); wire('oMsz', 'size'); wire('oSize', 'n', true); if ($('#oAi')) wire('oAi', 'ai');
 }
 function showSetup() {
   const v = validateDesign(); if (!v.ok) { toast(v.msg); return; }

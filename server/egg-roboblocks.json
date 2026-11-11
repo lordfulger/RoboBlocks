@@ -51,6 +51,16 @@
             "field_type": "text"
         },
         {
+            "name": "AI bots",
+            "description": "1 fills empty slots in every room with AI bots. 0 makes every room players only (rooms can also set \"bots\": false one by one in servers.json).",
+            "env_variable": "BC_BOTS",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        },
+        {
             "name": "Max players",
             "description": "Most browser players allowed on this server at once.",
             "env_variable": "BC_MAX_CLIENTS",
