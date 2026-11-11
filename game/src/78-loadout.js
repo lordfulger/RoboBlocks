@@ -1,6 +1,6 @@
 // ================= LOADOUTS =================
 // Your garage bays are your loadout. Pick which bot you deploy with on the setup screen, and while you are
-// wrecked press 1–5 (or tap a card, or the gamepad's next/prev weapon buttons) to rebuild as a different bot.
+// wrecked press 1–9 or 0 (or tap a card, or the gamepad's next/prev weapon buttons) to rebuild as a different bot.
 // Online, the new design goes out with your presence and other players rebuild you with it when you respawn.
 const LOADOUT = { bay: null, next: null, el: null, sig: '' };
 const bayUsable = d => !!(d && Array.isArray(d.blocks) && d.blocks.length);
@@ -76,8 +76,8 @@ function drawLoadoutBar(force) {
   const list = loadoutList(match.mode); if (list.length < 2) { el.hidden = true; return; }
   const cur = LOADOUT.next != null ? LOADOUT.next : P.bay != null ? P.bay : deployBay(match.mode), sig = cur + '|' + list.map(x => x.i + x.why).join(',');
   el.hidden = false; if (!force && sig === LOADOUT.sig) return; LOADOUT.sig = sig;
-  el.innerHTML = `<div class="lh">REBUILD AS · press ${list.filter(x => !x.why).map(x => x.i + 1).join(' ')}${PAD.on ? ' or LB / RB' : ''}</div>` + list.map(({ i, d, why }) => `<div class="lc${i === cur ? ' sel' : ''}${why ? ' bad' : ''}" data-bay="${i}"><i>${i + 1}</i><b></b><span>${why ? esc(why) : Math.round(computeStats(d.blocks).cpu) + ' CPU'}</span></div>`).join('');
+  el.innerHTML = `<div class="lh">REBUILD AS · press ${list.filter(x => !x.why).map(x => (x.i + 1) % 10).join(' ')}${PAD.on ? ' or LB / RB' : ''}</div>` + list.map(({ i, d, why }) => `<div class="lc${i === cur ? ' sel' : ''}${why ? ' bad' : ''}" data-bay="${i}"><i>${(i + 1) % 10}</i><b></b><span>${why ? esc(why) : Math.round(computeStats(d.blocks).cpu) + ' CPU'}</span></div>`).join('');
   el.querySelectorAll('.lc b').forEach((b, k) => b.textContent = cleanName(list[k].d.name || '') || 'Bay ' + (list[k].i + 1));
 }
 Object.assign(window.__sfa, { LOADOUT, loadoutPick, loadoutList, deployDesign, deployBay, drawLoadoutBar, get bays() { return bays; } });
-Object.assign(window.__sfa, { post, cam });
+Object.assign(window.__sfa, { post, cam, encState, mirrorR, gPaintAt, get garage() { return garage; } });

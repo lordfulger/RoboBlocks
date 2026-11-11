@@ -320,6 +320,12 @@ const httpServer = http.createServer((req, res) => {
     }
     if (/^[\w.\- ]+$/.test(name) && path.dirname(file) === DOWNLOADS && fs.existsSync(file)) { const st = fs.statSync(file); res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': st.size, 'Content-Disposition': `attachment; filename="${name}"` }); fs.createReadStream(file).pipe(res); return; }
   }
+  // friends lists: names and whereabouts for friend codes (the game asks every server it knows about)
+  if (url === '/friends' && req.method === 'GET') {
+    const codes = (new URL(req.url || '/', 'http://x').searchParams.get('codes') || '').split(',').map(s => s.trim().toUpperCase()).filter(c => /^RB-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/.test(c)).slice(0, 100);
+    const info = relay.codeInfo(codes); for (const c of Object.keys(info)) if (info[c].sv) { const s = SERVERS.find(x => x.id === info[c].sv); info[c].room = s ? s.name : 'a custom game'; }
+    res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*', 'Cache-Control': 'no-store' }); res.end(JSON.stringify({ server: SERVER_NAME, url: PUBLIC_URL || '', codes: info })); return;
+  }
   if (url === '/servers' && req.method === 'GET') { serverList(req).then(j => { res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify(j)); }).catch(() => { res.writeHead(500); res.end(); }); return; }
   if (url === '/hub/list' && IS_HUB) { res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify({ servers: [selfEntry(req), ...hubEntries()] })); return; }
   if (url === '/hub/beat' && IS_HUB && req.method === 'POST') { const fwd = TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); hubBeat(req, res, (fwd || req.socket.remoteAddress || '').replace(/^::ffff:/, '')).catch(() => { try { res.writeHead(500); res.end(); } catch (e) { } }); return; }
@@ -330,7 +336,7 @@ const httpServer = http.createServer((req, res) => {
   }
   res.writeHead(404, { ...headers, 'Content-Type': 'text/plain' }); res.end('Not found');
 });
-ws.attach(httpServer, '/ws', 64 * 1024, (sock, req) => {
+ws.attach(httpServer, '/ws', 256 * 1024, (sock, req) => {
   const fwd = TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
   const ip = (fwd || req.socket.remoteAddress || '').replace(/^::ffff:/, '');
   const send = msg => sock.send(typeof msg === 'string' ? msg : JSON.stringify(msg));

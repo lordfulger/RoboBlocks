@@ -68,7 +68,7 @@ function setView(v) {
 function garagePan(dx, dy) {
   const o = garage.orbit, s = o.r * .0016;
   const rx = Math.cos(o.theta), rz = -Math.sin(o.theta); // camera right on the floor
-  o.tx = clamp((o.tx || 0) - dx * s * rx, -10, 10); o.tz = clamp((o.tz || 0) - dx * s * rz, -10, 10); o.ty = clamp(o.ty + dy * s, -1, 14);
+  o.tx = clamp((o.tx || 0) - dx * s * rx, -10, 10); o.tz = clamp((o.tz || 0) - dx * s * rz, -10, 10); o.ty = clamp(o.ty + dy * s, -1, 26);
 }
 function focusBlock(b) { const o = garage.orbit; o.tx = b.x; o.ty = b.y; o.tz = b.z; o.r = Math.min(o.r, 12); SFX.ui(); }
 // ---------- redo ----------

@@ -340,8 +340,11 @@ GEO.hwedge = (() => { const g = new T.BufferGeometry(), p = [], h = -.5, t = 0; 
   tri(0, 2, 1); tri(0, 3, 2); tri(3, 4, 5); tri(3, 5, 2); tri(0, 1, 5); tri(0, 5, 4); tri(0, 4, 3); tri(1, 2, 5);
   g.setAttribute('position', new T.Float32BufferAttribute(p, 3)); const uv = []; for (let i = 0; i < p.length / 3; i++) uv.push(p[i * 3] + .5, p[i * 3 + 2] + .5); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g; })();
 const SHAPE_GEO = { box: GEO.box, wedge: GEO.wedge, pyr: GEO.pyr, inner: GEO.inner, tetra: GEO.tetra, round: GEO.round, slab: GEO.slab, plate: GEO.plate, strut: GEO.strut, cyl: GEO.cyl, hwedge: GEO.hwedge };
+// guns can be mounted at any of the 24 block orientations (sideways, under the hull, facing back); their turret aims from the mount
+const isMountable = t => !!(PARTS[t] && PARTS[t].weapon && t !== 'tesla');
 const applyRot = (o, r) => o.rotation.set(((r >> 2) & 3) * HALF_PI, (r & 3) * HALF_PI, ((r >> 4) & 3) * HALF_PI, 'YXZ');
 const ROT_M = []; for (let r = 0; r < 64; r++) ROT_M.push(new T.Matrix4().makeRotationFromEuler(new T.Euler(((r >> 2) & 3) * HALF_PI, (r & 3) * HALF_PI, ((r >> 4) & 3) * HALF_PI, 'YXZ')));
+const ROT_MI = ROT_M.map(m => m.clone().transpose()); // inverses (pure rotations)
 const SHAPE_VERTS = {};
 for (const [k, g] of Object.entries(SHAPE_GEO)) { const seen = new Map(), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const v = new T.Vector3().fromBufferAttribute(p, i); seen.set(v.toArray().map(n => n.toFixed(3)).join(), v); } SHAPE_VERTS[k] = [...seen.values()]; }
 const vkey = v => [v.x, v.y, v.z].map(n => (Math.round(n * 1000) / 1000 + 0).toFixed(3)).join(',');
@@ -349,6 +352,12 @@ function shapeSig(shape, r, mirror) { const out = new Set(); for (const v of SHA
 const mirrorCache = new Map();
 function mirrorR(t, r) {
   if (t === 'tesla') return (4 - (r % 4)) % 4;
+  if (isMountable(t)) { // a mirrored gun: the orientation whose matrix equals S·R·S (S flips x)
+    const key = 'g' + r; if (mirrorCache.has(key)) return mirrorCache.get(key);
+    const S = new T.Matrix4().makeScale(-1, 1, 1), want = S.clone().multiply(ROT_M[r]).multiply(S).elements; let res = r;
+    for (let i = 0; i < 64; i++) if (ROT_M[i].elements.every((v, j) => Math.abs(v - want[j]) < 1e-6)) { res = i; break; }
+    mirrorCache.set(key, res); return res;
+  }
   const P = PARTS[t]; if (!P.shape) return 0;
   const key = t + ':' + r; if (mirrorCache.has(key)) return mirrorCache.get(key);
   const target = shapeSig(P.shape, r, true); let res = r;
@@ -360,6 +369,11 @@ const edgesOf = g => { if (!edgeCache.has(g)) edgeCache.set(g, new T.EdgesGeomet
 const G2 = {}; const g2 = (k, f) => G2[k] || (G2[k] = f());
 const M2 = {}; const m2 = (k, f) => M2[k] || (M2[k] = f());
 function makePart(t, ci, r = 0, k = 1, fin = 'standard', mat = 'std') {
+  const out = makePartBase(t, ci, r, k, fin, mat);
+  if (r && isMountable(t)) applyRot(out.root, r);
+  return out;
+}
+function makePartBase(t, ci, r = 0, k = 1, fin = 'standard', mat = 'std') {
   FIN = fin;
   const root = new T.Group(); const out = { root };
   const mesh = (geo, mat, x = 0, y = 0, z = 0, parent = root) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };

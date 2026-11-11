@@ -28,8 +28,8 @@ class Relay {
   }
   handle(id, raw) {
     const peer = this.peers.get(id); if (!peer) return;
-    if (!peer.local) { // simple token bucket: ~60 messages a second, burst 120
-      const now = Date.now(); peer.budget = Math.min(120, peer.budget + (now - peer.t) * .06); peer.t = now;
+    if (!peer.local) { // simple token bucket: ~120 messages a second, burst 240 (players send 20 updates a second in battle)
+      const now = Date.now(); peer.budget = Math.min(240, peer.budget + (now - peer.t) * .12); peer.t = now;
       if (peer.budget < 1) return; peer.budget--;
     }
     let m; try { m = typeof raw === 'string' ? JSON.parse(raw) : raw; } catch (e) { return; }
@@ -47,7 +47,7 @@ class Relay {
       for (const k of ['name', 'n', 'dn']) if (typeof m.p[k] === 'string') cur[k] = filterText(m.p[k].slice(0, 24));
       this.stamp(peer, cur);
       if (JSON.stringify(cur).length > this.maxPresence) return;
-      room.set(id, cur);
+      room.set(id, cur); if (m.room === '__lobby') this.noteCode(cur);
       this.broadcast(m.room, { t: 'pres', room: m.room, peer: id, presence: cur }, id);
     }
   }
@@ -121,6 +121,23 @@ class Relay {
       const p = this.peers.get(pid); if (!p) continue;
       if (p.local) p.send(msg); else p.send(text || (text = JSON.stringify(msg)));
     }
+  }
+  // friend codes: remember the name that goes with each code, so friends lists can show names (and where they are)
+  noteCode(pr) {
+    const fc = String(pr.fc || ''); if (!this.db || !/^RB-[2-9A-HJ-NP-Z]{4}-[2-9A-HJ-NP-Z]{4}$/.test(fc)) return;
+    const name = String(pr.acct || pr.name || '').slice(0, 24); if (!name) return;
+    const m = this.db.d.fcodes || (this.db.d.fcodes = {}), old = m[fc];
+    if (old && old.n === name && Date.now() - old.t < 3600000) return; // only write when it changes, or hourly
+    m[fc] = { n: name, t: Date.now() };
+    const keys = Object.keys(m); if (keys.length > 20000) { keys.sort((a, b) => m[a].t - m[b].t); for (const k of keys.slice(0, keys.length - 20000)) delete m[k]; }
+    this.db.save();
+  }
+  // codes -> { name, online, sv (room id), seen }
+  codeInfo(codes) {
+    const lobby = this.rooms.get('__lobby') || new Map(), out = {}, fcodes = (this.db && this.db.d.fcodes) || {};
+    const want = new Set(codes); for (const c of want) { const f = fcodes[c]; out[c] = { name: f ? f.n : null, seen: f ? f.t : 0, online: false, sv: null }; }
+    for (const [id, pr] of lobby) { const p = this.peers.get(id); if (!p || p.local || !want.has(pr.fc)) continue; out[pr.fc] = { name: String(pr.acct || pr.name || out[pr.fc].name || '').slice(0, 24), seen: Date.now(), online: true, sv: pr.sv || null }; }
+    return out;
   }
   // who is online, for the console and the admin panel
   players() {

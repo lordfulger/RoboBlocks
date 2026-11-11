@@ -51,7 +51,7 @@ function renderParty() {
   for (const p of others) {
     const r = document.createElement('div'); r.className = 'grow';
     const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = pilotTag(p.presence);
-    const s = document.createElement('span'); s.textContent = `Lv ${(p.presence.lv | 0) || 1}${p.presence.sv ? ' · in a game' : ' · in the menu'}${NET.party && p.presence.party === NET.party.id ? ' · in your party' : ''}`; info.append(b, s);
+    const s = document.createElement('span'); s.textContent = `Lv ${(p.presence.lv | 0) || 1} · ${p.presence.sv ? (SERVERS.find(x => x.id === p.presence.sv) || { name: 'a custom game' }).name : 'in the menu'}${NET.party && p.presence.party === NET.party.id ? ' · in your party' : ''}`; info.append(b, s);
     const btn = document.createElement('button'); btn.textContent = NET.party && p.presence.party === NET.party.id ? 'In party' : 'Invite'; btn.disabled = NET.party && (p.presence.party === NET.party.id || NET.party.leader !== NET.me);
     btn.onclick = () => partyInvite(p.peer);
     const fb = document.createElement('button'); const fr = isFriendPeer(p); fb.textContent = fr ? 'Friend ✓' : 'Add friend'; fb.disabled = fr || !peerKey(p);

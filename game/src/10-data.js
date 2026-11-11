@@ -107,6 +107,8 @@ const MATERIALS = {
 const MAT_CODES = ['std', 'light', 'heavy', 'reactive', 'energy'];
 const matOf = b => MATERIALS[b.m] || MATERIALS.std;
 const partCpu = b => isShape(b.t) ? Math.ceil(TIERS[b.k || 1].cpu * matOf(b).cpu) : PARTS[b.t].cpu;
+// guns are armored to match the bot they sit on: twice their base health, more on bots built from higher armor tiers
+const gunHpMul = topTier => 2 * Math.sqrt(TIERS[clamp(topTier | 0, 1, 10)].hp / TIERS[1].hp);
 const partHp = b => isShape(b.t) ? Math.round(TIERS[b.k || 1].hp * PARTS[b.t].hpF * matOf(b).hp) : PARTS[b.t].hp;
 const partMass = b => isShape(b.t) ? TIERS[b.k || 1].mass * PARTS[b.t].massF * matOf(b).mass : PARTS[b.t].mass;
 const maxTier = l => { let k = 1; for (let i = 1; i < TIERS.length; i++) if (TIERS[i].lvl <= l) k = i; return k; };
@@ -126,19 +128,19 @@ function migrateDesign(d) {
 }
 const WEAPONS = {
   blaster: { slot: 1, cd: 0.3, dmg: 19, speed: 230, spread: 0.012, life: 0.95, minInt: 0.05, range: 170 },
-  plasma:  { slot: 2, cd: 1.5, dmg: 115, speed: 140, grav: 12, splash: 2.8, life: 3, minInt: 0.25, range: 220 },
-  mortar:  { slot: 3, cd: 2.4, dmg: 190, speed: 100, grav: 36, splash: 3.6, life: 7, minInt: 0.35, range: 250 },
+  plasma:  { slot: 2, cd: 1.5, dmg: 115, speed: 140, grav: 12, splash: 4, life: 3, minInt: 0.25, range: 220 },
+  mortar:  { slot: 3, cd: 2.4, dmg: 190, speed: 100, grav: 36, splash: 5.5, life: 7, minInt: 0.35, range: 250 },
   rail:    { slot: 4, cd: 2.8, dmg: 300, minInt: 0.5, range: 440 },
   seeker:  { slot: 5, cd: 2.2, dmg: 160, speed: 55, maxSpeed: 115, turn: 4.2, splash: 3, life: 6, minInt: 0.3, range: 340 },
-  flak:    { slot: 6, cd: 0.85, dmg: 65, speed: 190, splash: 4.5, fuse: 5, life: 2, minInt: 0.15, range: 320, airBonus: 2.5 },
+  flak:    { slot: 6, cd: 0.85, dmg: 65, speed: 190, splash: 6, fuse: 5, life: 2, minInt: 0.15, range: 320, airBonus: 2.5 },
   chain:   { slot: 7, cd: 0.15, dmg: 14, speed: 270, spread: 0.022, life: 0.85, minInt: 0.025, range: 190, spin: 1.6 },
   nano:    { slot: 8, cd: 0.12, heal: 26, minInt: 0.02, range: 70 },
   arc:     { slot: 9, cd: 0.4, dmg: 36, minInt: 0.1, range: 65 },
-  mine:    { slot: 10, cd: 1.7, dmg: 340, speed: 48, grav: 26, splash: 5, life: 40, minInt: 0.5, range: 120, pull: 10 },
+  mine:    { slot: 10, cd: 1.7, dmg: 340, speed: 48, grav: 26, splash: 7, life: 40, minInt: 0.5, range: 120, pull: 10 },
   lancer:  { slot: 11, cd: 4.5, dmg: 950, charge: 1.2, minInt: 1.5, range: 560 },
 };
 const WTYPES = ['blaster', 'plasma', 'mortar', 'rail', 'seeker', 'flak', 'chain', 'nano', 'arc', 'mine', 'lancer'];
-const SPLASH = { cap: 1.8 }; // a splash weapon deals at most this many times its damage to one bot per blast
+const SPLASH = { cap: 2.6 }; // a splash weapon deals at most this many times its damage to one bot per blast
 const TESLA = { tick: 0.12, dmg: 55, reach: 1.5, magnet: 9, pull: 40 }; // magnet: metres; pull: m/s² at point blank
 const TESLA_DPS = Math.round(TESLA.dmg / TESLA.tick);
 const tierScale = l => .75 * Math.pow(cpuMax(l) / 150, .5);
@@ -150,7 +152,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.4';
+const BC_VERSION = '2.8.5';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -159,6 +161,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
   ['2.8.2', ['Servers keep themselves up to date: they check for new releases every hour, install them, and restart when nobody is playing.', 'The desktop app updates itself from each new release automatically.']],
@@ -294,6 +297,8 @@ function computeStats(list) {
   s.mass = Math.max(1, s.mass);
   return s;
 }
+// how much the bot's propulsion parts push, all kinds together (for slowing a bot that has lost some)
+const propulsionOf = s => s.wheels * 32 + s.treads * 45 + (s.legs + (s.insects || 0) + (s.sprints || 0)) * 45 + (s.skis || 0) * 30 + s.hovers * 26 + s.rotors * 22 + s.wings * 20 + s.thrusters * 25 + (s.props || 0) * 16 + s.jets * 10;
 function mobility(s) {
   const mass = Math.max(1, s.mass - (s.balloons || 0) * 12); // lift balloons make everything lighter
   const legsAll = s.legs + (s.insects || 0) + (s.sprints || 0);
@@ -480,7 +485,7 @@ function designIssue(d, lv, own) {
 const presetStarter = () => ({ name: 'Starter Rig', v: 3, blocks: genDesign(mulberry32(7), 150, 'car', { main: 9, acc: 1 }).blocks.map(b => PARTS[b.t].lvl > 1 && PARTS[b.t].shape ? { ...b, t: 'cube', r: 0 } : b).filter(b => PARTS[b.t].lvl <= 1) });
 
 // garage bays: five saved designs, like a hangar
-const BAY_COUNT = 5;
+const BAY_COUNT = 10;
 let bays = store.get('sfa.bays', null);
 if (!Array.isArray(bays)) {
   const old = store.get('sfa.design', null);

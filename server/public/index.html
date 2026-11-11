@@ -588,6 +588,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
   <div id="status" class="panel">
     <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="label">Integrity</span><span class="big num" id="hpPct">100%</span></div>
     <div class="bar" id="hpBar"><i></i></div>
+    <div id="barRow" hidden style="display:flex;align-items:center;gap:8px;margin-top:4px"><span class="label" style="color:#7fe8ff">Shield</span><div class="bar" id="barBar" style="flex:1"><i style="background:#5fe8ff"></i></div></div>
     <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--muted)"><span id="spdVal" class="num">0 mph</span><span id="kdVal" class="num">K 0 · D 0</span></div>
     <div id="fuelRow"><span class="label">Jet fuel</span><div class="bar"><i></i></div></div>
     <div id="enRow" hidden><span class="label">Energy <span id="enVal" class="num"></span></span><div class="bar en"><i></i></div></div>
@@ -724,6 +725,8 @@ const MATERIALS = {
 const MAT_CODES = ['std', 'light', 'heavy', 'reactive', 'energy'];
 const matOf = b => MATERIALS[b.m] || MATERIALS.std;
 const partCpu = b => isShape(b.t) ? Math.ceil(TIERS[b.k || 1].cpu * matOf(b).cpu) : PARTS[b.t].cpu;
+// guns are armored to match the bot they sit on: twice their base health, more on bots built from higher armor tiers
+const gunHpMul = topTier => 2 * Math.sqrt(TIERS[clamp(topTier | 0, 1, 10)].hp / TIERS[1].hp);
 const partHp = b => isShape(b.t) ? Math.round(TIERS[b.k || 1].hp * PARTS[b.t].hpF * matOf(b).hp) : PARTS[b.t].hp;
 const partMass = b => isShape(b.t) ? TIERS[b.k || 1].mass * PARTS[b.t].massF * matOf(b).mass : PARTS[b.t].mass;
 const maxTier = l => { let k = 1; for (let i = 1; i < TIERS.length; i++) if (TIERS[i].lvl <= l) k = i; return k; };
@@ -743,19 +746,19 @@ function migrateDesign(d) {
 }
 const WEAPONS = {
   blaster: { slot: 1, cd: 0.3, dmg: 19, speed: 230, spread: 0.012, life: 0.95, minInt: 0.05, range: 170 },
-  plasma:  { slot: 2, cd: 1.5, dmg: 115, speed: 140, grav: 12, splash: 2.8, life: 3, minInt: 0.25, range: 220 },
-  mortar:  { slot: 3, cd: 2.4, dmg: 190, speed: 100, grav: 36, splash: 3.6, life: 7, minInt: 0.35, range: 250 },
+  plasma:  { slot: 2, cd: 1.5, dmg: 115, speed: 140, grav: 12, splash: 4, life: 3, minInt: 0.25, range: 220 },
+  mortar:  { slot: 3, cd: 2.4, dmg: 190, speed: 100, grav: 36, splash: 5.5, life: 7, minInt: 0.35, range: 250 },
   rail:    { slot: 4, cd: 2.8, dmg: 300, minInt: 0.5, range: 440 },
   seeker:  { slot: 5, cd: 2.2, dmg: 160, speed: 55, maxSpeed: 115, turn: 4.2, splash: 3, life: 6, minInt: 0.3, range: 340 },
-  flak:    { slot: 6, cd: 0.85, dmg: 65, speed: 190, splash: 4.5, fuse: 5, life: 2, minInt: 0.15, range: 320, airBonus: 2.5 },
+  flak:    { slot: 6, cd: 0.85, dmg: 65, speed: 190, splash: 6, fuse: 5, life: 2, minInt: 0.15, range: 320, airBonus: 2.5 },
   chain:   { slot: 7, cd: 0.15, dmg: 14, speed: 270, spread: 0.022, life: 0.85, minInt: 0.025, range: 190, spin: 1.6 },
   nano:    { slot: 8, cd: 0.12, heal: 26, minInt: 0.02, range: 70 },
   arc:     { slot: 9, cd: 0.4, dmg: 36, minInt: 0.1, range: 65 },
-  mine:    { slot: 10, cd: 1.7, dmg: 340, speed: 48, grav: 26, splash: 5, life: 40, minInt: 0.5, range: 120, pull: 10 },
+  mine:    { slot: 10, cd: 1.7, dmg: 340, speed: 48, grav: 26, splash: 7, life: 40, minInt: 0.5, range: 120, pull: 10 },
   lancer:  { slot: 11, cd: 4.5, dmg: 950, charge: 1.2, minInt: 1.5, range: 560 },
 };
 const WTYPES = ['blaster', 'plasma', 'mortar', 'rail', 'seeker', 'flak', 'chain', 'nano', 'arc', 'mine', 'lancer'];
-const SPLASH = { cap: 1.8 }; // a splash weapon deals at most this many times its damage to one bot per blast
+const SPLASH = { cap: 2.6 }; // a splash weapon deals at most this many times its damage to one bot per blast
 const TESLA = { tick: 0.12, dmg: 55, reach: 1.5, magnet: 9, pull: 40 }; // magnet: metres; pull: m/s² at point blank
 const TESLA_DPS = Math.round(TESLA.dmg / TESLA.tick);
 const tierScale = l => .75 * Math.pow(cpuMax(l) / 150, .5);
@@ -767,7 +770,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.4';
+const BC_VERSION = '2.8.5';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -776,6 +779,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
   ['2.8.2', ['Servers keep themselves up to date: they check for new releases every hour, install them, and restart when nobody is playing.', 'The desktop app updates itself from each new release automatically.']],
@@ -911,6 +915,8 @@ function computeStats(list) {
   s.mass = Math.max(1, s.mass);
   return s;
 }
+// how much the bot's propulsion parts push, all kinds together (for slowing a bot that has lost some)
+const propulsionOf = s => s.wheels * 32 + s.treads * 45 + (s.legs + (s.insects || 0) + (s.sprints || 0)) * 45 + (s.skis || 0) * 30 + s.hovers * 26 + s.rotors * 22 + s.wings * 20 + s.thrusters * 25 + (s.props || 0) * 16 + s.jets * 10;
 function mobility(s) {
   const mass = Math.max(1, s.mass - (s.balloons || 0) * 12); // lift balloons make everything lighter
   const legsAll = s.legs + (s.insects || 0) + (s.sprints || 0);
@@ -1097,7 +1103,7 @@ function designIssue(d, lv, own) {
 const presetStarter = () => ({ name: 'Starter Rig', v: 3, blocks: genDesign(mulberry32(7), 150, 'car', { main: 9, acc: 1 }).blocks.map(b => PARTS[b.t].lvl > 1 && PARTS[b.t].shape ? { ...b, t: 'cube', r: 0 } : b).filter(b => PARTS[b.t].lvl <= 1) });
 
 // garage bays: five saved designs, like a hangar
-const BAY_COUNT = 5;
+const BAY_COUNT = 10;
 let bays = store.get('sfa.bays', null);
 if (!Array.isArray(bays)) {
   const old = store.get('sfa.design', null);
@@ -1463,8 +1469,11 @@ GEO.hwedge = (() => { const g = new T.BufferGeometry(), p = [], h = -.5, t = 0; 
   tri(0, 2, 1); tri(0, 3, 2); tri(3, 4, 5); tri(3, 5, 2); tri(0, 1, 5); tri(0, 5, 4); tri(0, 4, 3); tri(1, 2, 5);
   g.setAttribute('position', new T.Float32BufferAttribute(p, 3)); const uv = []; for (let i = 0; i < p.length / 3; i++) uv.push(p[i * 3] + .5, p[i * 3 + 2] + .5); g.setAttribute('uv', new T.Float32BufferAttribute(uv, 2)); g.computeVertexNormals(); return g; })();
 const SHAPE_GEO = { box: GEO.box, wedge: GEO.wedge, pyr: GEO.pyr, inner: GEO.inner, tetra: GEO.tetra, round: GEO.round, slab: GEO.slab, plate: GEO.plate, strut: GEO.strut, cyl: GEO.cyl, hwedge: GEO.hwedge };
+// guns can be mounted at any of the 24 block orientations (sideways, under the hull, facing back); their turret aims from the mount
+const isMountable = t => !!(PARTS[t] && PARTS[t].weapon && t !== 'tesla');
 const applyRot = (o, r) => o.rotation.set(((r >> 2) & 3) * HALF_PI, (r & 3) * HALF_PI, ((r >> 4) & 3) * HALF_PI, 'YXZ');
 const ROT_M = []; for (let r = 0; r < 64; r++) ROT_M.push(new T.Matrix4().makeRotationFromEuler(new T.Euler(((r >> 2) & 3) * HALF_PI, (r & 3) * HALF_PI, ((r >> 4) & 3) * HALF_PI, 'YXZ')));
+const ROT_MI = ROT_M.map(m => m.clone().transpose()); // inverses (pure rotations)
 const SHAPE_VERTS = {};
 for (const [k, g] of Object.entries(SHAPE_GEO)) { const seen = new Map(), p = g.attributes.position; for (let i = 0; i < p.count; i++) { const v = new T.Vector3().fromBufferAttribute(p, i); seen.set(v.toArray().map(n => n.toFixed(3)).join(), v); } SHAPE_VERTS[k] = [...seen.values()]; }
 const vkey = v => [v.x, v.y, v.z].map(n => (Math.round(n * 1000) / 1000 + 0).toFixed(3)).join(',');
@@ -1472,6 +1481,12 @@ function shapeSig(shape, r, mirror) { const out = new Set(); for (const v of SHA
 const mirrorCache = new Map();
 function mirrorR(t, r) {
   if (t === 'tesla') return (4 - (r % 4)) % 4;
+  if (isMountable(t)) { // a mirrored gun: the orientation whose matrix equals S·R·S (S flips x)
+    const key = 'g' + r; if (mirrorCache.has(key)) return mirrorCache.get(key);
+    const S = new T.Matrix4().makeScale(-1, 1, 1), want = S.clone().multiply(ROT_M[r]).multiply(S).elements; let res = r;
+    for (let i = 0; i < 64; i++) if (ROT_M[i].elements.every((v, j) => Math.abs(v - want[j]) < 1e-6)) { res = i; break; }
+    mirrorCache.set(key, res); return res;
+  }
   const P = PARTS[t]; if (!P.shape) return 0;
   const key = t + ':' + r; if (mirrorCache.has(key)) return mirrorCache.get(key);
   const target = shapeSig(P.shape, r, true); let res = r;
@@ -1483,6 +1498,11 @@ const edgesOf = g => { if (!edgeCache.has(g)) edgeCache.set(g, new T.EdgesGeomet
 const G2 = {}; const g2 = (k, f) => G2[k] || (G2[k] = f());
 const M2 = {}; const m2 = (k, f) => M2[k] || (M2[k] = f());
 function makePart(t, ci, r = 0, k = 1, fin = 'standard', mat = 'std') {
+  const out = makePartBase(t, ci, r, k, fin, mat);
+  if (r && isMountable(t)) applyRot(out.root, r);
+  return out;
+}
+function makePartBase(t, ci, r = 0, k = 1, fin = 'standard', mat = 'std') {
   FIN = fin;
   const root = new T.Group(); const out = { root };
   const mesh = (geo, mat, x = 0, y = 0, z = 0, parent = root) => { const m = new T.Mesh(geo, mat); m.position.set(x, y, z); parent.add(m); return m; };
@@ -2510,7 +2530,7 @@ const Music = {
 };
 // ---- 40-garage.js ----
 // ================= GARAGE =================
-const BOUNDS = { x: 7, y: 11, z: 7 };
+const BOUNDS = { x: 7, y: 23, z: 7 }; // 24 layers tall (the save format stores heights past 15 in an extra section)
 const garage = {
   scene: new T.Scene(), group: new T.Group(), blocks: new Map(),
   orbit: { theta: .75, phi: 1.05, r: 20, ty: 2.2 }, tool: 'cube', color: 9, rot: 0, tier: 1, mat: 'std', mirror: store.get('sfa.mirror', true) !== false, erase: false, paint: false, undo: [], last: null,
@@ -2570,7 +2590,7 @@ function hasNeighbor(x, y, z, extra) {
   return false;
 }
 function inBounds(p) { return Math.abs(p.x) <= BOUNDS.x && p.y >= 0 && p.y <= BOUNDS.y && Math.abs(p.z) <= BOUNDS.z; }
-const toolRot = (t, r) => isShape(t) ? r : t === 'tesla' ? r % 4 : 0;
+const toolRot = (t, r) => isShape(t) || isMountable(t) ? r : t === 'tesla' ? r % 4 : 0;
 // mirror axis: 'x' copies left/right, 'z' copies front/back
 const mirOff = b => garage.mirAxis === 'z' ? b.z !== 0 : b.x !== 0;
 const mirPos = b => garage.mirAxis === 'z' ? { x: b.x, y: b.y, z: -b.z } : { x: -b.x, y: b.y, z: b.z };
@@ -2643,23 +2663,22 @@ function updateGhost(cx, cy) {
   const plan = placementPlan(pk.place);
   const r0 = toolRot(garage.tool, garage.rot);
   setGhostShape(g, garage.tool, r0);
-  garage.dirPivot.visible = garage.tool === 'tesla';
+  garage.dirPivot.visible = garage.tool === 'tesla' || isMountable(garage.tool); // which way the barrel points
   g.position.set(pk.place.x, pk.place.y, pk.place.z); setGhostColor(plan.ok ? 0x62e08f : 0xff5444); g.visible = inBounds(pk.place);
   if (plan.ok && plan.list.length > 1) { setGhostShape(mg, garage.tool, plan.list[1].r); mg.position.set(plan.list[1].x, plan.list[1].y, plan.list[1].z); mg.visible = true; }
 }
 function setGhostShape(g, t, r) {
   const P = PARTS[t], geo = P.shape ? SHAPE_GEO[P.shape] : GEO.box;
   if (g.geometry !== geo) { g.geometry = geo; g.children[0].geometry = edgesOf(geo); }
-  if (P.shape) applyRot(g, r); else g.rotation.set(0, t === 'tesla' ? (r % 4) * HALF_PI : 0, 0);
+  if (P.shape || isMountable(t)) applyRot(g, r); else g.rotation.set(0, t === 'tesla' ? (r % 4) * HALF_PI : 0, 0);
 }
 function refreshGhost() { if (garage.last) updateGhost(garage.last.x, garage.last.y); }
 function gPaintAt(b) {
-  if (isShape(b.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > unlockLv() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
   const ks = [ckey(b.x, b.y, b.z)]; if (garage.mirror && mirOff(b)) { const m = mirPos(b); ks.push(ckey(m.x, m.y, m.z)); }
   const changes = []; let delta = 0;
   for (const k of ks) {
     const o = garage.blocks.get(k); if (!o) continue;
-    const n = { x: o.x, y: o.y, z: o.z, t: o.t, c: garage.color, r: o.r }; if (isShape(o.t)) { n.k = garage.tier; if (garage.mat !== 'std') n.m = garage.mat; }
+    const n = { x: o.x, y: o.y, z: o.z, t: o.t, c: garage.color, r: o.r }; if (o.k) n.k = o.k; if (o.m) n.m = o.m; // paint only changes the colour
     delta += partCpu(n) - partCpu(o); changes.push([k, n]);
   }
   if (usedCpu() + delta > ownCpuMax()) { toast(`That upgrade needs ${delta} more CPU than you have left.`); return; }
@@ -2782,8 +2801,8 @@ function syncToolButtons() {
   if ($('#btnMirAxis')) { $('#btnMirAxis').hidden = !garage.mirror; $('#btnMirAxis span').textContent = garage.mirAxis === 'z' ? 'Front/back' : 'Left/right'; $('#btnMirAxis i').textContent = garage.mirAxis === 'z' ? '⇅' : '⇆'; }
   $('#btnErase').classList.toggle('on', garage.erase);
   $('#btnPaint').classList.toggle('on', garage.paint);
-  const rotatable = isShape(garage.tool) || garage.tool === 'tesla';
-  $('#btnRot').disabled = !rotatable; $('#btnTilt').disabled = $('#btnRoll').disabled = !isShape(garage.tool);
+  const rotatable = isShape(garage.tool) || garage.tool === 'tesla' || isMountable(garage.tool);
+  $('#btnRot').disabled = !rotatable; $('#btnTilt').disabled = $('#btnRoll').disabled = !(isShape(garage.tool) || isMountable(garage.tool));
 }
 function updateStats() {
   const list = [...garage.blocks.values()]; const s = computeStats(list); const mob = mobility(s); const cm = ownCpuMax();
@@ -2842,7 +2861,7 @@ canvas.addEventListener('pointerdown', e => {
 canvas.addEventListener('pointermove', e => {
   if (state !== 'garage') return;
   if (gPtrs.has(e.pointerId)) gPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (pinch && gPtrs.size === 2) { const [a, b] = [...gPtrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); garage.orbit.r = clamp(pinch.r * pinch.d / Math.max(20, d), 7, 45); return; }
+  if (pinch && gPtrs.size === 2) { const [a, b] = [...gPtrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); garage.orbit.r = clamp(pinch.r * pinch.d / Math.max(20, d), 7, 60); return; }
   if (gDrag) {
     if (gDrag.row) { rowPlace(e.clientX, e.clientY); return; }
     if (Math.hypot(e.clientX - gDrag.x, e.clientY - gDrag.y) > 6) gDrag.moved = true;
@@ -2871,7 +2890,7 @@ canvas.addEventListener('pointercancel', endPtr);
 canvas.addEventListener('pointerleave', () => { if (state === 'garage' && !gDrag) { garage.ghost.visible = garage.mirrorGhost.visible = false; } });
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
-  if (state === 'garage') { garage.orbit.r = clamp(garage.orbit.r * (1 + Math.sign(e.deltaY) * .08), 7, 45); }
+  if (state === 'garage') { garage.orbit.r = clamp(garage.orbit.r * (1 + Math.sign(e.deltaY) * .08), 7, 60); }
   else if (state === 'battle' && match && match.player && !paused) { cycleWeapon(Math.sign(e.deltaY)); }
 }, { passive: false });
 
@@ -3005,11 +3024,10 @@ function garageToolClick(pk) {
   return false;
 }
 function fillPaint(start) {
-  if (isShape(start.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > unlockLv() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
   const c0 = start.c, seen = new Set([ckey(start.x, start.y, start.z)]), q = [start], hit = [];
   while (q.length) { const b = q.pop(); hit.push(b); for (const [dx, dy, dz] of NB) { const k = ckey(b.x + dx, b.y + dy, b.z + dz), n = garage.blocks.get(k); if (n && !seen.has(k) && n.c === c0) { seen.add(k); q.push(n); } } }
   pushUndo();
-  for (const b of hit) { const k = ckey(b.x, b.y, b.z), n = { x: b.x, y: b.y, z: b.z, t: b.t, c: garage.color, r: b.r }; if (isShape(b.t)) n.k = garage.tier; gRemove(k); gAdd(n); }
+  for (const b of hit) { const k = ckey(b.x, b.y, b.z), n = { x: b.x, y: b.y, z: b.z, t: b.t, c: garage.color, r: b.r }; if (b.k) n.k = b.k; if (b.m) n.m = b.m; gRemove(k); gAdd(n); } // colour only
   onDesignChanged(); SFX.paint(); toast(`Repainted ${hit.length} block${hit.length === 1 ? '' : 's'}.`);
 }
 let SELIM = null;
@@ -3135,7 +3153,7 @@ function setView(v) {
 function garagePan(dx, dy) {
   const o = garage.orbit, s = o.r * .0016;
   const rx = Math.cos(o.theta), rz = -Math.sin(o.theta); // camera right on the floor
-  o.tx = clamp((o.tx || 0) - dx * s * rx, -10, 10); o.tz = clamp((o.tz || 0) - dx * s * rz, -10, 10); o.ty = clamp(o.ty + dy * s, -1, 14);
+  o.tx = clamp((o.tx || 0) - dx * s * rx, -10, 10); o.tz = clamp((o.tz || 0) - dx * s * rz, -10, 10); o.ty = clamp(o.ty + dy * s, -1, 26);
 }
 function focusBlock(b) { const o = garage.orbit; o.tx = b.x; o.ty = b.y; o.tz = b.z; o.r = Math.min(o.r, 12); SFX.ui(); }
 // ---------- redo ----------
@@ -4300,18 +4318,19 @@ class Bot {
     this.home = opts.home || null; statInit(this);
   }
   build() {
-    this.finish = this.design.f || 'standard';
+    this.finish = this.design.f || 'standard'; this.propInit = null;
     const bl = this.design.blocks; let sx = 0, sz = 0, minY = Infinity, maxY = -Infinity;
     for (const b of bl) { sx += b.x; sz += b.z; minY = Math.min(minY, b.y); maxY = Math.max(maxY, b.y); }
     const cx = this.cx = sx / bl.length, cz = this.cz = sz / bl.length; this.minY = minY;
     this.group = new T.Group(); this.group.rotation.order = 'YXZ';
     this.cells = new Map(); this.cellList = [];
+    const topTier = bl.reduce((a, b) => isShape(b.t) ? Math.max(a, b.k || 1) : a, 1), gunMul = gunHpMul(topTier);
     for (const b of bl) {
       const p = makePart(b.t, b.c, b.r || 0, b.k || 1, this.finish, b.m);
       p.root.position.set(b.x - cx, b.y - minY, b.z - cz);
       p.root.traverse(o => { if (o.isMesh && o.material !== M.flame) o.castShadow = true; });
       this.group.add(p.root);
-      const cell = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, k: b.k || 1, m: b.m, hp: partHp(b), max: partHp(b), obj: p.root, head: p.head, muzzle: p.muzzle, wheel: p.wheel, flame: p.flame, rotor: p.rotor, spin: p.spin, leg: p.leg, flag: p.flag, prop: p.prop, charge: p.charge, core: p.core, thrust: !!p.thrust, fly: !!p.fly, recoil: p.recoil, kick: 0, r: b.r || 0, alive: true, burnt: false };
+      const cell = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, k: b.k || 1, m: b.m, mr: isMountable(b.t) ? (b.r || 0) & 63 : 0, hp: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), max: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), obj: p.root, head: p.head, muzzle: p.muzzle, wheel: p.wheel, flame: p.flame, rotor: p.rotor, spin: p.spin, leg: p.leg, flag: p.flag, prop: p.prop, charge: p.charge, core: p.core, thrust: !!p.thrust, fly: !!p.fly, recoil: p.recoil, kick: 0, r: b.r || 0, alive: true, burnt: false };
       cell.idx = this.cellList.length; this.cells.set(ckey(b.x, b.y, b.z), cell); this.cellList.push(cell);
     }
     this.meshes = [];
@@ -4327,6 +4346,11 @@ class Bot {
   recalc() {
     const alive = this.cellList.filter(c => c.alive); this.alive = alive;
     this.stats = computeStats(alive); this.mob = world.space ? spaceMobility(this.stats) : mobility(this.stats);
+    // losing wheels, treads, legs, hover pads, rotors, wings or thrusters slows you, even when what is left could carry the weight
+    const prop = propulsionOf(this.stats); if (this.propInit == null) this.propInit = prop;
+    const pf = this.propInit > 0 ? clamp(prop / this.propInit, 0, 1) : 1;
+    if (pf < 1) { const m = this.mob = { ...this.mob }, k = pf > 0 ? .25 + .75 * pf : 0; m.maxSpeed *= k; m.accel *= k; m.turn *= pf > 0 ? .5 + .5 * pf : .3; if (m.maxAlt) m.maxAlt *= .5 + .5 * pf; }
+    this.propFrac = pf;
     this.bottomLocal = this.stats.bottom - this.minY;
     this.hp = alive.reduce((a, c) => a + Math.max(0, c.hp), 0);
     this.guns = {}; for (const t of WTYPES) this.guns[t] = []; this.wheels = []; this.flames = []; this.teslas = []; this.rotors = []; this.legs = []; this.flags = []; this.shields = []; this.props = []; this.energyCells = []; this.spikes = 0;
@@ -4367,7 +4391,7 @@ class Bot {
     if (!c.alive || this.dead) return dmg;
     if (this.shieldT > 0) return 0;
     if (this.remote && attacker && !attacker.remote) netReportHit(attacker, this, c.idx, dmg);
-    if (this.barrier > 0 && !this.remote) { const soak = Math.min(this.barrier, dmg); this.barrier -= soak; dmg -= soak; if (!HEADLESS && clock - (this.barrierHitT || -9) > .15) SFX.shieldHit(this.center); this.barrierHitT = clock; if (!HEADLESS && Math.random() < .3) sparks(this.cellWorld(c, _v3), 0x5fe8ff, 3, 5, .14, .25); if (dmg <= 0) { this.lastHitT = clock; return 0; } }
+    if (this.barrier > 0) { const soak = Math.min(this.barrier, dmg); this.barrier -= soak; dmg -= soak; this.barrierFlash = 1; if (!HEADLESS && clock - (this.barrierHitT || -9) > .15) SFX.shieldHit(this.center); this.barrierHitT = clock; if (!HEADLESS && Math.random() < .3) sparks(this.cellWorld(c, _v3), 0x5fe8ff, 3, 5, .14, .25); if (dmg <= 0) { this.lastHitT = clock; return 0; } }
     const dealt = Math.min(c.hp, dmg); c.hp -= dmg; this.hp -= dealt;
     if (attacker && attacker !== this) { attacker.dmgDealt += dealt; this.lastHitBy = attacker; if (attacker.qs && attacker.team !== this.team) statDamage(attacker, dealt); }
     this.lastHitT = clock; if (this.tag) this.tag.dirty = true;
@@ -4533,6 +4557,11 @@ class Bot {
     for (const c of this.flags) c.flag.rotation.y = Math.sin(clock * 4 + c.idx) * .35 - this.yawVel * .3;
     if (this.energyCells && clock - this.lastHitT > 4) for (const c of this.energyCells) if (c.alive && c.hp < c.max) { const add = Math.min(c.max - c.hp, c.max * .1 * dt); c.hp += add; this.hp += add; }
     if (this.barrierMax && clock - (this.barrierHitT || -9) > 6 && this.barrier < this.barrierMax) this.barrier = Math.min(this.barrierMax, this.barrier + this.barrierMax * .2 * dt);
+    // back at your team's base pad and out of combat (not hit or firing for 5 s): blocks repair and lost ones grow back
+    if (!this.remote && !this.dead && match && match.mode !== 'pit' && !world.space && clock - this.lastHitT > 5 && clock - (this.lastFireT || -9) > 5 && this.onHomePad()) {
+      this.padT = (this.padT || 0) - dt;
+      if (this.padT <= 0) { this.padT = .25; const done = this.healAt(Math.max(40, this.maxHp * .015)); this.padRepair = done > 0 ? clock : this.padRepair; if (done > 0 && !HEADLESS && camera.position.distanceToSquared(this.pos) < 90 * 90) emit(this.center.x + rand(-1.5, 1.5), this.center.y + rand(-.5, 1.5), this.center.z + rand(-1.5, 1.5), 0, 2, 0, .5, .5, 0x7dffb0, 0, 3); }
+    }
     if (this.shields.length && clock - this.lastHitT > 5) for (const c of this.shields) if (c.alive && c.hp < c.max) { const add = Math.min(c.max - c.hp, 60 * dt); c.hp += add; this.hp += add; }
     if (this.jetting && Math.random() < dt * 8) SFX.jet(this.pos);
     const near = camera.position.distanceToSquared(this.pos) < 160 * 160;
@@ -4555,6 +4584,7 @@ class Bot {
     const hc = H(x, z), hf = H(x + fx * d, z + fz * d), hb = H(x - fx * d, z - fz * d), hl = H(x + lx * d, z + lz * d), hr = H(x - lx * d, z - lz * d);
     return { ground: Math.max(hc, (hf + hb) / 2, (hl + hr) / 2), pitch: -Math.atan2(hf - hb, 2 * d), roll: Math.atan2(hl - hr, 2 * d) };
   }
+  onHomePad() { const bz = this.team === 0 ? -world.spawnZ : world.spawnZ, h = this.home; return h ? Math.hypot(this.pos.x - h.x, this.pos.z - h.z) < 30 : Math.hypot(this.pos.x, this.pos.z - bz) < 48; }
   healAt(amt, healer) {
     if (this.dead) return 0;
     if (this.remote) { if (healer && !healer.remote) netReportHeal(healer, this, amt); return 0; }
@@ -4586,15 +4616,18 @@ class Bot {
   }
   aimWeapons(dt) {
     const aimL = _v3.copy(this.input.aim).applyMatrix4(this.inv); const sel = this.input.weapon;
-    if (sel === 'mortar' && this.guns.mortar.length) { const v = solveBallistic(this.center, this.input.aim, WEAPONS.mortar.speed, WEAPONS.mortar.grav * GRAV / 22); this.mortarPitch = Math.atan2(v.y, Math.hypot(v.x, v.z)); }
+    if (this.guns.mortar.length) { const v = solveBallistic(this.center, this.input.aim, WEAPONS.mortar.speed, WEAPONS.mortar.grav * GRAV / 22); this.mortarPitch = Math.atan2(v.y, Math.hypot(v.x, v.z)); this.mortarDir = (this.mortarDir || new T.Vector3()).copy(v).transformDirection(this.inv); }
     const s = 10 * dt;
     // barrels kick back when they fire and ease forward again
     for (const t of WTYPES) for (const c of this.guns[t]) if (c.recoil && (c.kick > 0 || c.recoil.position.z)) { c.kick = Math.max(0, c.kick - dt * 7); c.recoil.position.z = -c.kick * c.kick * (t === 'mortar' || t === 'lancer' || t === 'rail' ? .2 : .1); }
     for (const t of WTYPES) for (const c of this.guns[t]) {
       let yaw = 0, pitch = 0;
-      if (t === sel || (this.input.group && this.input.group.includes(t))) {
-        const dx = aimL.x - (c.x - this.cx), dy = aimL.y - (c.y - this.minY + .05), dz = aimL.z - (c.z - this.cz);
-        yaw = Math.atan2(dx, dz); pitch = t === 'mortar' ? (this.mortarPitch || .3) : Math.atan2(dy, Math.hypot(dx, dz));
+      { // every gun tracks the crosshair, whichever weapon is selected
+        let dx = aimL.x - (c.x - this.cx), dy = aimL.y - (c.y - this.minY + .05), dz = aimL.z - (c.z - this.cz);
+        if (c.mr) { // a rotated mount: aim in the gun's own frame
+          const v = _v2.set(dx, dy, dz); if (t === 'mortar' && this.mortarDir) v.copy(this.mortarDir); v.applyMatrix4(ROT_MI[c.mr]); dx = v.x; dy = v.y; dz = v.z;
+          yaw = Math.atan2(dx, dz); pitch = Math.atan2(dy, Math.hypot(dx, dz));
+        } else { yaw = Math.atan2(dx, dz); pitch = t === 'mortar' ? (this.mortarPitch || .3) : Math.atan2(dy, Math.hypot(dx, dz)); }
       }
       c.head.rotation.y = approachAngle(c.head.rotation.y, yaw, s);
       c.head.rotation.x = approachAngle(c.head.rotation.x, -clamp(pitch, -.45, 1.3), s);
@@ -4704,7 +4737,7 @@ function solveBallistic(from, to, v, g) {
 // ================= WEAPONS / PROJECTILES =================
 let beamGhost = false;
 function fireWeapon(owner, type, from, aim) {
-  const n0 = world.projs.length; beamGhost = owner.remote; if (REC.on) recShot(owner, type, from, aim);
+  const n0 = world.projs.length; beamGhost = owner.remote; owner.lastFireT = clock; /* firing keeps you in combat: no base repair */ if (REC.on) recShot(owner, type, from, aim);
   fireWeapon0(owner, type, from, aim);
   beamGhost = false;
   if (owner.remote) for (let i = n0; i < world.projs.length; i++) world.projs[i].ghost = true;
@@ -5685,15 +5718,17 @@ const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 const B64I = {}; for (let i = 0; i < 64; i++) B64I[B64[i]] = i;
 function encodeDesign(d) {
   const fi = Math.max(0, FINISHES.findIndex(f => f.id === (d.f || 'standard')));
-  let out = '~' + B64[fi] + '----';
+  let out = '~' + B64[fi] + '----', high = '', n = 0;
   for (const b of d.blocks) {
     const t = PART_CODES.indexOf(b.t); if (t < 0) continue;
+    if (b.y >= 16) high += B64[(n >> 6) & 63] + B64[n & 63]; n++; // taller bots: the 5th height bit, per block
     // part code: 5 low bits at 12, a sixth bit at 31 (always 0 in older saves)
     const v = ((b.x + 8) & 15) | ((b.y & 15) << 4) | (((b.z + 8) & 15) << 8) | ((t & 31) << 12) | (((b.c | 0) & 15) << 17) | (((b.r | 0) & 63) << 21) | ((((b.k || 1) - 1) & 15) << 27) | (((t >> 5) & 1) << 31);
     for (let i = 0; i < 6; i++) out += B64[(v >>> (i * 6)) & 63];
   }
   // armor materials: '!' then, per non-standard block, its index (2 chars) and material (1 char)
   let tail = ''; d.blocks.forEach((b, i) => { const mi = MAT_CODES.indexOf(b.m); if (mi > 0 && PART_CODES.includes(b.t)) tail += B64[(i >> 6) & 63] + B64[i & 63] + B64[mi]; });
+  if (high) out += '@' + high;
   return tail ? out + '!' + tail : out;
 }
 function decodeDesign(s) {
@@ -5701,6 +5736,7 @@ function decodeDesign(s) {
   if (typeof s !== 'string') return { v: 3, blocks };
   let f = 'standard', i0 = 0, mats = '';
   const bang = s.indexOf('!'); if (bang >= 0) { mats = s.slice(bang + 1); s = s.slice(0, bang); }
+  let high = ''; const at = s.indexOf('@'); if (at >= 0) { high = s.slice(at + 1); s = s.slice(0, at); }
   if (s[0] === '~') { f = (FINISHES[B64I[s[1]] | 0] || FINISHES[0]).id; i0 = 6; }
   for (let i = i0; i + 6 <= s.length && blocks.length < 700; i += 6) {
     let v = 0; for (let j = 0; j < 6; j++) v |= (B64I[s[i + j]] | 0) << (j * 6);
@@ -5709,6 +5745,7 @@ function decodeDesign(s) {
     if (isShape(t)) b.k = ((v >>> 27) & 15) + 1;
     blocks.push(b);
   }
+  for (let i = 0; i + 2 <= high.length; i += 2) { const b = blocks[((B64I[high[i]] | 0) << 6) | (B64I[high[i + 1]] | 0)]; if (b) b.y += 16; }
   for (let i = 0; i + 3 <= mats.length; i += 3) { const bi = ((B64I[mats[i]] | 0) << 6) | (B64I[mats[i + 1]] | 0), m = MAT_CODES[B64I[mats[i + 2]] | 0], b = blocks[bi]; if (b && m && m !== 'std' && isShape(b.t)) b.m = m; }
   return { v: 3, f, blocks };
 }
@@ -5839,9 +5876,10 @@ function renderLobbyList() {
   const want = [];
   for (const sv of SERVERS) {
     const h = (hosts.find(p => p.presence.host.code === sv.id) || {}).presence;
-    const cnt = others.filter(p => p.presence.sv === sv.id).length;
+    const inRoom = others.filter(p => p.presence.sv === sv.id), cnt = inRoom.length, meIn = NET.game && NET.game.code === sv.id;
+    const who = inRoom.slice(0, 4).map(p => pilotTag(p.presence)).join(', ') + (cnt > 4 ? ` +${cnt - 4}` : '');
     const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
-    want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.n}v${sv.n}. ${cnt ? cnt + ' playing · ' : ''}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
+    want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.n}v${sv.n}. ${cnt || meIn ? `👤 ${cnt + (meIn ? 1 : 0)} playing${cnt ? ': ' + who : ''}${meIn ? (cnt ? ', you' : ' (you)') : ''} · ` : 'Nobody here yet · '}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
   }
   for (const p of hosts.filter(p => !p.presence.host.server && String(p.presence.host.code).startsWith('c'))) {
     const h = p.presence.host, code = String(h.code).replace(/[^a-z0-9-]/g, '').slice(0, 12);
@@ -6193,7 +6231,7 @@ function applyReports(sender, ring) {
 function encState(b) {
   if (b.dead) return [1, b.deaths, b.killerId || '', b.spawnCount];
   return [0, b.deaths, '', b.spawnCount, r1(b.pos.x), r1(b.pos.y), r1(b.pos.z), r2(b.yaw), r2(b.pitch), r2(b.roll), r1(b.vel.x), r1(b.vel.y), r1(b.vel.z),
-    r1(b.input.aim.x), r1(b.input.aim.y), r1(b.input.aim.z), WTYPES.indexOf(b.input.weapon), b.input.fire ? 1 : 0, r2(b.spin), b.shieldT > 0 ? 1 : 0, maskOf(b), r1(b.alt), b.jetting ? 1 : 0, b.kills, Math.round(b.dmgDealt), Math.round(b.healed || 0), (b.cloakT > 0 ? 1 : 0) | (b.stunT > 0 ? 2 : 0) | (b.flyT > 0 ? 4 : 0), b.input.group && b.input.group.length > 1 ? b.input.group.reduce((m, t) => m | (1 << WTYPES.indexOf(t)), 0) | (b.input.groupMode === 'alt' ? 1 << 20 : 0) : 0];
+    r1(b.input.aim.x), r1(b.input.aim.y), r1(b.input.aim.z), WTYPES.indexOf(b.input.weapon), b.input.fire ? 1 : 0, r2(b.spin), b.shieldT > 0 ? 1 : 0, maskOf(b), r1(b.alt), b.jetting ? 1 : 0, b.kills, Math.round(b.dmgDealt), Math.round(b.healed || 0), (b.cloakT > 0 ? 1 : 0) | (b.stunT > 0 ? 2 : 0) | (b.flyT > 0 ? 4 : 0), b.input.group && b.input.group.length > 1 ? b.input.group.reduce((m, t) => m | (1 << WTYPES.indexOf(t)), 0) | (b.input.groupMode === 'alt' ? 1 << 20 : 0) : 0, b.barrierMax ? r2(b.barrier / b.barrierMax) : 0];
 }
 const _np = new T.Vector3();
 function applyState(b, s, now) {
@@ -6214,6 +6252,7 @@ function applyState(b, s, now) {
   if (b.dead) return;
   b.net = { x: +s[4], y: +s[5], z: +s[6], yaw: +s[7], pitch: +s[8], roll: +s[9], vx: +s[10], vy: +s[11], vz: +s[12], t: now };
   b.vel.set(+s[10] || 0, +s[11] || 0, +s[12] || 0);
+  if (typeof s[28] === 'number' && b.barrierMax) b.barrier = clamp(s[28], 0, 1) * b.barrierMax; // the owner's shield projector barrier
   b.input.aim.set(+s[13] || 0, +s[14] || 0, +s[15] || 0);
   b.input.weapon = WTYPES[s[16] | 0] || 'blaster'; b.input.fire = !!s[17]; b.spin = +s[18] || 0; b.shieldT = s[19] ? .5 : 0;
   b.alt = +s[21] || 0; b.jetting = !!s[22]; if (typeof s[23] === 'number') b.kills = s[23] | 0; if (typeof s[24] === 'number') b.dmgDealt = Math.max(0, s[24]); if (typeof s[25] === 'number') b.healed = Math.max(0, s[25]); { const fl = s[26] | 0; b.cloaked = !!(fl & 1); b.cloakT = b.cloaked ? 1 : 0; b.stunT = fl & 2 ? .5 : 0; b.flyT = fl & 4 ? .4 : 0; const gm = s[27] | 0; b.input.group = gm ? WTYPES.filter((t, i) => gm & (1 << i)) : null; b.input.groupMode = gm & (1 << 20) ? 'alt' : 'together'; }
@@ -6242,6 +6281,8 @@ function netMove(b, dt) { // smooth remote bots toward their owner's latest stat
   if (b.shield) b.shield.visible = b.shieldT > 0;
 }
 
+// RoboBlocks servers have bandwidth to spare: send player state 20 times a second and AI 10 (other hosts 12 and 6)
+const NET_FAST = () => HEADLESS || BE.kind === 'server' || !!(NET.room && NET.room.relay);
 // ---------- per-frame network tick ----------
 function netTick(dt) {
   if (!match || !match.net || !NET.game) return;
@@ -6272,13 +6313,13 @@ function netTick(dt) {
   // send
   NET.sendT -= dt;
   if (NET.sendT <= 0) {
-    NET.sendT = 1 / 12; flushReports(now);
+    NET.sendT = NET_FAST() ? 1 / 20 : 1 / 12; flushReports(now);
     NET.fast.presence({ m: g.matchId, s: encState(P), h: NET.ring.map(e => e.slice(0, 4)) }).catch(() => { });
   }
   if (g.isHost) {
     NET.shardT -= dt;
     if (NET.shardT <= 0) {
-      NET.shardT = 1 / 6;
+      NET.shardT = NET_FAST() ? 1 / 10 : 1 / 6;
       const ai = world.bots.filter(b => !b.human && !b.isPlayer);
       NET.shards.forEach((r, k) => { if (r && r.presence) r.presence({ m: g.matchId, a: ai.slice(k * 13, k * 13 + 13).map(b => [b.netId.slice(1) | 0, ...encState(b)]) }).catch(() => { }); });
     }
@@ -6567,7 +6608,7 @@ function renderParty() {
   for (const p of others) {
     const r = document.createElement('div'); r.className = 'grow';
     const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = pilotTag(p.presence);
-    const s = document.createElement('span'); s.textContent = `Lv ${(p.presence.lv | 0) || 1}${p.presence.sv ? ' · in a game' : ' · in the menu'}${NET.party && p.presence.party === NET.party.id ? ' · in your party' : ''}`; info.append(b, s);
+    const s = document.createElement('span'); s.textContent = `Lv ${(p.presence.lv | 0) || 1} · ${p.presence.sv ? (SERVERS.find(x => x.id === p.presence.sv) || { name: 'a custom game' }).name : 'in the menu'}${NET.party && p.presence.party === NET.party.id ? ' · in your party' : ''}`; info.append(b, s);
     const btn = document.createElement('button'); btn.textContent = NET.party && p.presence.party === NET.party.id ? 'In party' : 'Invite'; btn.disabled = NET.party && (p.presence.party === NET.party.id || NET.party.leader !== NET.me);
     btn.onclick = () => partyInvite(p.peer);
     const fb = document.createElement('button'); const fr = isFriendPeer(p); fb.textContent = fr ? 'Friend ✓' : 'Add friend'; fb.disabled = fr || !peerKey(p);
@@ -6952,7 +6993,7 @@ function startBattle(opts) {
   resetReactors();
   player.input.weapon = WTYPES.find(t => player.guns[t].length) || 'blaster';
   resetPlayerWeapons(player);
-  cam.target.copy(player.center); cam.spect = null; clock = 0;
+  cam.target.copy(player.center); cam.spect = null; cam.floor = null; clock = 0;
   state = 'battle';
   $('#garage').hidden = true; $('#menu').hidden = true; $('#hud').hidden = false;
   $('#goal').textContent = modeGoalText(mode, N, limit) || (mode === 'test' ? 'TEST DRIVE' : mode === 'space' ? `SPACE · FIRST TO ${limit}` : mode === 'pit' ? `THE PIT · ${limit} KILLS` : mode === 'tdm' ? `${N}V${N} · FIRST TO ${limit}` : mode === 'arena' ? `${limit} OPENS REACTOR` : `${N}V${N} · ELIMINATION`);
@@ -7226,15 +7267,21 @@ $('#mAdmin').onclick = () => { SFX.init(); SFX.ui(); showAdmin(); };
 // ---------- input ----------
 let noLock = TCH.on, lockFails = 0, lastFail = 0;
 const lockFailed = () => { const n = performance.now(); if (n - lastFail < 300) return; lastFail = n; lockFails++; if (lockFails >= 2) noLock = true; else toast('Click the battlefield to capture the mouse.'); };
-function lockPointer() { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(lockFailed); } catch (e) { lockFailed(); } }
+// raw mouse input (no OS acceleration, no Chromium's occasional jump) where supported, plain pointer lock otherwise
+function lockPointer() {
+  const plain = () => { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(lockFailed); } catch (e) { lockFailed(); } };
+  try { const r = canvas.requestPointerLock({ unadjustedMovement: true }); if (r && r.catch) r.catch(plain); else if (!r) { /* older browsers: the request is in flight */ } } catch (e) { plain(); }
+}
 document.addEventListener('pointerlockerror', lockFailed);
 document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && state === 'battle' && match && !match.over && !paused) showPause(); });
 document.addEventListener('pointerdown', () => SFX.init(), { capture: true });
 document.addEventListener('mousemove', e => {
   if (state !== 'battle' || paused) return;
   if (document.pointerLockElement === canvas || noLock) {
-    const s = .0022 * settings.sens;
-    cam.yaw -= e.movementX * s; cam.pitch = clamp(cam.pitch - e.movementY * s * (settings.invertY ? -1 : 1), -.75, .7);
+    const s = .0022 * settings.sens, mx = e.movementX, my = e.movementY;
+    // drop the occasional bogus jump pointer lock reports (a single huge move between ordinary ones)
+    const big = Math.abs(mx) > 280 || Math.abs(my) > 280; if (big && !cam.bigMove) { cam.bigMove = true; return; } cam.bigMove = big;
+    cam.yaw -= mx * s; cam.pitch = clamp(cam.pitch - my * s * (settings.invertY ? -1 : 1), -.75, .7);
   }
 });
 canvas.addEventListener('mousedown', e => {
@@ -7288,7 +7335,7 @@ addEventListener('keydown', e => {
     if (!P || paused || match.over) return;
     if (e.code === KB('destruct') && !e.repeat && !P.dead) P.die();
     if ((e.code === KB('boost') || (KB('boost') === 'ShiftLeft' && e.code === 'ShiftRight')) && !e.repeat) P.input.dash = true;
-    if (P.dead && /^Digit[1-5]$/.test(e.code) && loadoutPick(+e.code.slice(5) - 1)) return;
+    if (P.dead && /^Digit[0-9]$/.test(e.code) && loadoutPick((+e.code.slice(5) + 9) % 10)) return; // 1-9, and 0 for bay 10
     if (/^Digit[1-4]$/.test(e.code) && P.wg && P.wg[+e.code.slice(5) - 1]) { selectGroup(+e.code.slice(5) - 1); return; }
     const m = WKEYS[e.code]; if (m && P.guns[m] && P.guns[m].length) { P.input.weapon = m; P.input.group = null; P.wgIdx = -1; buildWeaponHud(); SFX.ui(); }
     const mk = modKeyOf(e.code); if (mk && !e.repeat && !P.dead && hasModule(P, mk)) P.input.mod = mk;
@@ -7383,6 +7430,20 @@ function ambientFx(dt) {
     else if (Math.random() < .3) emit(x, terrainH(x, z) + rand(0, 2), z, rand(4, 8), .3, rand(-1, 1), 2, .5, world.map.dust, 0);
   }
 }
+// shield projector: a glowing bubble flashes around the bot whenever its barrier absorbs a hit
+const BARRIER_GEO = HEADLESS ? null : new T.IcosahedronGeometry(1, 3);
+function barrierFx(b, dt) {
+  if (HEADLESS) return;
+  const on = !b.dead && b.barrierMax > 0 && (b.barrierFlash || 0) > 0;
+  if (!on) { if (b.barrierMesh) b.barrierMesh.visible = false; return; }
+  if (!b.barrierMesh || b.barrierMesh.parent !== world.scene) {
+    b.barrierMesh = new T.Mesh(BARRIER_GEO, new T.MeshBasicMaterial({ color: new T.Color(0x5fe8ff).multiplyScalar(1.6), transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+    world.scene.add(b.barrierMesh);
+  }
+  b.barrierFlash = Math.max(0, b.barrierFlash - dt * 2.5);
+  const m = b.barrierMesh, k = b.barrier / b.barrierMax; m.visible = true; m.position.copy(b.center); m.scale.setScalar(b.radius3 + .6);
+  m.material.opacity = b.barrierFlash * (.12 + .25 * k);
+}
 function updateBattle(dt) {
   clock += dt; world.time += dt;
   const P = match.player;
@@ -7424,6 +7485,7 @@ function updateBattle(dt) {
   updateDebris(dt); updateParticles(dt); updateFlashes(dt); ambientFx(dt); fxUpdate(dt);
   if (world.sky) world.sky.material.uniforms.time.value = world.time;
   if (world.lavaTex) { world.lavaTex.offset.x = world.time * .004; world.lavaTex.offset.y = Math.sin(world.time * .05) * .02; }
+  for (const b of world.bots) barrierFx(b, dt);
   for (const b of world.bots) if (!b.dead && b.tag) {
     if (b.tag.dirty && clock - (b.tag.t || 0) > .15) { b.tag.t = clock; drawTag(b); }
     const dist = camera.position.distanceTo(b.center); const s = clamp(dist / 28, 1, 5);
@@ -7491,7 +7553,10 @@ function updateCamera(dt) {
     else { cam.yaw += dt * .25; tgt = cam.deathPos || cam.target; dist = 16; lift = 6; }
   }
   _camPos.copy(tgt).addScaledVector(L, -dist); _camPos.y += lift;
-  const gh = terrainH(_camPos.x, _camPos.z) + 1.2; if (_camPos.y < gh) _camPos.y = gh;
+  // keep the camera above the ground: look at the ground in a small ring around it (so a bump does not pop it up the
+  // moment it passes over), rise at once when needed, settle back down gently
+  let gh = terrainH(_camPos.x, _camPos.z); for (let i = 0; i < 6; i++) { const a = i * 1.047; gh = Math.max(gh, terrainH(_camPos.x + Math.cos(a) * 2.5, _camPos.z + Math.sin(a) * 2.5) - .4); }
+  gh += 1.2; cam.floor = cam.floor == null || gh > cam.floor ? gh : lerp(cam.floor, gh, 1 - Math.exp(-3 * dt)); if (_camPos.y < cam.floor) _camPos.y = cam.floor;
   if (cam.shake > 0) { _camPos.x += rand(-1, 1) * cam.shake * .5; _camPos.y += rand(-1, 1) * cam.shake * .5; cam.shake = Math.max(0, cam.shake - dt * 1.8); }
   camera.position.copy(_camPos);
   camera.lookAt(_v1.copy(_camPos).add(L)); camera.updateMatrixWorld();
@@ -7532,7 +7597,8 @@ function updateHud(dt) {
   drawLoadoutBar(); updateReactorHud();
   const k = P.dead ? 0 : clamp(P.hp / P.maxHp, 0, 1);
   $('#hpPct').textContent = Math.round(k * 100) + '%';
-  $('#hpBar i').style.width = k * 100 + '%'; $('#hpBar').classList.toggle('low', k < .35);
+  $('#hpBar i').style.width = k * 100 + '%';
+  const bm = !P.dead && P.barrierMax > 0; if ($('#barRow').hidden === bm) $('#barRow').hidden = !bm; if (bm) $('#barBar i').style.width = Math.round(P.barrier / P.barrierMax * 100) + '%'; $('#hpBar').classList.toggle('low', k < .35);
   $('#spdVal').textContent = fmtSpeed(Math.hypot(P.vel.x, P.vel.z));
   $('#kdVal').textContent = `K ${P.kills} · D ${P.deaths}`;
   $('#fuelRow .bar i').style.width = P.fuel * 100 + '%';
@@ -8610,7 +8676,7 @@ const isFriend = k => !!k && FRIENDS.list.some(f => f.k === k);
 function addFriend(p) {
   const k = peerKey(p); if (!k) { toast('That pilot is on an older version of the game and has no friend code yet.'); return; }
   if (isFriendPeer(p)) { toast('Already on your friends list.'); return; }
-  FRIENDS.list.push({ k, name: cleanName(p.presence && p.presence.name) || 'Pilot', t: Date.now() }); friendsSave(); toast(`${cleanName(p.presence.name) || 'Pilot'} added to your friends.`);
+  FRIENDS.list.push({ k, name: peerName(p), t: Date.now() }); friendsSave(); toast(`${cleanName(p.presence.name) || 'Pilot'} added to your friends.`);
 }
 function friendOnline(f) { return (NET.lobbyPeers || []).find(p => !p.sameTab && peerKeys(p).includes(f.k) && p.presence && p.presence.bc && !p.presence.srv) || null; }
 function addFriendCode(raw) {
@@ -8618,8 +8684,10 @@ function addFriendCode(raw) {
   if (c === MY_FC) { toast('That is your own code.'); return false; }
   if (isFriend('c:' + c)) { toast('Already on your friends list.'); return false; }
   const p = (NET.lobbyPeers || []).find(x => !x.sameTab && peerKeys(x).includes('c:' + c));
-  FRIENDS.list.push({ k: 'c:' + c, name: p ? cleanName(p.presence.name) || c : c, t: Date.now() }); friendsSave();
-  toast(p ? `${cleanName(p.presence.name) || 'Pilot'} added to your friends.` : `${c} added. They show up as online when they are on this server.`); return true;
+  FRIENDS.list.push({ k: 'c:' + c, name: p ? peerName(p) : c, t: Date.now() }); friendsSave();
+  toast(p ? `${peerName(p)} added to your friends.` : `${c} added.`);
+  if (!p) friendLookup([c]).then(x => { const f = FRIENDS.list.find(y => y.k === 'c:' + c), nm = x[c] && x[c].name && cleanName(x[c].name); if (f && nm) { f.name = nm; friendsSave(); toast(`${c} is ${nm}.`); if ($('#frCode')) showFriends(); } });
+  return true;
 }
 function copyFriendCode() { try { navigator.clipboard.writeText(MY_FC).then(() => toast('Friend code copied.'), () => toast('Your friend code: ' + MY_FC)); } catch (e) { toast('Your friend code: ' + MY_FC); } }
 const myCodeHtml = () => MY_FC ? `<div class="fcode">Your friend code <b>${MY_FC}</b> <button class="fcCopy">Copy</button></div>` : '';
@@ -8629,16 +8697,49 @@ function friendWhere(p) {
   const s = SERVERS.find(x => x.id === sv); return s ? `On ${s.name}` : 'In a custom game';
 }
 // called from the lobby tick: toast when a friend comes online
+// a friend's display name: their account name when signed in, otherwise their callsign
+const peerName = p => cleanName(p && p.presence && (p.presence.acct || p.presence.name)) || 'Pilot';
+const friendCode = f => String(f.k || '').startsWith('c:') ? f.k.slice(2) : null;
 function friendsTick() {
   if (!NET.lobbyPeers) return;
-  for (const f of FRIENDS.list) { const on = !!friendOnline(f); if (on && !FRIENDS.seen.has(f.k)) { FRIENDS.seen.add(f.k); if (FRIENDS.ready) chatLocal(`${f.name} is online.`); } else if (!on) FRIENDS.seen.delete(f.k); }
+  let named = false;
+  for (const f of FRIENDS.list) {
+    const p = friendOnline(f), on = !!p;
+    if (p && peerName(p) !== f.name) { f.name = peerName(p); named = true; } // keep the saved name current
+    if (on && !FRIENDS.seen.has(f.k)) { FRIENDS.seen.add(f.k); if (FRIENDS.ready) chatLocal(`${f.name} is online.`); } else if (!on) FRIENDS.seen.delete(f.k);
+  }
+  if (named) friendsSave();
   FRIENDS.ready = true;
+}
+// ask this server and every server the hub lists where these friend codes are (names, online, which room)
+async function friendLookup(codes) {
+  if (!codes.length || !SERVER_BASE || BE.kind !== 'server') return {};
+  const list = await fetchServerList().catch(() => ({ ok: false })), urls = [SERVER_BASE, ...((list.ok ? list.list : []).map(s => { try { return new URL(s.url).origin; } catch (e) { return null; } }))].filter((u, i, a) => u && a.indexOf(u) === i).slice(0, 12);
+  const out = {};
+  await Promise.all(urls.map(async u => {
+    try {
+      const ac = new AbortController(), t = setTimeout(() => ac.abort(), 4000);
+      const r = await fetch(u + '/friends?codes=' + encodeURIComponent(codes.join(',')), { signal: ac.signal, cache: 'no-store' }); clearTimeout(t); if (!r.ok) return;
+      const j = await r.json();
+      for (const [c, x] of Object.entries(j.codes || {})) {
+        const cur = out[c] || {}; if (x.name && (!cur.name || x.seen > (cur.seen || 0))) { cur.name = x.name; cur.seen = x.seen; }
+        if (x.online) { cur.online = true; cur.server = u === SERVER_BASE ? null : (j.server || u.replace(/^https?:\/\//, '')); cur.url = u; cur.room = x.room || null; }
+        out[c] = cur;
+      }
+    } catch (e) { }
+  }));
+  return out;
 }
 async function showFriends() {
   showOverlay('<h2>Friends</h2><p>Checking who is online…</p>', true);
   await netInit(); await new Promise(r => setTimeout(r, 400));
-  const rows = FRIENDS.list.map((f, i) => { const p = friendOnline(f); if (p) f.name = cleanName(p.presence.name) || f.name;
-    return `<div class="frow${p ? ' on' : ''}"><span class="dot"></span><div><b>${esc(f.name)}</b><span>${p ? esc(friendWhere(p)) + (p.presence.lv ? ' · level ' + (p.presence.lv | 0) : '') : 'Offline'}</span></div>
+  const look = await friendLookup(FRIENDS.list.map(friendCode).filter(Boolean)); let named = false;
+  if (!$('#overlay') || $('#overlay').hidden) return;
+  const rows = FRIENDS.list.map((f, i) => { const p = friendOnline(f), x = look[friendCode(f)] || {};
+    const nm = p ? peerName(p) : x.name ? cleanName(x.name) : null; if (nm && nm !== f.name) { f.name = nm; named = true; }
+    const code = friendCode(f), elsewhere = !p && x.online;
+    const status = p ? friendWhere(p) + (p.presence.lv ? ' · level ' + (p.presence.lv | 0) : '') : elsewhere ? `Online on ${x.server || 'this server'}${x.room ? ' · in ' + x.room : ''}` : 'Offline' + (x.seen ? ' · last seen ' + new Date(x.seen).toLocaleDateString() : '');
+    return `<div class="frow${p || elsewhere ? ' on' : ''}"><span class="dot"></span><div><b>${esc(f.name)}</b><span>${esc(status)}${code && f.name !== code ? ' · ' + code : ''}</span></div>${elsewhere && x.url && x.server ? `<button data-goto="${esc(x.url)}">Go to server</button>` : ''}
       ${p && p.presence.sv ? `<button data-join="${i}">Join</button>` : ''}${p ? `<button data-inv="${i}">Invite to party</button>` : ''}<button data-rm="${i}" title="Remove">✕</button></div>`; }).join('');
   const others = (NET.lobbyPeers || []).filter(p => !p.sameTab && p.presence && p.presence.bc && !p.presence.srv && peerKey(p) && !isFriendPeer(p)).slice(0, 30);
   showOverlay(`<h2>Friends</h2>
@@ -8648,7 +8749,8 @@ async function showFriends() {
     ${others.length ? `<h3>PILOTS ONLINE NOW</h3><div class="flist">${others.map((p, i) => `<div class="frow on"><span class="dot"></span><div><b>${esc(cleanName(p.presence.name) || 'Pilot')}</b><span>${esc(friendWhere(p))} · level ${p.presence.lv | 0}</span></div><button data-add="${i}">Add friend</button></div>`).join('')}</div>` : ''}
     <p style="font-size:13px">Share your friend code, or add pilots you meet in the Server browser. You get a chat note when a friend comes online, and can join their game from here.</p>
     <div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true);
-  $('#ovBack').onclick = backToMenu; wireMyCode();
+  $('#ovBack').onclick = backToMenu; wireMyCode(); if (named) friendsSave();
+  document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { const u = b.dataset.goto; if (HOST && HOST.setServer) HOST.setServer(u); else location.href = u + '/'; });
   $('#frCode').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#frAdd').click(); });
   $('#frAdd').onclick = () => { if (addFriendCode($('#frCode').value)) showFriends(); };
   document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { addFriend(others[+b.dataset.add]); showFriends(); });
@@ -8857,7 +8959,7 @@ Object.assign(window.__sfa, { SPLASH, mobility, Bot, WEAPONS, PARTS, TIERS, BAL,
 // ---- 78-loadout.js ----
 // ================= LOADOUTS =================
 // Your garage bays are your loadout. Pick which bot you deploy with on the setup screen, and while you are
-// wrecked press 1–5 (or tap a card, or the gamepad's next/prev weapon buttons) to rebuild as a different bot.
+// wrecked press 1–9 or 0 (or tap a card, or the gamepad's next/prev weapon buttons) to rebuild as a different bot.
 // Online, the new design goes out with your presence and other players rebuild you with it when you respawn.
 const LOADOUT = { bay: null, next: null, el: null, sig: '' };
 const bayUsable = d => !!(d && Array.isArray(d.blocks) && d.blocks.length);
@@ -8933,11 +9035,11 @@ function drawLoadoutBar(force) {
   const list = loadoutList(match.mode); if (list.length < 2) { el.hidden = true; return; }
   const cur = LOADOUT.next != null ? LOADOUT.next : P.bay != null ? P.bay : deployBay(match.mode), sig = cur + '|' + list.map(x => x.i + x.why).join(',');
   el.hidden = false; if (!force && sig === LOADOUT.sig) return; LOADOUT.sig = sig;
-  el.innerHTML = `<div class="lh">REBUILD AS · press ${list.filter(x => !x.why).map(x => x.i + 1).join(' ')}${PAD.on ? ' or LB / RB' : ''}</div>` + list.map(({ i, d, why }) => `<div class="lc${i === cur ? ' sel' : ''}${why ? ' bad' : ''}" data-bay="${i}"><i>${i + 1}</i><b></b><span>${why ? esc(why) : Math.round(computeStats(d.blocks).cpu) + ' CPU'}</span></div>`).join('');
+  el.innerHTML = `<div class="lh">REBUILD AS · press ${list.filter(x => !x.why).map(x => (x.i + 1) % 10).join(' ')}${PAD.on ? ' or LB / RB' : ''}</div>` + list.map(({ i, d, why }) => `<div class="lc${i === cur ? ' sel' : ''}${why ? ' bad' : ''}" data-bay="${i}"><i>${(i + 1) % 10}</i><b></b><span>${why ? esc(why) : Math.round(computeStats(d.blocks).cpu) + ' CPU'}</span></div>`).join('');
   el.querySelectorAll('.lc b').forEach((b, k) => b.textContent = cleanName(list[k].d.name || '') || 'Bay ' + (list[k].i + 1));
 }
 Object.assign(window.__sfa, { LOADOUT, loadoutPick, loadoutList, deployDesign, deployBay, drawLoadoutBar, get bays() { return bays; } });
-Object.assign(window.__sfa, { post, cam });
+Object.assign(window.__sfa, { post, cam, encState, mirrorR, gPaintAt, get garage() { return garage; } });
 // ---- 99-end.js ----
 start();
 // end of RoboBlocks

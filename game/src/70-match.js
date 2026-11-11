@@ -92,7 +92,7 @@ function startBattle(opts) {
   resetReactors();
   player.input.weapon = WTYPES.find(t => player.guns[t].length) || 'blaster';
   resetPlayerWeapons(player);
-  cam.target.copy(player.center); cam.spect = null; clock = 0;
+  cam.target.copy(player.center); cam.spect = null; cam.floor = null; clock = 0;
   state = 'battle';
   $('#garage').hidden = true; $('#menu').hidden = true; $('#hud').hidden = false;
   $('#goal').textContent = modeGoalText(mode, N, limit) || (mode === 'test' ? 'TEST DRIVE' : mode === 'space' ? `SPACE · FIRST TO ${limit}` : mode === 'pit' ? `THE PIT · ${limit} KILLS` : mode === 'tdm' ? `${N}V${N} · FIRST TO ${limit}` : mode === 'arena' ? `${limit} OPENS REACTOR` : `${N}V${N} · ELIMINATION`);
@@ -366,15 +366,21 @@ $('#mAdmin').onclick = () => { SFX.init(); SFX.ui(); showAdmin(); };
 // ---------- input ----------
 let noLock = TCH.on, lockFails = 0, lastFail = 0;
 const lockFailed = () => { const n = performance.now(); if (n - lastFail < 300) return; lastFail = n; lockFails++; if (lockFails >= 2) noLock = true; else toast('Click the battlefield to capture the mouse.'); };
-function lockPointer() { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(lockFailed); } catch (e) { lockFailed(); } }
+// raw mouse input (no OS acceleration, no Chromium's occasional jump) where supported, plain pointer lock otherwise
+function lockPointer() {
+  const plain = () => { try { const r = canvas.requestPointerLock(); if (r && r.catch) r.catch(lockFailed); } catch (e) { lockFailed(); } };
+  try { const r = canvas.requestPointerLock({ unadjustedMovement: true }); if (r && r.catch) r.catch(plain); else if (!r) { /* older browsers: the request is in flight */ } } catch (e) { plain(); }
+}
 document.addEventListener('pointerlockerror', lockFailed);
 document.addEventListener('pointerlockchange', () => { if (!document.pointerLockElement && state === 'battle' && match && !match.over && !paused) showPause(); });
 document.addEventListener('pointerdown', () => SFX.init(), { capture: true });
 document.addEventListener('mousemove', e => {
   if (state !== 'battle' || paused) return;
   if (document.pointerLockElement === canvas || noLock) {
-    const s = .0022 * settings.sens;
-    cam.yaw -= e.movementX * s; cam.pitch = clamp(cam.pitch - e.movementY * s * (settings.invertY ? -1 : 1), -.75, .7);
+    const s = .0022 * settings.sens, mx = e.movementX, my = e.movementY;
+    // drop the occasional bogus jump pointer lock reports (a single huge move between ordinary ones)
+    const big = Math.abs(mx) > 280 || Math.abs(my) > 280; if (big && !cam.bigMove) { cam.bigMove = true; return; } cam.bigMove = big;
+    cam.yaw -= mx * s; cam.pitch = clamp(cam.pitch - my * s * (settings.invertY ? -1 : 1), -.75, .7);
   }
 });
 canvas.addEventListener('mousedown', e => {
@@ -428,7 +434,7 @@ addEventListener('keydown', e => {
     if (!P || paused || match.over) return;
     if (e.code === KB('destruct') && !e.repeat && !P.dead) P.die();
     if ((e.code === KB('boost') || (KB('boost') === 'ShiftLeft' && e.code === 'ShiftRight')) && !e.repeat) P.input.dash = true;
-    if (P.dead && /^Digit[1-5]$/.test(e.code) && loadoutPick(+e.code.slice(5) - 1)) return;
+    if (P.dead && /^Digit[0-9]$/.test(e.code) && loadoutPick((+e.code.slice(5) + 9) % 10)) return; // 1-9, and 0 for bay 10
     if (/^Digit[1-4]$/.test(e.code) && P.wg && P.wg[+e.code.slice(5) - 1]) { selectGroup(+e.code.slice(5) - 1); return; }
     const m = WKEYS[e.code]; if (m && P.guns[m] && P.guns[m].length) { P.input.weapon = m; P.input.group = null; P.wgIdx = -1; buildWeaponHud(); SFX.ui(); }
     const mk = modKeyOf(e.code); if (mk && !e.repeat && !P.dead && hasModule(P, mk)) P.input.mod = mk;
@@ -523,6 +529,20 @@ function ambientFx(dt) {
     else if (Math.random() < .3) emit(x, terrainH(x, z) + rand(0, 2), z, rand(4, 8), .3, rand(-1, 1), 2, .5, world.map.dust, 0);
   }
 }
+// shield projector: a glowing bubble flashes around the bot whenever its barrier absorbs a hit
+const BARRIER_GEO = HEADLESS ? null : new T.IcosahedronGeometry(1, 3);
+function barrierFx(b, dt) {
+  if (HEADLESS) return;
+  const on = !b.dead && b.barrierMax > 0 && (b.barrierFlash || 0) > 0;
+  if (!on) { if (b.barrierMesh) b.barrierMesh.visible = false; return; }
+  if (!b.barrierMesh || b.barrierMesh.parent !== world.scene) {
+    b.barrierMesh = new T.Mesh(BARRIER_GEO, new T.MeshBasicMaterial({ color: new T.Color(0x5fe8ff).multiplyScalar(1.6), transparent: true, opacity: 0, depthWrite: false, blending: T.AdditiveBlending, side: T.DoubleSide }));
+    world.scene.add(b.barrierMesh);
+  }
+  b.barrierFlash = Math.max(0, b.barrierFlash - dt * 2.5);
+  const m = b.barrierMesh, k = b.barrier / b.barrierMax; m.visible = true; m.position.copy(b.center); m.scale.setScalar(b.radius3 + .6);
+  m.material.opacity = b.barrierFlash * (.12 + .25 * k);
+}
 function updateBattle(dt) {
   clock += dt; world.time += dt;
   const P = match.player;
@@ -564,6 +584,7 @@ function updateBattle(dt) {
   updateDebris(dt); updateParticles(dt); updateFlashes(dt); ambientFx(dt); fxUpdate(dt);
   if (world.sky) world.sky.material.uniforms.time.value = world.time;
   if (world.lavaTex) { world.lavaTex.offset.x = world.time * .004; world.lavaTex.offset.y = Math.sin(world.time * .05) * .02; }
+  for (const b of world.bots) barrierFx(b, dt);
   for (const b of world.bots) if (!b.dead && b.tag) {
     if (b.tag.dirty && clock - (b.tag.t || 0) > .15) { b.tag.t = clock; drawTag(b); }
     const dist = camera.position.distanceTo(b.center); const s = clamp(dist / 28, 1, 5);
@@ -631,7 +652,10 @@ function updateCamera(dt) {
     else { cam.yaw += dt * .25; tgt = cam.deathPos || cam.target; dist = 16; lift = 6; }
   }
   _camPos.copy(tgt).addScaledVector(L, -dist); _camPos.y += lift;
-  const gh = terrainH(_camPos.x, _camPos.z) + 1.2; if (_camPos.y < gh) _camPos.y = gh;
+  // keep the camera above the ground: look at the ground in a small ring around it (so a bump does not pop it up the
+  // moment it passes over), rise at once when needed, settle back down gently
+  let gh = terrainH(_camPos.x, _camPos.z); for (let i = 0; i < 6; i++) { const a = i * 1.047; gh = Math.max(gh, terrainH(_camPos.x + Math.cos(a) * 2.5, _camPos.z + Math.sin(a) * 2.5) - .4); }
+  gh += 1.2; cam.floor = cam.floor == null || gh > cam.floor ? gh : lerp(cam.floor, gh, 1 - Math.exp(-3 * dt)); if (_camPos.y < cam.floor) _camPos.y = cam.floor;
   if (cam.shake > 0) { _camPos.x += rand(-1, 1) * cam.shake * .5; _camPos.y += rand(-1, 1) * cam.shake * .5; cam.shake = Math.max(0, cam.shake - dt * 1.8); }
   camera.position.copy(_camPos);
   camera.lookAt(_v1.copy(_camPos).add(L)); camera.updateMatrixWorld();
@@ -672,7 +696,8 @@ function updateHud(dt) {
   drawLoadoutBar(); updateReactorHud();
   const k = P.dead ? 0 : clamp(P.hp / P.maxHp, 0, 1);
   $('#hpPct').textContent = Math.round(k * 100) + '%';
-  $('#hpBar i').style.width = k * 100 + '%'; $('#hpBar').classList.toggle('low', k < .35);
+  $('#hpBar i').style.width = k * 100 + '%';
+  const bm = !P.dead && P.barrierMax > 0; if ($('#barRow').hidden === bm) $('#barRow').hidden = !bm; if (bm) $('#barBar i').style.width = Math.round(P.barrier / P.barrierMax * 100) + '%'; $('#hpBar').classList.toggle('low', k < .35);
   $('#spdVal').textContent = fmtSpeed(Math.hypot(P.vel.x, P.vel.z));
   $('#kdVal').textContent = `K ${P.kills} · D ${P.deaths}`;
   $('#fuelRow .bar i').style.width = P.fuel * 100 + '%';

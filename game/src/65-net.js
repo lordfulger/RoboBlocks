@@ -7,15 +7,17 @@ const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 const B64I = {}; for (let i = 0; i < 64; i++) B64I[B64[i]] = i;
 function encodeDesign(d) {
   const fi = Math.max(0, FINISHES.findIndex(f => f.id === (d.f || 'standard')));
-  let out = '~' + B64[fi] + '----';
+  let out = '~' + B64[fi] + '----', high = '', n = 0;
   for (const b of d.blocks) {
     const t = PART_CODES.indexOf(b.t); if (t < 0) continue;
+    if (b.y >= 16) high += B64[(n >> 6) & 63] + B64[n & 63]; n++; // taller bots: the 5th height bit, per block
     // part code: 5 low bits at 12, a sixth bit at 31 (always 0 in older saves)
     const v = ((b.x + 8) & 15) | ((b.y & 15) << 4) | (((b.z + 8) & 15) << 8) | ((t & 31) << 12) | (((b.c | 0) & 15) << 17) | (((b.r | 0) & 63) << 21) | ((((b.k || 1) - 1) & 15) << 27) | (((t >> 5) & 1) << 31);
     for (let i = 0; i < 6; i++) out += B64[(v >>> (i * 6)) & 63];
   }
   // armor materials: '!' then, per non-standard block, its index (2 chars) and material (1 char)
   let tail = ''; d.blocks.forEach((b, i) => { const mi = MAT_CODES.indexOf(b.m); if (mi > 0 && PART_CODES.includes(b.t)) tail += B64[(i >> 6) & 63] + B64[i & 63] + B64[mi]; });
+  if (high) out += '@' + high;
   return tail ? out + '!' + tail : out;
 }
 function decodeDesign(s) {
@@ -23,6 +25,7 @@ function decodeDesign(s) {
   if (typeof s !== 'string') return { v: 3, blocks };
   let f = 'standard', i0 = 0, mats = '';
   const bang = s.indexOf('!'); if (bang >= 0) { mats = s.slice(bang + 1); s = s.slice(0, bang); }
+  let high = ''; const at = s.indexOf('@'); if (at >= 0) { high = s.slice(at + 1); s = s.slice(0, at); }
   if (s[0] === '~') { f = (FINISHES[B64I[s[1]] | 0] || FINISHES[0]).id; i0 = 6; }
   for (let i = i0; i + 6 <= s.length && blocks.length < 700; i += 6) {
     let v = 0; for (let j = 0; j < 6; j++) v |= (B64I[s[i + j]] | 0) << (j * 6);
@@ -31,6 +34,7 @@ function decodeDesign(s) {
     if (isShape(t)) b.k = ((v >>> 27) & 15) + 1;
     blocks.push(b);
   }
+  for (let i = 0; i + 2 <= high.length; i += 2) { const b = blocks[((B64I[high[i]] | 0) << 6) | (B64I[high[i + 1]] | 0)]; if (b) b.y += 16; }
   for (let i = 0; i + 3 <= mats.length; i += 3) { const bi = ((B64I[mats[i]] | 0) << 6) | (B64I[mats[i + 1]] | 0), m = MAT_CODES[B64I[mats[i + 2]] | 0], b = blocks[bi]; if (b && m && m !== 'std' && isShape(b.t)) b.m = m; }
   return { v: 3, f, blocks };
 }
@@ -161,9 +165,10 @@ function renderLobbyList() {
   const want = [];
   for (const sv of SERVERS) {
     const h = (hosts.find(p => p.presence.host.code === sv.id) || {}).presence;
-    const cnt = others.filter(p => p.presence.sv === sv.id).length;
+    const inRoom = others.filter(p => p.presence.sv === sv.id), cnt = inRoom.length, meIn = NET.game && NET.game.code === sv.id;
+    const who = inRoom.slice(0, 4).map(p => pilotTag(p.presence)).join(', ') + (cnt > 4 ? ` +${cnt - 4}` : '');
     const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
-    want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.n}v${sv.n}. ${cnt ? cnt + ' playing · ' : ''}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
+    want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.n}v${sv.n}. ${cnt || meIn ? `👤 ${cnt + (meIn ? 1 : 0)} playing${cnt ? ': ' + who : ''}${meIn ? (cnt ? ', you' : ' (you)') : ''} · ` : 'Nobody here yet · '}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
   }
   for (const p of hosts.filter(p => !p.presence.host.server && String(p.presence.host.code).startsWith('c'))) {
     const h = p.presence.host, code = String(h.code).replace(/[^a-z0-9-]/g, '').slice(0, 12);
@@ -515,7 +520,7 @@ function applyReports(sender, ring) {
 function encState(b) {
   if (b.dead) return [1, b.deaths, b.killerId || '', b.spawnCount];
   return [0, b.deaths, '', b.spawnCount, r1(b.pos.x), r1(b.pos.y), r1(b.pos.z), r2(b.yaw), r2(b.pitch), r2(b.roll), r1(b.vel.x), r1(b.vel.y), r1(b.vel.z),
-    r1(b.input.aim.x), r1(b.input.aim.y), r1(b.input.aim.z), WTYPES.indexOf(b.input.weapon), b.input.fire ? 1 : 0, r2(b.spin), b.shieldT > 0 ? 1 : 0, maskOf(b), r1(b.alt), b.jetting ? 1 : 0, b.kills, Math.round(b.dmgDealt), Math.round(b.healed || 0), (b.cloakT > 0 ? 1 : 0) | (b.stunT > 0 ? 2 : 0) | (b.flyT > 0 ? 4 : 0), b.input.group && b.input.group.length > 1 ? b.input.group.reduce((m, t) => m | (1 << WTYPES.indexOf(t)), 0) | (b.input.groupMode === 'alt' ? 1 << 20 : 0) : 0];
+    r1(b.input.aim.x), r1(b.input.aim.y), r1(b.input.aim.z), WTYPES.indexOf(b.input.weapon), b.input.fire ? 1 : 0, r2(b.spin), b.shieldT > 0 ? 1 : 0, maskOf(b), r1(b.alt), b.jetting ? 1 : 0, b.kills, Math.round(b.dmgDealt), Math.round(b.healed || 0), (b.cloakT > 0 ? 1 : 0) | (b.stunT > 0 ? 2 : 0) | (b.flyT > 0 ? 4 : 0), b.input.group && b.input.group.length > 1 ? b.input.group.reduce((m, t) => m | (1 << WTYPES.indexOf(t)), 0) | (b.input.groupMode === 'alt' ? 1 << 20 : 0) : 0, b.barrierMax ? r2(b.barrier / b.barrierMax) : 0];
 }
 const _np = new T.Vector3();
 function applyState(b, s, now) {
@@ -536,6 +541,7 @@ function applyState(b, s, now) {
   if (b.dead) return;
   b.net = { x: +s[4], y: +s[5], z: +s[6], yaw: +s[7], pitch: +s[8], roll: +s[9], vx: +s[10], vy: +s[11], vz: +s[12], t: now };
   b.vel.set(+s[10] || 0, +s[11] || 0, +s[12] || 0);
+  if (typeof s[28] === 'number' && b.barrierMax) b.barrier = clamp(s[28], 0, 1) * b.barrierMax; // the owner's shield projector barrier
   b.input.aim.set(+s[13] || 0, +s[14] || 0, +s[15] || 0);
   b.input.weapon = WTYPES[s[16] | 0] || 'blaster'; b.input.fire = !!s[17]; b.spin = +s[18] || 0; b.shieldT = s[19] ? .5 : 0;
   b.alt = +s[21] || 0; b.jetting = !!s[22]; if (typeof s[23] === 'number') b.kills = s[23] | 0; if (typeof s[24] === 'number') b.dmgDealt = Math.max(0, s[24]); if (typeof s[25] === 'number') b.healed = Math.max(0, s[25]); { const fl = s[26] | 0; b.cloaked = !!(fl & 1); b.cloakT = b.cloaked ? 1 : 0; b.stunT = fl & 2 ? .5 : 0; b.flyT = fl & 4 ? .4 : 0; const gm = s[27] | 0; b.input.group = gm ? WTYPES.filter((t, i) => gm & (1 << i)) : null; b.input.groupMode = gm & (1 << 20) ? 'alt' : 'together'; }
@@ -564,6 +570,8 @@ function netMove(b, dt) { // smooth remote bots toward their owner's latest stat
   if (b.shield) b.shield.visible = b.shieldT > 0;
 }
 
+// RoboBlocks servers have bandwidth to spare: send player state 20 times a second and AI 10 (other hosts 12 and 6)
+const NET_FAST = () => HEADLESS || BE.kind === 'server' || !!(NET.room && NET.room.relay);
 // ---------- per-frame network tick ----------
 function netTick(dt) {
   if (!match || !match.net || !NET.game) return;
@@ -594,13 +602,13 @@ function netTick(dt) {
   // send
   NET.sendT -= dt;
   if (NET.sendT <= 0) {
-    NET.sendT = 1 / 12; flushReports(now);
+    NET.sendT = NET_FAST() ? 1 / 20 : 1 / 12; flushReports(now);
     NET.fast.presence({ m: g.matchId, s: encState(P), h: NET.ring.map(e => e.slice(0, 4)) }).catch(() => { });
   }
   if (g.isHost) {
     NET.shardT -= dt;
     if (NET.shardT <= 0) {
-      NET.shardT = 1 / 6;
+      NET.shardT = NET_FAST() ? 1 / 10 : 1 / 6;
       const ai = world.bots.filter(b => !b.human && !b.isPlayer);
       NET.shards.forEach((r, k) => { if (r && r.presence) r.presence({ m: g.matchId, a: ai.slice(k * 13, k * 13 + 13).map(b => [b.netId.slice(1) | 0, ...encState(b)]) }).catch(() => { }); });
     }

@@ -101,7 +101,7 @@ const isFriend = k => !!k && FRIENDS.list.some(f => f.k === k);
 function addFriend(p) {
   const k = peerKey(p); if (!k) { toast('That pilot is on an older version of the game and has no friend code yet.'); return; }
   if (isFriendPeer(p)) { toast('Already on your friends list.'); return; }
-  FRIENDS.list.push({ k, name: cleanName(p.presence && p.presence.name) || 'Pilot', t: Date.now() }); friendsSave(); toast(`${cleanName(p.presence.name) || 'Pilot'} added to your friends.`);
+  FRIENDS.list.push({ k, name: peerName(p), t: Date.now() }); friendsSave(); toast(`${cleanName(p.presence.name) || 'Pilot'} added to your friends.`);
 }
 function friendOnline(f) { return (NET.lobbyPeers || []).find(p => !p.sameTab && peerKeys(p).includes(f.k) && p.presence && p.presence.bc && !p.presence.srv) || null; }
 function addFriendCode(raw) {
@@ -109,8 +109,10 @@ function addFriendCode(raw) {
   if (c === MY_FC) { toast('That is your own code.'); return false; }
   if (isFriend('c:' + c)) { toast('Already on your friends list.'); return false; }
   const p = (NET.lobbyPeers || []).find(x => !x.sameTab && peerKeys(x).includes('c:' + c));
-  FRIENDS.list.push({ k: 'c:' + c, name: p ? cleanName(p.presence.name) || c : c, t: Date.now() }); friendsSave();
-  toast(p ? `${cleanName(p.presence.name) || 'Pilot'} added to your friends.` : `${c} added. They show up as online when they are on this server.`); return true;
+  FRIENDS.list.push({ k: 'c:' + c, name: p ? peerName(p) : c, t: Date.now() }); friendsSave();
+  toast(p ? `${peerName(p)} added to your friends.` : `${c} added.`);
+  if (!p) friendLookup([c]).then(x => { const f = FRIENDS.list.find(y => y.k === 'c:' + c), nm = x[c] && x[c].name && cleanName(x[c].name); if (f && nm) { f.name = nm; friendsSave(); toast(`${c} is ${nm}.`); if ($('#frCode')) showFriends(); } });
+  return true;
 }
 function copyFriendCode() { try { navigator.clipboard.writeText(MY_FC).then(() => toast('Friend code copied.'), () => toast('Your friend code: ' + MY_FC)); } catch (e) { toast('Your friend code: ' + MY_FC); } }
 const myCodeHtml = () => MY_FC ? `<div class="fcode">Your friend code <b>${MY_FC}</b> <button class="fcCopy">Copy</button></div>` : '';
@@ -120,16 +122,49 @@ function friendWhere(p) {
   const s = SERVERS.find(x => x.id === sv); return s ? `On ${s.name}` : 'In a custom game';
 }
 // called from the lobby tick: toast when a friend comes online
+// a friend's display name: their account name when signed in, otherwise their callsign
+const peerName = p => cleanName(p && p.presence && (p.presence.acct || p.presence.name)) || 'Pilot';
+const friendCode = f => String(f.k || '').startsWith('c:') ? f.k.slice(2) : null;
 function friendsTick() {
   if (!NET.lobbyPeers) return;
-  for (const f of FRIENDS.list) { const on = !!friendOnline(f); if (on && !FRIENDS.seen.has(f.k)) { FRIENDS.seen.add(f.k); if (FRIENDS.ready) chatLocal(`${f.name} is online.`); } else if (!on) FRIENDS.seen.delete(f.k); }
+  let named = false;
+  for (const f of FRIENDS.list) {
+    const p = friendOnline(f), on = !!p;
+    if (p && peerName(p) !== f.name) { f.name = peerName(p); named = true; } // keep the saved name current
+    if (on && !FRIENDS.seen.has(f.k)) { FRIENDS.seen.add(f.k); if (FRIENDS.ready) chatLocal(`${f.name} is online.`); } else if (!on) FRIENDS.seen.delete(f.k);
+  }
+  if (named) friendsSave();
   FRIENDS.ready = true;
+}
+// ask this server and every server the hub lists where these friend codes are (names, online, which room)
+async function friendLookup(codes) {
+  if (!codes.length || !SERVER_BASE || BE.kind !== 'server') return {};
+  const list = await fetchServerList().catch(() => ({ ok: false })), urls = [SERVER_BASE, ...((list.ok ? list.list : []).map(s => { try { return new URL(s.url).origin; } catch (e) { return null; } }))].filter((u, i, a) => u && a.indexOf(u) === i).slice(0, 12);
+  const out = {};
+  await Promise.all(urls.map(async u => {
+    try {
+      const ac = new AbortController(), t = setTimeout(() => ac.abort(), 4000);
+      const r = await fetch(u + '/friends?codes=' + encodeURIComponent(codes.join(',')), { signal: ac.signal, cache: 'no-store' }); clearTimeout(t); if (!r.ok) return;
+      const j = await r.json();
+      for (const [c, x] of Object.entries(j.codes || {})) {
+        const cur = out[c] || {}; if (x.name && (!cur.name || x.seen > (cur.seen || 0))) { cur.name = x.name; cur.seen = x.seen; }
+        if (x.online) { cur.online = true; cur.server = u === SERVER_BASE ? null : (j.server || u.replace(/^https?:\/\//, '')); cur.url = u; cur.room = x.room || null; }
+        out[c] = cur;
+      }
+    } catch (e) { }
+  }));
+  return out;
 }
 async function showFriends() {
   showOverlay('<h2>Friends</h2><p>Checking who is online…</p>', true);
   await netInit(); await new Promise(r => setTimeout(r, 400));
-  const rows = FRIENDS.list.map((f, i) => { const p = friendOnline(f); if (p) f.name = cleanName(p.presence.name) || f.name;
-    return `<div class="frow${p ? ' on' : ''}"><span class="dot"></span><div><b>${esc(f.name)}</b><span>${p ? esc(friendWhere(p)) + (p.presence.lv ? ' · level ' + (p.presence.lv | 0) : '') : 'Offline'}</span></div>
+  const look = await friendLookup(FRIENDS.list.map(friendCode).filter(Boolean)); let named = false;
+  if (!$('#overlay') || $('#overlay').hidden) return;
+  const rows = FRIENDS.list.map((f, i) => { const p = friendOnline(f), x = look[friendCode(f)] || {};
+    const nm = p ? peerName(p) : x.name ? cleanName(x.name) : null; if (nm && nm !== f.name) { f.name = nm; named = true; }
+    const code = friendCode(f), elsewhere = !p && x.online;
+    const status = p ? friendWhere(p) + (p.presence.lv ? ' · level ' + (p.presence.lv | 0) : '') : elsewhere ? `Online on ${x.server || 'this server'}${x.room ? ' · in ' + x.room : ''}` : 'Offline' + (x.seen ? ' · last seen ' + new Date(x.seen).toLocaleDateString() : '');
+    return `<div class="frow${p || elsewhere ? ' on' : ''}"><span class="dot"></span><div><b>${esc(f.name)}</b><span>${esc(status)}${code && f.name !== code ? ' · ' + code : ''}</span></div>${elsewhere && x.url && x.server ? `<button data-goto="${esc(x.url)}">Go to server</button>` : ''}
       ${p && p.presence.sv ? `<button data-join="${i}">Join</button>` : ''}${p ? `<button data-inv="${i}">Invite to party</button>` : ''}<button data-rm="${i}" title="Remove">✕</button></div>`; }).join('');
   const others = (NET.lobbyPeers || []).filter(p => !p.sameTab && p.presence && p.presence.bc && !p.presence.srv && peerKey(p) && !isFriendPeer(p)).slice(0, 30);
   showOverlay(`<h2>Friends</h2>
@@ -139,7 +174,8 @@ async function showFriends() {
     ${others.length ? `<h3>PILOTS ONLINE NOW</h3><div class="flist">${others.map((p, i) => `<div class="frow on"><span class="dot"></span><div><b>${esc(cleanName(p.presence.name) || 'Pilot')}</b><span>${esc(friendWhere(p))} · level ${p.presence.lv | 0}</span></div><button data-add="${i}">Add friend</button></div>`).join('')}</div>` : ''}
     <p style="font-size:13px">Share your friend code, or add pilots you meet in the Server browser. You get a chat note when a friend comes online, and can join their game from here.</p>
     <div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true);
-  $('#ovBack').onclick = backToMenu; wireMyCode();
+  $('#ovBack').onclick = backToMenu; wireMyCode(); if (named) friendsSave();
+  document.querySelectorAll('[data-goto]').forEach(b => b.onclick = () => { const u = b.dataset.goto; if (HOST && HOST.setServer) HOST.setServer(u); else location.href = u + '/'; });
   $('#frCode').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#frAdd').click(); });
   $('#frAdd').onclick = () => { if (addFriendCode($('#frCode').value)) showFriends(); };
   document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { addFriend(others[+b.dataset.add]); showFriends(); });

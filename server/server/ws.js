@@ -60,6 +60,7 @@ function attach(httpServer, path, maxPayload, onConnection) {
     const key = req.headers['sec-websocket-key'];
     if (url !== path || !key || (req.headers.upgrade || '').toLowerCase() !== 'websocket') { sock.destroy(); return; }
     const accept = crypto.createHash('sha1').update(key + GUID).digest('base64');
+    try { sock.setNoDelay(true); } catch (e) { } // send small game updates straight away instead of batching them
     sock.write('HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: ' + accept + '\r\n\r\n');
     onConnection(new Socket(sock, maxPayload), req);
   });

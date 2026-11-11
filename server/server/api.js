@@ -65,8 +65,8 @@ class Api {
       case 'save.put': {
         if (!acct) return { e: 'Not signed in.' };
         const d = a.data; if (!d || typeof d !== 'object' || Array.isArray(d)) return { e: 'Bad save.' };
-        const text = JSON.stringify(d); if (text.length > 96 * 1024) return { e: 'Your save is too large (96 KB at most).' };
-        if (!Array.isArray(d.bays) || d.bays.length > 5) return { e: 'Bad save.' };
+        const text = JSON.stringify(d); if (text.length > 192 * 1024) return { e: 'Your save is too large (192 KB at most).' };
+        if (!Array.isArray(d.bays) || d.bays.length > 10) return { e: 'Bad save.' };
         acct.save = JSON.parse(text); acct.save.t = Date.now(); db.save(); return { t: acct.save.t };
       }
       case 'profile': { const ac = db.account(a.name); if (!ac) return { e: 'No pilot by that name.' }; return { ...db.publicProfile(ac), history: (ac.p.history || []).slice(0, 25) }; }

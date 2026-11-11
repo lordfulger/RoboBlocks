@@ -15,18 +15,19 @@ class Bot {
     this.home = opts.home || null; statInit(this);
   }
   build() {
-    this.finish = this.design.f || 'standard';
+    this.finish = this.design.f || 'standard'; this.propInit = null;
     const bl = this.design.blocks; let sx = 0, sz = 0, minY = Infinity, maxY = -Infinity;
     for (const b of bl) { sx += b.x; sz += b.z; minY = Math.min(minY, b.y); maxY = Math.max(maxY, b.y); }
     const cx = this.cx = sx / bl.length, cz = this.cz = sz / bl.length; this.minY = minY;
     this.group = new T.Group(); this.group.rotation.order = 'YXZ';
     this.cells = new Map(); this.cellList = [];
+    const topTier = bl.reduce((a, b) => isShape(b.t) ? Math.max(a, b.k || 1) : a, 1), gunMul = gunHpMul(topTier);
     for (const b of bl) {
       const p = makePart(b.t, b.c, b.r || 0, b.k || 1, this.finish, b.m);
       p.root.position.set(b.x - cx, b.y - minY, b.z - cz);
       p.root.traverse(o => { if (o.isMesh && o.material !== M.flame) o.castShadow = true; });
       this.group.add(p.root);
-      const cell = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, k: b.k || 1, m: b.m, hp: partHp(b), max: partHp(b), obj: p.root, head: p.head, muzzle: p.muzzle, wheel: p.wheel, flame: p.flame, rotor: p.rotor, spin: p.spin, leg: p.leg, flag: p.flag, prop: p.prop, charge: p.charge, core: p.core, thrust: !!p.thrust, fly: !!p.fly, recoil: p.recoil, kick: 0, r: b.r || 0, alive: true, burnt: false };
+      const cell = { x: b.x, y: b.y, z: b.z, t: b.t, c: b.c, k: b.k || 1, m: b.m, mr: isMountable(b.t) ? (b.r || 0) & 63 : 0, hp: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), max: partHp(b) * (PARTS[b.t] && PARTS[b.t].weapon ? gunMul : 1), obj: p.root, head: p.head, muzzle: p.muzzle, wheel: p.wheel, flame: p.flame, rotor: p.rotor, spin: p.spin, leg: p.leg, flag: p.flag, prop: p.prop, charge: p.charge, core: p.core, thrust: !!p.thrust, fly: !!p.fly, recoil: p.recoil, kick: 0, r: b.r || 0, alive: true, burnt: false };
       cell.idx = this.cellList.length; this.cells.set(ckey(b.x, b.y, b.z), cell); this.cellList.push(cell);
     }
     this.meshes = [];
@@ -42,6 +43,11 @@ class Bot {
   recalc() {
     const alive = this.cellList.filter(c => c.alive); this.alive = alive;
     this.stats = computeStats(alive); this.mob = world.space ? spaceMobility(this.stats) : mobility(this.stats);
+    // losing wheels, treads, legs, hover pads, rotors, wings or thrusters slows you, even when what is left could carry the weight
+    const prop = propulsionOf(this.stats); if (this.propInit == null) this.propInit = prop;
+    const pf = this.propInit > 0 ? clamp(prop / this.propInit, 0, 1) : 1;
+    if (pf < 1) { const m = this.mob = { ...this.mob }, k = pf > 0 ? .25 + .75 * pf : 0; m.maxSpeed *= k; m.accel *= k; m.turn *= pf > 0 ? .5 + .5 * pf : .3; if (m.maxAlt) m.maxAlt *= .5 + .5 * pf; }
+    this.propFrac = pf;
     this.bottomLocal = this.stats.bottom - this.minY;
     this.hp = alive.reduce((a, c) => a + Math.max(0, c.hp), 0);
     this.guns = {}; for (const t of WTYPES) this.guns[t] = []; this.wheels = []; this.flames = []; this.teslas = []; this.rotors = []; this.legs = []; this.flags = []; this.shields = []; this.props = []; this.energyCells = []; this.spikes = 0;
@@ -82,7 +88,7 @@ class Bot {
     if (!c.alive || this.dead) return dmg;
     if (this.shieldT > 0) return 0;
     if (this.remote && attacker && !attacker.remote) netReportHit(attacker, this, c.idx, dmg);
-    if (this.barrier > 0 && !this.remote) { const soak = Math.min(this.barrier, dmg); this.barrier -= soak; dmg -= soak; if (!HEADLESS && clock - (this.barrierHitT || -9) > .15) SFX.shieldHit(this.center); this.barrierHitT = clock; if (!HEADLESS && Math.random() < .3) sparks(this.cellWorld(c, _v3), 0x5fe8ff, 3, 5, .14, .25); if (dmg <= 0) { this.lastHitT = clock; return 0; } }
+    if (this.barrier > 0) { const soak = Math.min(this.barrier, dmg); this.barrier -= soak; dmg -= soak; this.barrierFlash = 1; if (!HEADLESS && clock - (this.barrierHitT || -9) > .15) SFX.shieldHit(this.center); this.barrierHitT = clock; if (!HEADLESS && Math.random() < .3) sparks(this.cellWorld(c, _v3), 0x5fe8ff, 3, 5, .14, .25); if (dmg <= 0) { this.lastHitT = clock; return 0; } }
     const dealt = Math.min(c.hp, dmg); c.hp -= dmg; this.hp -= dealt;
     if (attacker && attacker !== this) { attacker.dmgDealt += dealt; this.lastHitBy = attacker; if (attacker.qs && attacker.team !== this.team) statDamage(attacker, dealt); }
     this.lastHitT = clock; if (this.tag) this.tag.dirty = true;
@@ -248,6 +254,11 @@ class Bot {
     for (const c of this.flags) c.flag.rotation.y = Math.sin(clock * 4 + c.idx) * .35 - this.yawVel * .3;
     if (this.energyCells && clock - this.lastHitT > 4) for (const c of this.energyCells) if (c.alive && c.hp < c.max) { const add = Math.min(c.max - c.hp, c.max * .1 * dt); c.hp += add; this.hp += add; }
     if (this.barrierMax && clock - (this.barrierHitT || -9) > 6 && this.barrier < this.barrierMax) this.barrier = Math.min(this.barrierMax, this.barrier + this.barrierMax * .2 * dt);
+    // back at your team's base pad and out of combat (not hit or firing for 5 s): blocks repair and lost ones grow back
+    if (!this.remote && !this.dead && match && match.mode !== 'pit' && !world.space && clock - this.lastHitT > 5 && clock - (this.lastFireT || -9) > 5 && this.onHomePad()) {
+      this.padT = (this.padT || 0) - dt;
+      if (this.padT <= 0) { this.padT = .25; const done = this.healAt(Math.max(40, this.maxHp * .015)); this.padRepair = done > 0 ? clock : this.padRepair; if (done > 0 && !HEADLESS && camera.position.distanceToSquared(this.pos) < 90 * 90) emit(this.center.x + rand(-1.5, 1.5), this.center.y + rand(-.5, 1.5), this.center.z + rand(-1.5, 1.5), 0, 2, 0, .5, .5, 0x7dffb0, 0, 3); }
+    }
     if (this.shields.length && clock - this.lastHitT > 5) for (const c of this.shields) if (c.alive && c.hp < c.max) { const add = Math.min(c.max - c.hp, 60 * dt); c.hp += add; this.hp += add; }
     if (this.jetting && Math.random() < dt * 8) SFX.jet(this.pos);
     const near = camera.position.distanceToSquared(this.pos) < 160 * 160;
@@ -270,6 +281,7 @@ class Bot {
     const hc = H(x, z), hf = H(x + fx * d, z + fz * d), hb = H(x - fx * d, z - fz * d), hl = H(x + lx * d, z + lz * d), hr = H(x - lx * d, z - lz * d);
     return { ground: Math.max(hc, (hf + hb) / 2, (hl + hr) / 2), pitch: -Math.atan2(hf - hb, 2 * d), roll: Math.atan2(hl - hr, 2 * d) };
   }
+  onHomePad() { const bz = this.team === 0 ? -world.spawnZ : world.spawnZ, h = this.home; return h ? Math.hypot(this.pos.x - h.x, this.pos.z - h.z) < 30 : Math.hypot(this.pos.x, this.pos.z - bz) < 48; }
   healAt(amt, healer) {
     if (this.dead) return 0;
     if (this.remote) { if (healer && !healer.remote) netReportHeal(healer, this, amt); return 0; }
@@ -301,15 +313,18 @@ class Bot {
   }
   aimWeapons(dt) {
     const aimL = _v3.copy(this.input.aim).applyMatrix4(this.inv); const sel = this.input.weapon;
-    if (sel === 'mortar' && this.guns.mortar.length) { const v = solveBallistic(this.center, this.input.aim, WEAPONS.mortar.speed, WEAPONS.mortar.grav * GRAV / 22); this.mortarPitch = Math.atan2(v.y, Math.hypot(v.x, v.z)); }
+    if (this.guns.mortar.length) { const v = solveBallistic(this.center, this.input.aim, WEAPONS.mortar.speed, WEAPONS.mortar.grav * GRAV / 22); this.mortarPitch = Math.atan2(v.y, Math.hypot(v.x, v.z)); this.mortarDir = (this.mortarDir || new T.Vector3()).copy(v).transformDirection(this.inv); }
     const s = 10 * dt;
     // barrels kick back when they fire and ease forward again
     for (const t of WTYPES) for (const c of this.guns[t]) if (c.recoil && (c.kick > 0 || c.recoil.position.z)) { c.kick = Math.max(0, c.kick - dt * 7); c.recoil.position.z = -c.kick * c.kick * (t === 'mortar' || t === 'lancer' || t === 'rail' ? .2 : .1); }
     for (const t of WTYPES) for (const c of this.guns[t]) {
       let yaw = 0, pitch = 0;
-      if (t === sel || (this.input.group && this.input.group.includes(t))) {
-        const dx = aimL.x - (c.x - this.cx), dy = aimL.y - (c.y - this.minY + .05), dz = aimL.z - (c.z - this.cz);
-        yaw = Math.atan2(dx, dz); pitch = t === 'mortar' ? (this.mortarPitch || .3) : Math.atan2(dy, Math.hypot(dx, dz));
+      { // every gun tracks the crosshair, whichever weapon is selected
+        let dx = aimL.x - (c.x - this.cx), dy = aimL.y - (c.y - this.minY + .05), dz = aimL.z - (c.z - this.cz);
+        if (c.mr) { // a rotated mount: aim in the gun's own frame
+          const v = _v2.set(dx, dy, dz); if (t === 'mortar' && this.mortarDir) v.copy(this.mortarDir); v.applyMatrix4(ROT_MI[c.mr]); dx = v.x; dy = v.y; dz = v.z;
+          yaw = Math.atan2(dx, dz); pitch = Math.atan2(dy, Math.hypot(dx, dz));
+        } else { yaw = Math.atan2(dx, dz); pitch = t === 'mortar' ? (this.mortarPitch || .3) : Math.atan2(dy, Math.hypot(dx, dz)); }
       }
       c.head.rotation.y = approachAngle(c.head.rotation.y, yaw, s);
       c.head.rotation.x = approachAngle(c.head.rotation.x, -clamp(pitch, -.45, 1.3), s);
@@ -419,7 +434,7 @@ function solveBallistic(from, to, v, g) {
 // ================= WEAPONS / PROJECTILES =================
 let beamGhost = false;
 function fireWeapon(owner, type, from, aim) {
-  const n0 = world.projs.length; beamGhost = owner.remote; if (REC.on) recShot(owner, type, from, aim);
+  const n0 = world.projs.length; beamGhost = owner.remote; owner.lastFireT = clock; /* firing keeps you in combat: no base repair */ if (REC.on) recShot(owner, type, from, aim);
   fireWeapon0(owner, type, from, aim);
   beamGhost = false;
   if (owner.remote) for (let i = n0; i < world.projs.length; i++) world.projs[i].ghost = true;

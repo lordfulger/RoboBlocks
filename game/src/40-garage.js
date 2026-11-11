@@ -1,5 +1,5 @@
 // ================= GARAGE =================
-const BOUNDS = { x: 7, y: 11, z: 7 };
+const BOUNDS = { x: 7, y: 23, z: 7 }; // 24 layers tall (the save format stores heights past 15 in an extra section)
 const garage = {
   scene: new T.Scene(), group: new T.Group(), blocks: new Map(),
   orbit: { theta: .75, phi: 1.05, r: 20, ty: 2.2 }, tool: 'cube', color: 9, rot: 0, tier: 1, mat: 'std', mirror: store.get('sfa.mirror', true) !== false, erase: false, paint: false, undo: [], last: null,
@@ -59,7 +59,7 @@ function hasNeighbor(x, y, z, extra) {
   return false;
 }
 function inBounds(p) { return Math.abs(p.x) <= BOUNDS.x && p.y >= 0 && p.y <= BOUNDS.y && Math.abs(p.z) <= BOUNDS.z; }
-const toolRot = (t, r) => isShape(t) ? r : t === 'tesla' ? r % 4 : 0;
+const toolRot = (t, r) => isShape(t) || isMountable(t) ? r : t === 'tesla' ? r % 4 : 0;
 // mirror axis: 'x' copies left/right, 'z' copies front/back
 const mirOff = b => garage.mirAxis === 'z' ? b.z !== 0 : b.x !== 0;
 const mirPos = b => garage.mirAxis === 'z' ? { x: b.x, y: b.y, z: -b.z } : { x: -b.x, y: b.y, z: b.z };
@@ -132,23 +132,22 @@ function updateGhost(cx, cy) {
   const plan = placementPlan(pk.place);
   const r0 = toolRot(garage.tool, garage.rot);
   setGhostShape(g, garage.tool, r0);
-  garage.dirPivot.visible = garage.tool === 'tesla';
+  garage.dirPivot.visible = garage.tool === 'tesla' || isMountable(garage.tool); // which way the barrel points
   g.position.set(pk.place.x, pk.place.y, pk.place.z); setGhostColor(plan.ok ? 0x62e08f : 0xff5444); g.visible = inBounds(pk.place);
   if (plan.ok && plan.list.length > 1) { setGhostShape(mg, garage.tool, plan.list[1].r); mg.position.set(plan.list[1].x, plan.list[1].y, plan.list[1].z); mg.visible = true; }
 }
 function setGhostShape(g, t, r) {
   const P = PARTS[t], geo = P.shape ? SHAPE_GEO[P.shape] : GEO.box;
   if (g.geometry !== geo) { g.geometry = geo; g.children[0].geometry = edgesOf(geo); }
-  if (P.shape) applyRot(g, r); else g.rotation.set(0, t === 'tesla' ? (r % 4) * HALF_PI : 0, 0);
+  if (P.shape || isMountable(t)) applyRot(g, r); else g.rotation.set(0, t === 'tesla' ? (r % 4) * HALF_PI : 0, 0);
 }
 function refreshGhost() { if (garage.last) updateGhost(garage.last.x, garage.last.y); }
 function gPaintAt(b) {
-  if (isShape(b.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > unlockLv() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
   const ks = [ckey(b.x, b.y, b.z)]; if (garage.mirror && mirOff(b)) { const m = mirPos(b); ks.push(ckey(m.x, m.y, m.z)); }
   const changes = []; let delta = 0;
   for (const k of ks) {
     const o = garage.blocks.get(k); if (!o) continue;
-    const n = { x: o.x, y: o.y, z: o.z, t: o.t, c: garage.color, r: o.r }; if (isShape(o.t)) { n.k = garage.tier; if (garage.mat !== 'std') n.m = garage.mat; }
+    const n = { x: o.x, y: o.y, z: o.z, t: o.t, c: garage.color, r: o.r }; if (o.k) n.k = o.k; if (o.m) n.m = o.m; // paint only changes the colour
     delta += partCpu(n) - partCpu(o); changes.push([k, n]);
   }
   if (usedCpu() + delta > ownCpuMax()) { toast(`That upgrade needs ${delta} more CPU than you have left.`); return; }
@@ -271,8 +270,8 @@ function syncToolButtons() {
   if ($('#btnMirAxis')) { $('#btnMirAxis').hidden = !garage.mirror; $('#btnMirAxis span').textContent = garage.mirAxis === 'z' ? 'Front/back' : 'Left/right'; $('#btnMirAxis i').textContent = garage.mirAxis === 'z' ? '⇅' : '⇆'; }
   $('#btnErase').classList.toggle('on', garage.erase);
   $('#btnPaint').classList.toggle('on', garage.paint);
-  const rotatable = isShape(garage.tool) || garage.tool === 'tesla';
-  $('#btnRot').disabled = !rotatable; $('#btnTilt').disabled = $('#btnRoll').disabled = !isShape(garage.tool);
+  const rotatable = isShape(garage.tool) || garage.tool === 'tesla' || isMountable(garage.tool);
+  $('#btnRot').disabled = !rotatable; $('#btnTilt').disabled = $('#btnRoll').disabled = !(isShape(garage.tool) || isMountable(garage.tool));
 }
 function updateStats() {
   const list = [...garage.blocks.values()]; const s = computeStats(list); const mob = mobility(s); const cm = ownCpuMax();
@@ -331,7 +330,7 @@ canvas.addEventListener('pointerdown', e => {
 canvas.addEventListener('pointermove', e => {
   if (state !== 'garage') return;
   if (gPtrs.has(e.pointerId)) gPtrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (pinch && gPtrs.size === 2) { const [a, b] = [...gPtrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); garage.orbit.r = clamp(pinch.r * pinch.d / Math.max(20, d), 7, 45); return; }
+  if (pinch && gPtrs.size === 2) { const [a, b] = [...gPtrs.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y); garage.orbit.r = clamp(pinch.r * pinch.d / Math.max(20, d), 7, 60); return; }
   if (gDrag) {
     if (gDrag.row) { rowPlace(e.clientX, e.clientY); return; }
     if (Math.hypot(e.clientX - gDrag.x, e.clientY - gDrag.y) > 6) gDrag.moved = true;
@@ -360,7 +359,7 @@ canvas.addEventListener('pointercancel', endPtr);
 canvas.addEventListener('pointerleave', () => { if (state === 'garage' && !gDrag) { garage.ghost.visible = garage.mirrorGhost.visible = false; } });
 canvas.addEventListener('wheel', e => {
   e.preventDefault();
-  if (state === 'garage') { garage.orbit.r = clamp(garage.orbit.r * (1 + Math.sign(e.deltaY) * .08), 7, 45); }
+  if (state === 'garage') { garage.orbit.r = clamp(garage.orbit.r * (1 + Math.sign(e.deltaY) * .08), 7, 60); }
   else if (state === 'battle' && match && match.player && !paused) { cycleWeapon(Math.sign(e.deltaY)); }
 }, { passive: false });
 
