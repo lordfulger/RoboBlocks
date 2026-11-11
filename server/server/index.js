@@ -104,8 +104,12 @@ const startedAt = Date.now();
 // ---------- updates: share this package with other servers, and check for newer ones ----------
 const updater = require('./update');
 const SHARE_PACKAGE = !/^(0|false|no|off)$/i.test(env.BC_SHARE_PACKAGE || '1');
-const UPDATE_HOURS = Math.max(0, parseFloat(env.BC_UPDATE_CHECK_HOURS || '6') || 0);
+const UPDATE_HOURS = Math.max(0, parseFloat(env.BC_UPDATE_CHECK_HOURS || '1') || 0);
 const AUTO_UPDATE = !/^(0|false|no|off)$/i.test(env.AUTO_UPDATE || '1');
+// AUTO_UPDATE also installs updates found while running, then restarts when nobody is playing (or after
+// BC_RESTART_MAX_HOURS, with a warning). The panel starts the server again and it runs the new version.
+const AUTO_RESTART = AUTO_UPDATE && !/^(0|false|no|off)$/i.test(env.BC_AUTO_RESTART || '1');
+const RESTART_MAX_H = Math.max(0, parseFloat(env.BC_RESTART_MAX_HOURS || '6') || 0);
 const UPD = { state: 'idle', latest: null, checked: 0, error: '', busy: false };
 let packageCache = null;
 function serverPackage() { // server code only: never data/, servers.json (it can hold passwords), balance.json or downloads/
@@ -123,12 +127,28 @@ async function runUpdate(apply, who) {
     if (r.state === 'none') log('[update] no update source: set UPDATE_FROM, DOWNLOAD_URL or GIT_REPO');
     else if (r.state === 'current') { if (who) log(`[update] ${VERSION} is up to date (${r.source})`); }
     else if (r.state === 'available') { log(`[update] RoboBlocks ${r.latest} is available (running ${r.current}). ${AUTO_UPDATE ? 'Restart the server to install it.' : 'Type "update" to install it.'}`); discordText && discordText(`RoboBlocks ${r.latest} is available for this server.`); }
-    else if (r.state === 'installed') { log(`[update] RoboBlocks ${r.latest} is installed. Restart the server to run it.`); relay.notice('This server will restart soon for an update.'); }
+    else if (r.state === 'installed') { log(`[update] RoboBlocks ${r.latest} is installed. ${AUTO_RESTART ? 'Restarting when nobody is playing.' : 'Restart the server to run it.'}`); relay.notice('This server will restart soon for an update.'); if (AUTO_RESTART) scheduleRestart(r.latest); }
     else log(`[update] could not check ${r.source}: ${r.error}`);
     return { ...UPD };
   } finally { UPD.busy = false; }
 }
-if (UPDATE_HOURS > 0) { setTimeout(() => runUpdate(false), 60000); setInterval(() => runUpdate(false), UPDATE_HOURS * 3600000); }
+// restart for an update: right away when the server is empty, otherwise when the last player leaves, or after
+// BC_RESTART_MAX_HOURS with a five-minute warning. Exiting lets the panel start it again on the new code.
+let restartPlan = null;
+function scheduleRestart(version) {
+  if (restartPlan) return; const t0 = Date.now(); restartPlan = { version, warned: false };
+  const go = why => { log(`[update] restarting into RoboBlocks ${version} (${why})`); setTimeout(() => process.exit(0), 1500); };
+  const tick = () => {
+    if (relay.humanCount === 0) return go('nobody online');
+    const left = RESTART_MAX_H * 3600000 - (Date.now() - t0);
+    if (RESTART_MAX_H > 0 && left <= 300000 && !restartPlan.warned) { restartPlan.warned = true; relay.notice(`This server restarts in 5 minutes to update to RoboBlocks ${version}.`); log('[update] players still online: restarting in 5 minutes'); }
+    if (RESTART_MAX_H > 0 && left <= 0) { relay.notice('Restarting for the update now. Rejoin in a minute.'); return go('waited long enough'); }
+    setTimeout(tick, 15000);
+  };
+  setTimeout(tick, 5000);
+}
+const updateTick = () => runUpdate(AUTO_UPDATE && !restartPlan);
+if (UPDATE_HOURS > 0) { setTimeout(updateTick, 60000); setInterval(updateTick, UPDATE_HOURS * 3600000); }
 
 const api = new Api({ db, log, ext: {
   update: apply => runUpdate(!!apply, 'admin'),
@@ -197,6 +217,23 @@ const hosts = [];
 // ---------- server browser: one server acts as the hub, the others report to it ----------
 const SERVER_NAME = String(env.BC_NAME || 'RoboBlocks server').replace(/[<>]/g, '').slice(0, 40);
 const PUBLIC_URL = cleanOrigin(env.BC_PUBLIC_URL || '');
+// where desktop app updates come from when downloads/ is empty: DESKTOP_REPO (owner/repo), else the GitHub repo in DOWNLOAD_URL
+const DESKTOP_REPO = (() => { const m = String(env.DESKTOP_REPO || '').trim().replace(/^https?:\/\/github\.com\//i, '').match(/^([\w.-]+\/[\w.-]+?)(?:\.git)?\/?$/) || String(env.DOWNLOAD_URL || '').match(/^https?:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/releases\//i); return /^(0|off|none)$/i.test(String(env.DESKTOP_REPO || '').trim()) ? '' : m ? m[1] : ''; })();
+const ymlCache = new Map();
+async function githubYml(name) {
+  const c = ymlCache.get(name); if (c && Date.now() - c.t < 600000) return c.y;
+  // /releases/latest/download/<file> redirects to /releases/download/<tag>/<file>: read the tag from that redirect
+  const ac = new AbortController(), timer = setTimeout(() => ac.abort(), 15000);
+  try {
+    const head = await fetch(`https://github.com/${DESKTOP_REPO}/releases/latest/download/${name}`, { redirect: 'manual', signal: ac.signal, headers: { 'User-Agent': 'RoboBlocks-server' } });
+    const loc = head.headers.get('location') || '', tag = (loc.match(/\/releases\/download\/([^/]+)\//) || [])[1];
+    if (!tag) { ymlCache.set(name, { t: Date.now(), y: null }); return null; }
+    const base = `https://github.com/${DESKTOP_REPO}/releases/download/${tag}/`;
+    const r = await fetch(base + name, { redirect: 'follow', signal: ac.signal, headers: { 'User-Agent': 'RoboBlocks-server' } }); if (!r.ok) throw new Error('HTTP ' + r.status);
+    const y = (await r.text()).replace(/^(\s*-?\s*(?:url|path):\s*)(?!https?:)(\S+)\s*$/gm, (m, k, f) => k + base + f);
+    ymlCache.set(name, { t: Date.now(), y }); return y;
+  } finally { clearTimeout(timer); }
+}
 const IS_HUB = /^(1|true|yes)$/i.test(env.BC_HUB || '');
 const HUB_URL = cleanOrigin(env.BC_HUB_URL || '');
 const hubList = new Map(); // origin -> { entry, seen, checked }
@@ -258,9 +295,10 @@ const httpServer = http.createServer((req, res) => {
   if (url === '/server-package.tar.gz' && SHARE_PACKAGE) { let b; try { b = serverPackage(); } catch (e) { res.writeHead(500); res.end(); return; } res.writeHead(200, { 'Content-Type': 'application/gzip', 'Content-Length': b.length, 'Content-Disposition': 'attachment; filename="roboblocks-server.tar.gz"' }); res.end(b); return; }
   if (url === '/launcher/manifest.json') { res.writeHead(200, { ...headers, 'Content-Type': 'application/json' }); res.end(launcherManifest); return; }
   if (url.startsWith('/launcher/files/')) { const f = LAUNCHER_FILES[url.slice(16)]; if (f) { res.writeHead(200, { ...headers, 'Content-Type': f.type, 'Content-Length': f.body.length }); res.end(f.body); return; } }
-  // desktop installers the admin put in downloads/ (for example from the GitHub release)
+  // desktop installers: files the admin put in downloads/, otherwise the latest GitHub release (DESKTOP_REPO)
   if (url === '/download' || url === '/download/') {
     let files = []; try { files = fs.readdirSync(DOWNLOADS).filter(f => /^[\w.\- ]+\.(exe|dmg|zip|AppImage|deb|tar\.gz)$/.test(f)); } catch (e) { }
+    if (!files.length && DESKTOP_REPO) { res.writeHead(302, { Location: `https://github.com/${DESKTOP_REPO}/releases/latest` }); res.end(); return; }
     const rows = files.map(f => `<li><a href="/downloads/${encodeURIComponent(f)}">${f.replace(/[<>&]/g, '')}</a> <small>${(fs.statSync(path.join(DOWNLOADS, f)).size / 1048576).toFixed(1)} MB</small></li>`).join('');
     res.writeHead(200, { ...headers, 'Content-Type': 'text/html; charset=utf-8' });
     res.end(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Download RoboBlocks</title><body style="font:16px system-ui;background:#0e1215;color:#e9edf0;max-width:640px;margin:40px auto;padding:0 16px"><h1>RoboBlocks for desktop</h1><p>The app keeps itself up to date: it downloads each new version from this server when it starts.</p>${rows ? '<ul>' + rows + '</ul>' : '<p>No installers have been uploaded to this server yet. You can still <a style="color:#ff8a1f" href="/">play in the browser</a>.</p>'}<p>After installing, enter this server's address when the app asks: <b>${(PUBLIC_URL || 'http://' + (req.headers.host || '')).replace(/[<>&"]/g, '')}</b></p></body>`); return;
@@ -272,6 +310,11 @@ const httpServer = http.createServer((req, res) => {
       const proto = TRUST_PROXY && /^https$/i.test(String(req.headers['x-forwarded-proto'] || '')) ? 'https' : 'http', base = PUBLIC_URL || cleanOrigin(`${proto}://${req.headers.host || 'localhost'}`);
       const yml = fs.readFileSync(file, 'utf8').replace(/^(\s*-?\s*(?:url|path):\s*)(?!https?:)(\S+)\s*$/gm, (m, k, f) => k + base + '/downloads/' + f);
       res.writeHead(200, { ...headers, 'Content-Type': 'text/yaml; charset=utf-8' }); res.end(yml); return;
+    }
+    // no local copy: hand desktop apps the update list from the latest GitHub release (installers download from GitHub)
+    if (/^latest(-mac|-linux)?\.yml$/.test(name) && DESKTOP_REPO) {
+      githubYml(name).then(y => { if (!y) { res.writeHead(404); res.end(); return; } res.writeHead(200, { ...headers, 'Content-Type': 'text/yaml; charset=utf-8', 'Cache-Control': 'no-store' }); res.end(y); }).catch(() => { res.writeHead(502); res.end(); });
+      return;
     }
     if (/^[\w.\- ]+$/.test(name) && path.dirname(file) === DOWNLOADS && fs.existsSync(file)) { const st = fs.statSync(file); res.writeHead(200, { 'Content-Type': 'application/octet-stream', 'Content-Length': st.size, 'Content-Disposition': `attachment; filename="${name}"` }); fs.createReadStream(file).pipe(res); return; }
   }

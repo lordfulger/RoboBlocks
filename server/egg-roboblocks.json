@@ -182,7 +182,7 @@
         },
         {
             "name": "Auto update",
-            "description": "1 installs a newer server version on every restart, keeping your data and settings. 0 turns it off (the 'update' console command still works).",
+            "description": "1 keeps the server up to date by itself: it installs new releases on every start and while running (then restarts when empty). 0 turns it off (the update console command still works). Your data and settings are never touched.",
             "env_variable": "AUTO_UPDATE",
             "default_value": "1",
             "user_viewable": true,
@@ -202,12 +202,42 @@
         },
         {
             "name": "Update check (hours)",
-            "description": "How often a running server checks for a newer version and says so in the console and admin page. 0 turns the check off.",
+            "description": "How often (in hours) the running server checks for a new release. With Auto update on, it installs it and restarts when nobody is playing. 0 turns the check off.",
             "env_variable": "BC_UPDATE_CHECK_HOURS",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|numeric|min:0|max:168",
+            "field_type": "text"
+        },
+        {
+            "name": "Restart after update",
+            "description": "1 restarts the server by itself after installing an update while running: right away if nobody is online, otherwise when the last player leaves. Needs the panel to start it again (Wings crash detection, on by default). 0 waits for you to restart it.",
+            "env_variable": "BC_AUTO_RESTART",
+            "default_value": "1",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        },
+        {
+            "name": "Longest wait for an empty server",
+            "description": "If players stay online, restart for the update after this many hours anyway, with a 5-minute warning in game. 0 waits until the server is empty.",
+            "env_variable": "BC_RESTART_MAX_HOURS",
             "default_value": "6",
             "user_viewable": true,
             "user_editable": true,
             "rules": "required|numeric|min:0|max:168",
+            "field_type": "text"
+        },
+        {
+            "name": "Desktop app updates from",
+            "description": "GitHub repository (owner/repo) whose latest release supplies desktop app updates and the /download page. Empty uses the repository in Download URL. Files you put in downloads/ take priority. \"off\" disables it.",
+            "env_variable": "DESKTOP_REPO",
+            "default_value": "",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "nullable|string|max:200",
             "field_type": "text"
         },
         {

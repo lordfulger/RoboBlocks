@@ -36,8 +36,8 @@ Where updates come from (the first one set wins):
 A release only installs when it is newer: either the game version (`BC_VERSION`) is higher, or the game is the same and `package.json`'s version is higher. Pointing at an older server never downgrades you.
 
 - **On every restart:** controlled by `AUTO_UPDATE` (default `1`; `0` turns it off).
-- **While running:** every `BC_UPDATE_CHECK_HOURS` hours (default 6) the server checks and says in the console, the admin page and Discord when an update is waiting.
-- **By hand:** type `update` in the console (or press **Install update** on the admin page), then restart. `update check` only checks.
+- **While running:** every `BC_UPDATE_CHECK_HOURS` hours (default 1) the server checks. With `AUTO_UPDATE=1` it installs the new release straight away, then restarts itself: at once if nobody is online, otherwise when the last player leaves, or after `BC_RESTART_MAX_HOURS` (default 6) with a five-minute warning in game. `BC_AUTO_RESTART=0` installs but waits for you to restart. The restart relies on the panel starting the server again, which Wings does by default (crash detection, with clean exits counted). If your node has that turned off, the server stays stopped after an update until you press Start.
+- **By hand:** type `update` in the console (or press **Install update** on the admin page). `update check` only checks.
 - **Roll back:** stop the server, copy the folders from `backups/code-<version>/` back over `server/`, `public/` and `vendor/`, set `AUTO_UPDATE=0`, and start it.
 
 **Updating the egg itself.** In the panel go to *Admin → Nests → RoboBlocks → (the egg) → Update Egg* and upload the new `egg-roboblocks.json`. Servers keep running on it, and new variables appear with their defaults. If you are moving from an egg older than 2.7.0, the startup command changes to `node server/update.js; node server/index.js`. Check it under the server's *Startup* tab if you had edited it.
@@ -68,7 +68,10 @@ A release only installs when it is newer: either the game version (`BC_VERSION`)
 | `BC_DISCORD_INVITE` | empty | A Discord invite link shown on the tester page (`/join`). |
 | `AUTO_UPDATE` | `1` | Install a newer release on every restart (see Updates). |
 | `UPDATE_FROM` | empty | Another RoboBlocks server to copy updates from. |
-| `BC_UPDATE_CHECK_HOURS` | `6` | How often a running server checks for updates; `0` turns it off. |
+| `BC_UPDATE_CHECK_HOURS` | `1` | How often a running server checks for updates; `0` turns it off. |
+| `BC_AUTO_RESTART` | `1` | After installing an update while running, restart when nobody is playing. `0` waits for you. |
+| `BC_RESTART_MAX_HOURS` | `6` | Longest wait for an empty server before restarting anyway (with a warning). `0` waits until empty. |
+| `DESKTOP_REPO` | empty | GitHub `owner/repo` whose latest release supplies desktop app updates. Empty uses the one in `DOWNLOAD_URL`; `off` disables it. |
 | `BC_SHARE_PACKAGE` | `1` | Let other servers update from this one (`/server-package.tar.gz`, code only, never your data). |
 | `BC_NAME` | `RoboBlocks server` | The name shown in the in-game server browser. |
 | `BC_PUBLIC_URL` | empty | The address players open (for example `https://play.example.com`). Needed to appear in the server browser. |
@@ -158,10 +161,11 @@ Open `http://<server-ip>:<port>/admin` and sign in with an admin account. It sho
 Players can also install the RoboBlocks desktop app, which runs the game in its own window and keeps it up to date from this server:
 
 - The server publishes its game build at `/launcher/manifest.json`, with checksums. Desktop apps download it when they start and every 10 minutes, so **uploading a new server package is all it takes to update every player.**
-- Put the app's installers in a `downloads/` folder next to `server/`: the `.exe`, `.dmg` and `.AppImage` files, their `.blockmap` files and the `latest*.yml` files. They are listed at `/download` for players. The apps also update themselves from that folder.
+- **The app updates itself from GitHub automatically.** When `downloads/` is empty, the server reads the update list from the latest GitHub release of `DESKTOP_REPO` (by default the repository in `DOWNLOAD_URL`), and `/download` sends players to that release's page. Every release published by the repository's Release workflow therefore reaches every desktop app with nothing to copy.
+- To host the installers yourself instead, put them in a `downloads/` folder next to `server/` (the `.exe`, `.dmg` and `.AppImage` files, their `.blockmap` files and the `latest*.yml` files). Local files take priority.
 - When the app asks for a server address, players enter the one they use in the browser (set `BC_PUBLIC_URL` so the download page shows it).
 
-The app's source and build steps are in the separate `roboblocks-desktop` package.
+The app's source and build steps are in the repository's `desktop/` folder.
 
 ## Server browser
 
