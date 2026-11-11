@@ -63,7 +63,7 @@ class DB {
   // ---------- profiles ----------
   publicProfile(a) {
     const p = a.p || newProfile();
-    return { name: a.name, clan: a.clan && this.d.clans[a.clan] ? a.clan : null, admin: !!a.admin, xp: p.xp, lv: levelFor(p.xp), matches: p.matches, wins: p.wins, kills: p.kills, deaths: p.deaths, dmg: Math.round(p.dmg), healed: Math.round(p.healed || 0), elo: Math.round(p.elo), ranked: p.ranked || 0, created: a.created };
+    return { name: a.name, clan: a.clan && this.d.clans[a.clan] ? a.clan : null, admin: !!a.admin, xp: p.xp, lv: levelFor(p.xp), matches: p.matches, wins: p.wins, kills: p.kills, deaths: p.deaths, dmg: Math.round(p.dmg), healed: Math.round(p.healed || 0), elo: Math.round(p.elo), ranked: p.ranked || 0, created: a.created, season: p.sea && p.sea.s === seasonNo() ? { elo: Math.round(p.sea.elo), games: p.sea.games, wins: p.sea.wins, placed: p.sea.games >= SEASON_MIN_GAMES } : null, past: (p.past || []).slice(0, 6) };
   }
   // one finished match for one pilot. Returns the XP awarded.
   record(a, r) {
@@ -72,8 +72,26 @@ class DB {
     const xp = Math.round(Math.min(r.cap || 3000, 80 + Math.round(r.dmg / 12) + Math.round((r.healed || 0) / 10) + r.kills * 60 + (win ? 250 : draw ? 100 : 0)) * (r.xpRate == null ? 1 : r.xpRate));
     p.xp += xp; p.matches++; if (win) p.wins++; p.kills += r.kills; p.deaths += r.deaths; p.dmg += r.dmg; p.healed = (p.healed || 0) + (r.healed || 0);
     if (r.eloDelta) { p.elo = Math.max(100, p.elo + r.eloDelta); p.ranked = (p.ranked || 0) + 1; }
+    if (r.ranked && r.eloDelta) { const se = this.seasonOf(a); se.elo = Math.max(100, se.elo + (r.eloDelta || 0)); se.games++; if (win) se.wins++; se.peak = Math.max(se.peak, se.elo); }
     p.history = [{ t: Date.now(), mode: r.mode, map: r.map, result: r.result, kills: r.kills, deaths: r.deaths, dmg: Math.round(r.dmg), xp, elo: r.eloDelta ? Math.round(r.eloDelta) : 0, server: r.server || '', practice: !!r.practice }].concat(p.history || []).slice(0, 25);
     this.save(); return xp;
+  }
+  // this season's record for an account (rolls over when a new season starts)
+  seasonOf(a) {
+    const p = a.p || (a.p = newProfile()), cur = seasonNo();
+    if (!p.sea || p.sea.s !== cur) {
+      if (p.sea && p.sea.games >= SEASON_MIN_GAMES) p.past = [{ s: p.sea.s, elo: Math.round(p.sea.elo), peak: Math.round(p.sea.peak), games: p.sea.games, wins: p.sea.wins }].concat(p.past || []).slice(0, 24);
+      const base = p.sea ? 1200 + (p.sea.elo - 1200) / 2 : 1200;
+      p.sea = { s: cur, elo: base, peak: base, games: 0, wins: 0 };
+    }
+    return p.sea;
+  }
+  seasonPublic(a) { const se = this.seasonOf(a); return { s: se.s, elo: Math.round(se.elo), peak: Math.round(se.peak), games: se.games, wins: se.wins, placed: se.games >= SEASON_MIN_GAMES }; }
+  seasonBoard(n = 50) {
+    const cur = seasonNo();
+    return Object.values(this.d.accounts).filter(a => a.p && a.p.sea && a.p.sea.s === cur && a.p.sea.games > 0 && !this.isBanned(a.name))
+      .map(a => ({ name: a.name, clan: a.clan || null, elo: Math.round(a.p.sea.elo), games: a.p.sea.games, wins: a.p.sea.wins, placed: a.p.sea.games >= SEASON_MIN_GAMES }))
+      .sort((x, y) => (y.placed - x.placed) || y.elo - x.elo || y.wins - x.wins).slice(0, n);
   }
   leaderboard(sort) {
     const key = { xp: 'xp', wins: 'wins', kills: 'kills', elo: 'elo' }[sort] || 'xp';
@@ -156,6 +174,11 @@ class DB {
   shopDownload(key) { const i = this.d.shop[key]; if (!i) return { e: 'That robot is gone.' }; i.dl++; this.save(); return { d: i.d, name: i.name }; }
   shopDelete(a, key) { const i = this.d.shop[key]; if (!i) return { e: 'That robot is gone.' }; if (i.owner !== DB.key(a.name) && !a.admin) return { e: 'That is not your robot.' }; delete this.d.shop[key]; this.save(); return {}; }
 }
+// ranked seasons: one per calendar month (UTC). Ratings start each season halfway back to 1200, and the
+// final rating of every season you played at least 5 ranked games in is kept on your profile.
+const SEASON_MIN_GAMES = 5;
+function seasonNo(t = Date.now()) { const d = new Date(t); return (d.getUTCFullYear() - 2026) * 12 + d.getUTCMonth() + 1; }
+function seasonEnds(s) { return Date.UTC(2026 + Math.floor(s / 12), s % 12, 1); }
 function newProfile() { return { xp: 0, matches: 0, wins: 0, kills: 0, deaths: 0, dmg: 0, healed: 0, elo: 1200, ranked: 0, history: [] }; }
 // ELO for one team result: everyone on a team moves by the same amount
 function eloDeltas(teamElo, winner, K = 32) {
@@ -163,4 +186,4 @@ function eloDeltas(teamElo, winner, K = 32) {
   const sa = winner === 0 ? 1 : winner === 1 ? 0 : .5;
   return [K * (sa - ea), K * ((1 - sa) - (1 - ea))];
 }
-module.exports = { DB, levelFor, eloDeltas };
+module.exports = { DB, levelFor, eloDeltas, seasonNo, seasonEnds, SEASON_MIN_GAMES };

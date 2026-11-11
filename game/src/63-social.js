@@ -66,17 +66,36 @@ async function showProfile() {
   showOverlay(`<h2>${esc(p.name || NET.name || 'Pilot')}</h2><p>${where}</p>
     <div class="grid stats6"><div><span class="label">Level</span><b class="num">${p.lv}</b></div><div><span class="label">XP</span><b class="num">${fmtN(p.xp)}</b></div><div><span class="label">Wins</span><b class="num">${p.wins} / ${p.matches}</b></div>
     <div><span class="label">Kills · K/D</span><b class="num">${fmtN(p.kills)} · ${kd}</b></div><div><span class="label">Damage</span><b class="num">${fmtN(p.dmg)}</b></div><div><span class="label">Rating</span><b class="num" style="color:${rk.col}">${fmtN(p.elo || 1200)} ${rk.name}</b></div></div>
+    ${p.season || (p.past && p.past.length) ? `<h3>RANKED SEASON · ${esc(seasonName(seasonNow()))}</h3><p>${p.season && p.season.placed ? `<b style="color:${rankOf(p.season.elo).col}">${rankOf(p.season.elo).name}</b> · rating ${fmtN(p.season.elo)} · ${p.season.wins} wins in ${p.season.games} ranked games` : p.season ? `Placement: ${p.season.games} of 5 ranked games played.` : 'No ranked games this season yet.'}${p.past && p.past.length ? `<br>Past seasons: ${p.past.map(x => `${esc(seasonName(x.s))} <b style="color:${rankOf(x.elo).col}">${rankOf(x.elo).name}</b> (${fmtN(x.elo)})`).join(' · ')}` : ''}</p>` : ''}
     <h3>MATCH HISTORY</h3>
     ${rows ? `<div class="tscroll"><table class="tbl"><thead><tr><th>When</th><th>Mode</th><th>Map</th><th>Result</th><th>K / D</th><th>Damage</th><th>XP</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No battles yet. Your last 25 matches show up here.</p>'}
     <div class="btns">${BE.kind === 'server' ? `<button id="ovAcct">${BE.me ? 'Account' : 'Sign in'}</button>` : ''}<button class="primary" id="ovBack">Back</button></div>`, true);
   $('#ovBack').onclick = backToMenu; if ($('#ovAcct')) $('#ovAcct').onclick = () => showAccount(showProfile);
 }
 // ---------- leaderboards ----------
-async function showLeaderboard(sort = 'xp') {
-  const tabs = [['xp', 'Experience'], ['wins', 'Wins'], ['kills', 'Kills'], ['elo', 'Rating']];
+// ranked seasons run for a calendar month (UTC); the server keeps the ladder, the hub joins every server's ladder
+const seasonNow = () => { const d = new Date(Date.now()); return (d.getUTCFullYear() - 2026) * 12 + d.getUTCMonth() + 1; };
+const seasonName = s => ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][((s - 1) % 12 + 12) % 12] + ' ' + (2026 + Math.floor((s - 1) / 12));
+async function showSeason(head, wire) {
+  if (BE.kind !== 'server') { showOverlay(head + '<p>Ranked seasons run on RoboBlocks servers. Open Play online to join one.</p><div class="btns"><button class="primary" id="ovBack">Back</button></div>', true); wire(); return; }
+  let j; try { const r = await fetch('/season'); if (!r.ok) throw new Error('This server does not run seasons yet.'); j = await r.json(); }
+  catch (e) { showOverlay(head + errBox(e) + '<div class="btns"><button class="primary" id="ovBack">Back</button></div>', true); wire(); return; }
+  const meName = BE.me && BE.me.name, days = Math.max(0, Math.ceil((j.ends - Date.now()) / 864e5));
+  const row = (r, i, srv) => { const rk = rankOf(r.elo); return `<tr class="${!srv && meName && r.name === meName ? 'me' : ''}"><td class="num">${i + 1}</td><td>${esc(r.name)}${srv ? `<small> · ${esc(r.server || '')}</small>` : ''}</td><td style="color:${r.placed === false ? 'var(--muted)' : rk.col}">${r.placed === false ? 'Placing' : rk.name}</td><td class="num">${fmtN(r.elo)}</td><td class="num">${r.wins} / ${r.games}</td></tr>`; };
+  const tbl = (list, srv) => list.length ? `<div class="tscroll"><table class="tbl"><thead><tr><th>#</th><th>Pilot</th><th>Division</th><th>Rating</th><th>Wins</th></tr></thead><tbody>${list.map((r, i) => row(r, i, srv)).join('')}</tbody></table></div>` : '<p>Nobody has played a ranked game this season yet.</p>';
+  const g = j.global || {};
+  showOverlay(head + `<p><b>Season: ${esc(seasonName(j.s))}</b> · ends in ${days} day${days === 1 ? '' : 's'}. Ranked rooms change your season rating; you are placed after 5 games. Each new season starts your rating halfway back to 1,200.</p>
+    <h3>ALL SERVERS</h3>${g.hub ? tbl(g.list || [], true) : `<p>${esc(g.e || 'This server is not linked to a server hub, so only its own ladder is shown.')}</p>`}
+    <h3>${esc((j.server || 'This server').toUpperCase())}</h3>${tbl(j.local || [], false)}
+    <div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true);
+  wire();
+}
+async function showLeaderboard(sort = BE.kind === 'server' ? 'season' : 'xp') {
+  const tabs = [['season', 'Season'], ['xp', 'Experience'], ['wins', 'Wins'], ['kills', 'Kills'], ['elo', 'Rating']];
   const head = `<h2>Leaderboards</h2><div class="seg tabs">${tabs.map(([k, n]) => `<button data-k="${k}" class="${k === sort ? 'sel' : ''}">${n}</button>`).join('')}</div>`;
   showOverlay(head + '<p>Loading…</p>', true);
   const wire = () => { document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => showLeaderboard(b.dataset.k)); $('#ovBack').onclick = backToMenu; };
+  if (sort === 'season') { await showSeason(head, wire); return; }
   let list;
   try { list = await beLeaderboard(sort); }
   catch (e) { showOverlay(head + errBox(e) + '<div class="btns"><button class="primary" id="ovBack">Back</button></div>', true); wire(); return; }

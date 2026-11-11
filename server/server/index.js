@@ -7,7 +7,7 @@ const readline = require('readline');
 const { Relay } = require('./relay');
 const ws = require('./ws');
 const { startHost } = require('./headless');
-const { DB, eloDeltas } = require('./db');
+const { DB, eloDeltas, seasonNo, seasonEnds, SEASON_MIN_GAMES } = require('./db');
 const { Api } = require('./api');
 const { setExtraWords } = require('./filter');
 
@@ -39,6 +39,7 @@ const DEFAULT_SERVERS = [
   { id: 'sv-horde', name: 'Horde Co-op', blurb: 'Team up against ten waves of AI.', n: 5, rot: [['horde', 'dust'], ['horde', 'frost'], ['horde', 'ash']] },
   { id: 'sv-orbit', name: 'Orbital Command', blurb: 'Space Battle across every space map.', n: 10, rot: [['space', 'space'], ['space', 'nebula'], ['space', 'shipyard'], ['space', 'rings']] },
   { id: 'sv-pit', name: 'The Pit 24/7', blurb: 'Free-for-all: every bot for itself.', n: 5, rot: [['pit', 'dust', 'small'], ['pit', 'city', 'small'], ['pit', 'moon', 'small'], ['pit', 'frost', 'small']] },
+  { id: 'sv-ranked', name: 'Ranked Season', blurb: 'Ranked 5v5: wins and losses move your season rating.', n: 5, ranked: true, rot: [['tdm', 'dust'], ['elim', 'frost'], ['arena', 'ash'], ['elim', 'city']] },
   { id: 'sv-brawl', name: 'Weekly Brawl', blurb: 'This week\'s twist on team deathmatch.', n: 10, rot: [['brawl', 'dust'], ['brawl', 'city'], ['brawl', 'frost'], ['brawl', 'moon']] },
 ];
 function loadServers() {
@@ -216,14 +217,14 @@ function onMatchReport(server, r) {
   const accts = r.humans.map(h => ({ h, a: h.acct ? db.account(h.acct) : null }));
   let deltas = [0, 0];
   if (server.ranked) {
-    const avg = t => { const xs = accts.filter(x => x.h.team === t).map(x => x.a ? x.a.p.elo : 1200); return xs.length ? xs.reduce((s, v) => s + v, 0) / xs.length : 1200; };
+    const avg = t => { const xs = accts.filter(x => x.h.team === t).map(x => x.a ? db.seasonOf(x.a).elo : 1200); return xs.length ? xs.reduce((s, v) => s + v, 0) / xs.length : 1200; };
     if (accts.some(x => x.h.team === 0) && accts.some(x => x.h.team === 1)) deltas = eloDeltas([avg(0), avg(1)], r.winner);
   }
   const num = (v, max) => Math.max(0, Math.min(max, +v || 0));
   for (const { h, a } of accts) {
     if (!a) continue;
     const result = r.winner === -1 ? 'draw' : r.winner === h.team ? 'win' : 'loss';
-    const xp = db.record(a, { xpRate: BALANCE.xpRate * weekendMul(), mode: r.mode, map: r.map, result, kills: num(h.kills, 200) | 0, deaths: num(h.deaths, 200) | 0, dmg: num(h.dmg, 2e6), healed: num(h.healed, 1e6), eloDelta: server.ranked ? deltas[h.team] : 0, server: server.name, cap: 3000 });
+    const xp = db.record(a, { xpRate: BALANCE.xpRate * weekendMul(), mode: r.mode, map: r.map, result, kills: num(h.kills, 200) | 0, deaths: num(h.deaths, 200) | 0, dmg: num(h.dmg, 2e6), healed: num(h.healed, 1e6), eloDelta: server.ranked ? deltas[h.team] : 0, ranked: !!server.ranked, server: server.name, cap: 3000 });
     for (const [id, p] of relay.peers) if (p.acct === a) relay.restamp(id);
     log(`[${server.id}] ${a.name}: ${result}, +${xp} XP${server.ranked ? `, rating ${deltas[h.team] >= 0 ? '+' : ''}${Math.round(deltas[h.team])}` : ''}`);
   }
@@ -270,13 +271,27 @@ async function probe(url) { // a reporting server must really be a RoboBlocks se
 function readBody(req, max) { return new Promise((ok, no) => { let n = 0; const parts = []; req.on('data', c => { n += c.length; if (n > max) { no(new Error('too big')); req.destroy(); } else parts.push(c); }); req.on('end', () => ok(Buffer.concat(parts).toString('utf8'))); req.on('error', no); }); }
 async function hubBeat(req, res, ip) {
   const now = Date.now(); if (now - (hubRate.get(ip) || 0) < 10000) { res.writeHead(429); res.end(); return; } hubRate.set(ip, now);
-  let e; try { e = JSON.parse(await readBody(req, 4096)); } catch (err) { res.writeHead(400); res.end(); return; }
+  let e; try { e = JSON.parse(await readBody(req, 16384)); } catch (err) { res.writeHead(400); res.end(); return; }
   const url = cleanOrigin(e && e.url); if (!url) { res.writeHead(400); res.end('bad url'); return; }
   let rec = hubList.get(url);
   if (!rec || now - rec.checked > 600000) { if (!(await probe(url))) { res.writeHead(403); res.end('not reachable'); return; } rec = { checked: now }; if (!hubList.has(url)) log(`hub: ${url} listed`); }
   if (hubList.size >= 500 && !hubList.has(url)) { res.writeHead(503); res.end(); return; }
   rec.entry = cleanEntry(e, url); rec.seen = now; hubList.set(url, rec);
+  rec.season = e.season && (e.season.s | 0) === seasonNo() && Array.isArray(e.season.top) ? e.season.top.slice(0, 25).map(x => ({ name: String(x && x.n || '').replace(/[<>\u0000-\u001f]/g, '').slice(0, 20), elo: Math.max(0, Math.min(5000, x.e | 0)), games: Math.max(0, x.g | 0), wins: Math.max(0, x.w | 0), server: rec.entry.name, url })).filter(x => x.name) : [];
   res.writeHead(200, { 'Content-Type': 'application/json' }); res.end('{"ok":true}');
+}
+// ranked season ladder across every server on the hub (this hub's own pilots included)
+function hubSeason() {
+  const own = db.seasonBoard(50).map(x => ({ name: x.name, elo: x.elo, games: x.games, wins: x.wins, server: SERVER_NAME, url: PUBLIC_URL || '' }));
+  const all = own.concat(...[...hubList.values()].filter(r => Date.now() - r.seen < 120000).map(r => r.season || []));
+  return all.filter(x => x.games >= SEASON_MIN_GAMES).sort((a, b) => b.elo - a.elo || b.wins - a.wins).slice(0, 100);
+}
+let seasonCache = { t: 0, j: null };
+async function globalSeason() {
+  if (IS_HUB || !HUB_URL) return { hub: IS_HUB, list: IS_HUB ? hubSeason() : [] };
+  if (Date.now() - seasonCache.t < 60000 && seasonCache.j) return seasonCache.j;
+  try { const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 5000); const r = await fetch(HUB_URL + '/hub/season', { signal: ac.signal }); clearTimeout(t); const j = await r.json(); seasonCache = { t: Date.now(), j: { hub: true, list: Array.isArray(j.list) ? j.list.slice(0, 100) : [] } }; return seasonCache.j; }
+  catch (e) { return { hub: false, list: [], e: 'The hub did not answer.' }; }
 }
 function hubEntries() { const now = Date.now(), out = []; for (const [u, r] of hubList) { if (now - r.seen > 120000) { hubList.delete(u); continue; } out.push(r.entry); } return out; }
 async function serverList(req) {
@@ -291,7 +306,7 @@ async function serverList(req) {
 }
 if (HUB_URL && PUBLIC_URL && HUB_URL !== PUBLIC_URL) {
   let warned = false;
-  const beat = () => fetch(HUB_URL + '/hub/beat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(selfEntry()) })
+  const beat = () => fetch(HUB_URL + '/hub/beat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...selfEntry(), season: { s: seasonNo(), top: db.seasonBoard(25).filter(x => x.placed).map(x => ({ n: x.name, e: x.elo, g: x.games, w: x.wins })) } }) })
     .then(r => { if (!r.ok && !warned) { warned = true; log(`server browser: the hub answered ${r.status}. Check BC_PUBLIC_URL is reachable from the hub.`); } else if (r.ok && warned) { warned = false; log('server browser: listed on the hub again'); } })
     .catch(e => { if (!warned) { warned = true; log('server browser: cannot reach the hub:', e.message); } });
   setTimeout(beat, 5000); setInterval(beat, 30000);
@@ -344,6 +359,8 @@ const httpServer = http.createServer((req, res) => {
   if (url === '/hub/beat' && IS_HUB && req.method === 'POST') { const fwd = TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); hubBeat(req, res, (fwd || req.socket.remoteAddress || '').replace(/^::ffff:/, '')).catch(() => { try { res.writeHead(500); res.end(); } catch (e) { } }); return; }
   if (url === '/replay' && req.method === 'POST') { const fwd = TRUST_PROXY && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim(); replays.upload(req, res, (fwd || req.socket.remoteAddress || '').replace(/^::ffff:/, '')); return; }
   if (url.startsWith('/replay/') && req.method === 'GET') { replays.serve(url.slice(8), res); return; }
+  if (url === '/hub/season' && IS_HUB) { res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' }); res.end(JSON.stringify({ s: seasonNo(), list: hubSeason() })); return; }
+  if (url === '/season' && req.method === 'GET') { globalSeason().then(g => { res.writeHead(200, { ...headers, 'Content-Type': 'application/json' }); res.end(JSON.stringify({ s: seasonNo(), ends: seasonEnds(seasonNo()), server: SERVER_NAME, local: db.seasonBoard(50), global: g })); }).catch(() => { res.writeHead(500); res.end(); }); return; }
   if (url === '/status') {
     res.writeHead(200, { ...headers, 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
     res.end(JSON.stringify({ name: 'RoboBlocks', server: SERVER_NAME, version: VERSION, serverVersion: (() => { try { return require('../package.json').version; } catch (e) { return VERSION; } })(), players: relay.humanCount, maxPlayers: MAX_CLIENTS, weekendXp: weekendMul(), servers: hosts.map(h => ({ id: h.id, name: (SERVERS.find(s => s.id === h.id) || {}).name, ...h.status() })) }));
