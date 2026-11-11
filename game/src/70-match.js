@@ -65,7 +65,7 @@ function startBattle(opts) {
   const names = PILOTS.slice(); for (let i = names.length - 1; i > 0; i--) { const j = rnd() * (i + 1) | 0; [names[i], names[j]] = [names[j], names[i]]; }
   const N = mode === 'test' ? 1 : opts.n || 20;
   const limit = modeLimit(mode, N) || (mode === 'tdm' || mode === 'space' ? ({ 5: 20, 10: 50, 20: 100 }[N] || 20) : mode === 'arena' ? ({ 5: 800, 10: 1200, 20: 1500 }[N] || 1000) : mode === 'pit' ? ({ 5: 12, 10: 18, 20: 25 }[N] || 15) : 0);
-  match = { dmgScale: tierScale(level()), mode, mapId, mapSize: mapSz, n: N, score: [0, 0], limit, time: modeTime(mode) || (mode === 'elim' ? 7 : 10) * 60, aiLv, over: false, endT: 0, winner: null, player: null, tick: 0, net: !!net, isHost: !net || net.isHost, spectator: !!(net && net.spectator) };
+  match = { dmgScale: tierScale(unlockLv()), mode, mapId, mapSize: mapSz, n: N, score: [0, 0], limit, time: modeTime(mode) || (mode === 'elim' ? 7 : 10) * 60, aiLv, over: false, endT: 0, winner: null, player: null, tick: 0, net: !!net, isHost: !net || net.isHost, spectator: !!(net && net.spectator) };
   const player = new Bot(deployDesign(mode), net ? net.myTeam : 0, 'You', { player: true, human: true, netId: net ? net.me : 'me' }); match.player = player; player.bay = deployBay(mode); LOADOUT.next = null; if (net && !net.spectator) { const d = player.design; setTimeout(() => slowPresenceDesign(d), 0); } // the bay this mode allows may differ from what we last sent (after setup: presence updates re-sync the roster)
   if (net && net.spectator) { player.build(); player.dead = true; player.respawnT = Infinity; } else world.bots.push(player);
   modeSetup(opts, net);

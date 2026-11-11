@@ -767,7 +767,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.3';
+const BC_VERSION = '2.8.4';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -776,6 +776,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
   ['2.8.2', ['Servers keep themselves up to date: they check for new releases every hour, install them, and restart when nobody is playing.', 'The desktop app updates itself from each new release automatically.']],
   ['2.8.1', ['Online play now runs only on RoboBlocks servers. The main menu\'s Server browser lists this server\'s rooms live, other servers and favourites, and takes any server address.', 'Friend codes: every pilot has a code like RB-7K3Q-X9PD. Add friends by code, or straight from the pilot list in the Server browser.', 'Sound starts as soon as the game opens (on the first key or click in browsers that hold it back).', 'Garage: middle click picks the block under the cursor (part, color, armor). Mirror is now a simple on/off switch, with its own button for the direction.', 'Bigger, easier-to-read text in the Tech Tree.', 'The connection-lost banner no longer covers other messages.']],
@@ -2798,10 +2799,10 @@ function updateStats() {
   $('#stMass').textContent = Math.round(s.mass);
   $('#stHp').textContent = s.hp.toLocaleString();
   $('#stSpeed').textContent = list.length ? fmtSpeed(mob.maxSpeed) : '—';
-  const ts = tierScale(level());
+  const ts = tierScale(unlockLv());
   $('#stDps').textContent = Math.round(firepower(s.weapons) * ts) + ' dps';
   $('#rowMelee').hidden = !s.teslas; $('#stMelee').textContent = Math.round(s.teslas * TESLA_DPS * ts) + ' dps';
-  $('#stTier').textContent = 'Mk ' + TIER_NAMES[level() - 1];
+  $('#stTier').textContent = 'Mk ' + TIER_NAMES[unlockLv() - 1];
   $('#stWins').textContent = `${progress.wins} / ${progress.matches}`;
   const w = [];
   if (!list.length) w.push(['bad', 'Empty bot. Start with a Pilot Seat.']);
@@ -3196,7 +3197,7 @@ function showPartCard(id, anchor) {
   const p = PARTS[id], card = $('#partCard'); if (!p || !card || innerWidth < 820) return;
   const t = TIERS[garage.tier], shape = !!p.shape;
   const hp = shape ? Math.round(t.hp * p.hpF) : p.hp, cpu = shape ? t.cpu : p.cpu, mass = shape ? +(t.mass * (p.massF || 1)).toFixed(2) : p.mass;
-  const W = WEAPONS[id], dps = W && W.dmg ? Math.round(W.dmg / W.cd * tierScale(level())) : 0;
+  const W = WEAPONS[id], dps = W && W.dmg ? Math.round(W.dmg / W.cd * tierScale(unlockLv())) : 0;
   const lock = partLocked(id) ? `Unlocked by ${unlockName(p.ach)}` : p.lvl > unlockLv() ? `Unlocks at pilot level ${p.lvl}` : !techHas(id) ? `Unlock it in the Tech Tree (${TECH[id] ? TECH[id].cost : '?'} points)` : '';
   card.innerHTML = `<div class="ph"><img alt="" src="${ICONS[id] || BLANK}"><div><b>${esc(p.name)}</b><div class="label">${esc(p.cat)}${shape ? ' · ' + esc(t.name) : ''}</div></div></div>
     <div class="kv"><span>CPU</span><span>${cpu}</span><span>Health</span><span>${hp}</span><span>Mass</span><span>${mass}</span>${dps ? `<span>Damage per second</span><span>${dps}</span>` : ''}${W && W.range ? `<span>Range</span><span>${W.range} m</span>` : ''}${p.module ? `<span>Key</span><span>${keyLabel(KB('mod_' + p.module))}</span><span>Energy</span><span>${MODULES[p.module].cost}</span>` : ''}</div>
@@ -6924,7 +6925,7 @@ function startBattle(opts) {
   const names = PILOTS.slice(); for (let i = names.length - 1; i > 0; i--) { const j = rnd() * (i + 1) | 0; [names[i], names[j]] = [names[j], names[i]]; }
   const N = mode === 'test' ? 1 : opts.n || 20;
   const limit = modeLimit(mode, N) || (mode === 'tdm' || mode === 'space' ? ({ 5: 20, 10: 50, 20: 100 }[N] || 20) : mode === 'arena' ? ({ 5: 800, 10: 1200, 20: 1500 }[N] || 1000) : mode === 'pit' ? ({ 5: 12, 10: 18, 20: 25 }[N] || 15) : 0);
-  match = { dmgScale: tierScale(level()), mode, mapId, mapSize: mapSz, n: N, score: [0, 0], limit, time: modeTime(mode) || (mode === 'elim' ? 7 : 10) * 60, aiLv, over: false, endT: 0, winner: null, player: null, tick: 0, net: !!net, isHost: !net || net.isHost, spectator: !!(net && net.spectator) };
+  match = { dmgScale: tierScale(unlockLv()), mode, mapId, mapSize: mapSz, n: N, score: [0, 0], limit, time: modeTime(mode) || (mode === 'elim' ? 7 : 10) * 60, aiLv, over: false, endT: 0, winner: null, player: null, tick: 0, net: !!net, isHost: !net || net.isHost, spectator: !!(net && net.spectator) };
   const player = new Bot(deployDesign(mode), net ? net.myTeam : 0, 'You', { player: true, human: true, netId: net ? net.me : 'me' }); match.player = player; player.bay = deployBay(mode); LOADOUT.next = null; if (net && !net.spectator) { const d = player.design; setTimeout(() => slowPresenceDesign(d), 0); } // the bay this mode allows may differ from what we last sent (after setup: presence updates re-sync the roster)
   if (net && net.spectator) { player.build(); player.dead = true; player.respawnT = Infinity; } else world.bots.push(player);
   modeSetup(opts, net);

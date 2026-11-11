@@ -288,10 +288,10 @@ function updateStats() {
   $('#stMass').textContent = Math.round(s.mass);
   $('#stHp').textContent = s.hp.toLocaleString();
   $('#stSpeed').textContent = list.length ? fmtSpeed(mob.maxSpeed) : '—';
-  const ts = tierScale(level());
+  const ts = tierScale(unlockLv());
   $('#stDps').textContent = Math.round(firepower(s.weapons) * ts) + ' dps';
   $('#rowMelee').hidden = !s.teslas; $('#stMelee').textContent = Math.round(s.teslas * TESLA_DPS * ts) + ' dps';
-  $('#stTier').textContent = 'Mk ' + TIER_NAMES[level() - 1];
+  $('#stTier').textContent = 'Mk ' + TIER_NAMES[unlockLv() - 1];
   $('#stWins').textContent = `${progress.wins} / ${progress.matches}`;
   const w = [];
   if (!list.length) w.push(['bad', 'Empty bot. Start with a Pilot Seat.']);

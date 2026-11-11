@@ -130,7 +130,7 @@ function showPartCard(id, anchor) {
   const p = PARTS[id], card = $('#partCard'); if (!p || !card || innerWidth < 820) return;
   const t = TIERS[garage.tier], shape = !!p.shape;
   const hp = shape ? Math.round(t.hp * p.hpF) : p.hp, cpu = shape ? t.cpu : p.cpu, mass = shape ? +(t.mass * (p.massF || 1)).toFixed(2) : p.mass;
-  const W = WEAPONS[id], dps = W && W.dmg ? Math.round(W.dmg / W.cd * tierScale(level())) : 0;
+  const W = WEAPONS[id], dps = W && W.dmg ? Math.round(W.dmg / W.cd * tierScale(unlockLv())) : 0;
   const lock = partLocked(id) ? `Unlocked by ${unlockName(p.ach)}` : p.lvl > unlockLv() ? `Unlocks at pilot level ${p.lvl}` : !techHas(id) ? `Unlock it in the Tech Tree (${TECH[id] ? TECH[id].cost : '?'} points)` : '';
   card.innerHTML = `<div class="ph"><img alt="" src="${ICONS[id] || BLANK}"><div><b>${esc(p.name)}</b><div class="label">${esc(p.cat)}${shape ? ' · ' + esc(t.name) : ''}</div></div></div>
     <div class="kv"><span>CPU</span><span>${cpu}</span><span>Health</span><span>${hp}</span><span>Mass</span><span>${mass}</span>${dps ? `<span>Damage per second</span><span>${dps}</span>` : ''}${W && W.range ? `<span>Range</span><span>${W.range} m</span>` : ''}${p.module ? `<span>Key</span><span>${keyLabel(KB('mod_' + p.module))}</span><span>Energy</span><span>${MODULES[p.module].cost}</span>` : ''}</div>
