@@ -40,6 +40,7 @@ const DEFAULT_SERVERS = [
   { id: 'sv-orbit', name: 'Orbital Command', blurb: 'Space Battle across every space map.', n: 10, rot: [['space', 'space'], ['space', 'nebula'], ['space', 'shipyard'], ['space', 'rings']] },
   { id: 'sv-pit', name: 'The Pit 24/7', blurb: 'Free-for-all: every bot for itself.', n: 5, rot: [['pit', 'dust', 'small'], ['pit', 'city', 'small'], ['pit', 'moon', 'small'], ['pit', 'frost', 'small']] },
   { id: 'sv-ranked', name: 'Ranked Season', blurb: 'Ranked 5v5: wins and losses move your season rating.', n: 5, ranked: true, rot: [['tdm', 'dust'], ['elim', 'frost'], ['arena', 'ash'], ['elim', 'city']] },
+  { id: 'sv-clan', name: 'Clan Wars', blurb: 'Clan against clan: clanmates always fight on the same team.', n: 5, clan: true, rot: [['tdm', 'city'], ['elim', 'frost'], ['ctc', 'dust'], ['koth', 'ash']] },
   { id: 'sv-brawl', name: 'Weekly Brawl', blurb: 'This week\'s twist on team deathmatch.', n: 10, rot: [['brawl', 'dust'], ['brawl', 'city'], ['brawl', 'frost'], ['brawl', 'moon']] },
 ];
 function loadServers() {
@@ -63,7 +64,7 @@ function loadServers() {
     if (!id || !rot.length) { log(`skipping server entry ${JSON.stringify(s).slice(0, 80)}: needs an id and a rotation of [mode, map] pairs`); continue; }
     const lv = v => Math.min(10, Math.max(1, parseInt(v, 10) || 1));
     clean.push({ id: id.startsWith('sv-') ? id : 'sv-' + id, name: String(s.name || id).slice(0, 32), blurb: String(s.blurb || '').slice(0, 80), n, rot,
-      password: s.password ? String(s.password).slice(0, 64) : '', ranked: !!s.ranked, minLv: s.minLv ? lv(s.minLv) : 1, maxLv: s.maxLv ? lv(s.maxLv) : 10,
+      password: s.password ? String(s.password).slice(0, 64) : '', ranked: !!s.ranked, clan: !!s.clan, minLv: s.minLv ? lv(s.minLv) : 1, maxLv: s.maxLv ? lv(s.maxLv) : 10,
       noAi: s.bots === false || /^(0|false|no|off)$/i.test(env.BC_BOTS || '1') }); // players only: no AI bots fill the empty slots
   }
   return clean.length ? clean : DEFAULT_SERVERS;
@@ -219,6 +220,11 @@ function onMatchReport(server, r) {
   if (server.ranked) {
     const avg = t => { const xs = accts.filter(x => x.h.team === t).map(x => x.a ? db.seasonOf(x.a).elo : 1200); return xs.length ? xs.reduce((s, v) => s + v, 0) / xs.length : 1200; };
     if (accts.some(x => x.h.team === 0) && accts.some(x => x.h.team === 1)) deltas = eloDeltas([avg(0), avg(1)], r.winner);
+  }
+  // clan rooms: when each team is one clan (pilots without a clan don't count), the result goes on the clan ladder
+  if (server.clan) {
+    const tags = [0, 1].map(t => [...new Set(accts.filter(x => x.a && x.h.team === t && x.a.clan).map(x => x.a.clan))]);
+    if (tags[0].length === 1 && tags[1].length === 1 && tags[0][0] !== tags[1][0]) { const res = db.clanBattle(tags[0][0], tags[1][0], r.winner, r.mode, r.map); if (res) log(`[${server.id}] clan battle [${tags[0][0]}] vs [${tags[1][0]}]: ${r.winner === 0 ? tags[0][0] + ' won' : r.winner === 1 ? tags[1][0] + ' won' : 'draw'}`); }
   }
   const num = (v, max) => Math.max(0, Math.min(max, +v || 0));
   for (const { h, a } of accts) {

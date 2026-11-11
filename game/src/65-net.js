@@ -178,7 +178,7 @@ function renderLobbyList() {
     const h = (hosts.find(p => p.presence.host.code === sv.id) || {}).presence;
     const inRoom = others.filter(p => p.presence.sv === sv.id), cnt = inRoom.length, meIn = NET.game && NET.game.code === sv.id;
     const who = inRoom.slice(0, 4).map(p => pilotTag(p.presence)).join(', ') + (cnt > 4 ? ` +${cnt - 4}` : '');
-    const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', sv.noAi ? 'PLAYERS ONLY' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
+    const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', sv.clan ? 'CLAN WARS' : '', sv.noAi ? 'PLAYERS ONLY' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
     const size = sv.rot && sv.rot.length && sv.rot.every(r => r[0] === 'pit') ? sv.n * 2 + ' pilots, free-for-all' : sv.n + ' v ' + sv.n, total = cnt + (meIn ? 1 : 0);
     want.push({ key: sv.id, group: 'sv', title: sv.name, tags, status: phaseText(h && h.host), players: total ? `👤 ${total} · ${[who, meIn ? 'you' : ''].filter(Boolean).join(', ')}` : '👤 Nobody here yet', small: `${sv.blurb} ${size}.`, live: !!(h && h.host && h.host.phase === 'live'),
       btn: total || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
@@ -247,7 +247,7 @@ function resolveMap(mode, map) { return mode === 'space' ? (MAPS[map] && MAPS[ma
 function freshInfo() {
   const g = NET.game, sv = g.server, s = g.setup || setupSel;
   const first = sv ? sv.rot[0] : [s.mode, s.mode === 'space' ? s.smap : s.map, s.size], n = sv ? sv.n : s.n;
-  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: resolveMap(first[0], first[1]), size: mapSizeOf(first[2], n), n, noAi: sv ? !!sv.noAi : s.ai === 'none', roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
+  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: resolveMap(first[0], first[1]), size: mapSizeOf(first[2], n), n, noAi: sv ? !!sv.noAi : s.ai === 'none', clan: !!(sv && sv.clan), roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
 }
 function slowPresence(withDesign) {
   if (!NET.slow || !NET.game) return;
@@ -302,6 +302,14 @@ function assignTeam(peer) {
   const pp = NET.slowPeers.find(x => x.peer === peer), pt = pp && pp.presence && pp.presence.pt;
   if (pt && NET.game.info.mode !== 'pit') { const mate = NET.slowPeers.find(x => x.peer !== peer && x.presence && x.presence.pt === pt && (NET.game.info.roster[x.peer] === 0 || NET.game.info.roster[x.peer] === 1)); if (mate) { NET.game.info.roster[peer] = NET.game.info.roster[mate.peer]; return; } }
   if (NET.game.info.mode === 'horde') { NET.game.info.roster[peer] = 0; return; }
+  // clan rooms: clanmates share a team, and each team keeps to one clan while it can
+  const tag = NET.game.info.clan && pp && pp.presence && pp.presence.clan;
+  if (tag && NET.game.info.mode !== 'pit') {
+    const R = NET.game.info.roster, clanOn = t => new Set(NET.slowPeers.filter(x => x.peer !== peer && R[x.peer] === t && x.presence && x.presence.clan).map(x => x.presence.clan));
+    const c0 = clanOn(0), c1 = clanOn(1);
+    if (c0.has(tag) && !c1.has(tag)) { R[peer] = 0; return; } if (c1.has(tag) && !c0.has(tag)) { R[peer] = 1; return; }
+    if (!c0.size && c1.size) { R[peer] = 0; return; } if (!c1.size && c0.size) { R[peer] = 1; return; }
+  }
   if (NET.game.info.mode === 'pit') { const used = Object.values(NET.game.info.roster); let t = 10; while (used.includes(t)) t++; NET.game.info.roster[peer] = t; return; } const c = [0, 0]; for (const t of Object.values(NET.game.info.roster)) c[t]++; NET.game.info.roster[peer] = c[1] < c[0] ? 1 : 0; }
 function onSlowPeers() {
   const g = NET.game; if (!g) return;

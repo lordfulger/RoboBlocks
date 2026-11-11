@@ -16,7 +16,7 @@ class Relay {
     this.rooms = new Map(); // name -> Map(peerId -> presence)
   }
   get humanCount() { let n = 0; for (const p of this.peers.values()) if (!p.local) n++; return n; }
-  publicServers() { return this.servers.map(s => ({ id: s.id, name: s.name, blurb: s.blurb, n: s.n, rot: s.rot, locked: !!s.password, ranked: !!s.ranked, minLv: s.minLv || 1, maxLv: s.maxLv || 10, noAi: !!s.noAi })); }
+  publicServers() { return this.servers.map(s => ({ id: s.id, name: s.name, blurb: s.blurb, n: s.n, rot: s.rot, locked: !!s.password, ranked: !!s.ranked, clan: !!s.clan, minLv: s.minLv || 1, maxLv: s.maxLv || 10, noAi: !!s.noAi })); }
   connect(send, { local = false, ip = '', close = () => { } } = {}) {
     if (!local && this.humanCount >= this.maxClients) return null;
     if (!local && this.db && this.db.isBanned(null, ip)) { send({ t: 'kicked', reason: 'You are banned from this server.' }); return null; }

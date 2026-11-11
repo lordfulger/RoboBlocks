@@ -149,9 +149,18 @@ class DB {
   clanInfo(tag) {
     const c = this.d.clans[String(tag || '').toUpperCase()]; if (!c) return { e: 'No clan with that tag.' };
     const members = c.members.map(k => this.d.accounts[k]).filter(Boolean).map(x => this.publicProfile(x)).sort((x, y) => y.xp - x.xp);
-    return { tag: c.tag, name: c.name, owner: (this.d.accounts[c.owner] || {}).name || c.owner, members, xp: members.reduce((s, m) => s + m.xp, 0), wins: members.reduce((s, m) => s + m.wins, 0), t: c.t };
+    return { tag: c.tag, name: c.name, owner: (this.d.accounts[c.owner] || {}).name || c.owner, elo: Math.round(c.elo == null ? 1200 : c.elo), w: c.w | 0, l: c.l | 0, dr: c.dr | 0, battles: (c.hist || []).slice(0, 10), members, xp: members.reduce((s, m) => s + m.xp, 0), wins: members.reduce((s, m) => s + m.wins, 0), t: c.t };
   }
-  clanBoard() { return Object.keys(this.d.clans).map(t => this.clanInfo(t)).filter(c => !c.e).map(({ members, ...c }) => ({ ...c, size: members.length })).sort((x, y) => y.xp - x.xp).slice(0, 50); }
+  // a finished clan battle: rating (Elo, K 32), wins, losses and the last 20 battles for both clans
+  clanBattle(tagA, tagB, winner, mode, map) {
+    const A = this.d.clans[tagA], B = this.d.clans[tagB]; if (!A || !B || A === B) return null;
+    for (const c of [A, B]) { if (c.elo == null) c.elo = 1200; c.w = c.w | 0; c.l = c.l | 0; c.dr = c.dr | 0; c.hist = c.hist || []; }
+    const d = eloDeltas([A.elo, B.elo], winner); A.elo = Math.max(100, A.elo + d[0]); B.elo = Math.max(100, B.elo + d[1]);
+    const t = Date.now(), res = w => winner === -1 || winner == null ? 'draw' : winner === w ? 'win' : 'loss';
+    for (const [c, o, w, dd] of [[A, B, 0, d[0]], [B, A, 1, d[1]]]) { const r = res(w); if (r === 'win') c.w++; else if (r === 'loss') c.l++; else c.dr++; c.hist.unshift({ t, vs: o.tag, res: r, mode: String(mode || '').slice(0, 8), map: String(map || '').slice(0, 8), d: Math.round(dd) }); c.hist.length = Math.min(c.hist.length, 20); }
+    this.save(); return d;
+  }
+  clanBoard() { return Object.keys(this.d.clans).map(t => this.clanInfo(t)).filter(c => !c.e).map(({ members, battles, ...c }) => ({ ...c, size: members.length })).sort((x, y) => ((y.w + y.l + y.dr) > 0) - ((x.w + x.l + x.dr) > 0) || y.elo - x.elo || y.xp - x.xp).slice(0, 50); }
   // ---------- robot shop ----------
   shopList(sort, viewer) {
     const items = Object.values(this.d.shop).filter(i => !this.isBanned(i.owner));

@@ -118,25 +118,29 @@ async function beClan(op, a) {
   if (op === 'list') return clans.map(info).sort((x, y) => y.xp - x.xp).slice(0, 50);
   throw new Error('Not available here.');
 }
+const clanRoom = () => BE.kind === 'server' ? SERVERS.find(sv => sv.clan) || null : null;
 async function showClans() {
   showOverlay('<h2>Clans</h2><p>Loading…</p>', true);
   const tag = myClan(); let mine = null, board = [];
   try { [mine, board] = await Promise.all([tag ? beClan('get', { tag }).catch(() => null) : null, beClan('list')]); }
   catch (e) { showOverlay('<h2>Clans</h2>' + errBox(e) + (BE.kind === 'server' && !BE.me ? '<p>Sign in to start or join a clan.</p>' : '') + '<div class="btns"><button class="primary" id="ovBack">Back</button></div>', true); $('#ovBack').onclick = backToMenu; return; }
   const needAcct = BE.kind === 'server' && !BE.me;
-  const rows = board.map((c, i) => `<tr class="${c.tag === tag ? 'me' : ''}"><td class="num">${i + 1}</td><td><b>[${esc(c.tag)}]</b> ${esc(c.name)}</td><td class="num">${c.size}</td><td class="num">${fmtN(c.xp)}</td><td class="num">${fmtN(c.wins)}</td><td>${c.tag === tag ? '' : `<button data-join="${esc(c.tag)}" ${tag || needAcct ? 'disabled' : ''}>Join</button>`}</td></tr>`).join('');
+  const rows = board.map((c, i) => `<tr class="${c.tag === tag ? 'me' : ''}"><td class="num">${i + 1}</td><td><b>[${esc(c.tag)}]</b> ${esc(c.name)}</td><td class="num">${c.size}</td><td class="num">${fmtN(c.elo || 1200)}</td><td class="num">${c.w | 0}–${c.l | 0}</td><td class="num">${fmtN(c.xp)}</td><td>${c.tag === tag ? '' : `<button data-join="${esc(c.tag)}" ${tag || needAcct ? 'disabled' : ''}>Join</button>`}</td></tr>`).join('');
   showOverlay(`<h2>Clans</h2>
     ${mine ? `<h3>[${esc(mine.tag)}] ${esc(mine.name)}</h3><p>Led by ${esc(mine.owner)} · ${mine.members.length} pilot${mine.members.length === 1 ? '' : 's'} · ${fmtN(mine.xp)} XP together</p>
       <div class="tscroll" style="max-height:24vh"><table class="tbl"><thead><tr><th>Pilot</th><th>Lv</th><th>XP</th><th>Wins</th><th>Kills</th></tr></thead><tbody>${mine.members.map(m => `<tr><td>${esc(m.name)}</td><td class="num">${m.lv}</td><td class="num">${fmtN(m.xp)}</td><td class="num">${m.wins}</td><td class="num">${fmtN(m.kills)}</td></tr>`).join('')}</tbody></table></div>
-      <div class="btns"><button id="clLeave">Leave clan</button></div>`
+      <h3>CLAN BATTLES · rating ${fmtN(mine.elo || 1200)} · ${mine.w | 0} won, ${mine.l | 0} lost${mine.dr ? `, ${mine.dr} drawn` : ''}</h3>
+      ${(mine.battles || []).length ? `<div class="tscroll" style="max-height:18vh"><table class="tbl"><tbody>${mine.battles.map(b => `<tr><td>${esc(ago(b.t))}</td><td>vs <b>[${esc(b.vs)}]</b></td><td>${esc((MODES[b.mode] || { name: b.mode }).name)} · ${esc((MAPS[b.map] || { name: b.map }).name)}</td><td class="${b.res === 'win' ? 'win' : b.res === 'loss' ? 'lose' : ''}">${b.res === 'win' ? 'Victory' : b.res === 'loss' ? 'Defeat' : 'Draw'}</td><td class="num">${b.d > 0 ? '+' : ''}${b.d}</td></tr>`).join('')}</tbody></table></div>` : '<p>No clan battles yet. Get your clan into a Clan Wars room: when each team is a single clan, the result counts here.</p>'}
+      <div class="btns">${clanRoom() ? '<button class="primary" id="clWar">Play Clan Wars</button>' : ''}<button id="clLeave">Leave clan</button></div>`
     : needAcct ? '<p>Sign in to start or join a clan.</p>' : `<h3>START A CLAN</h3><div class="srow"><label for="clTag">Tag</label><input id="clTag" maxlength="5" placeholder="2–5 letters" style="text-transform:uppercase"><span></span></div>
       <div class="srow"><label for="clName">Name</label><input id="clName" maxlength="28"><button id="clMake">Start clan</button></div>`}
-    <h3>CLAN LEADERBOARD</h3>${rows ? `<div class="tscroll" style="max-height:30vh"><table class="tbl"><thead><tr><th>#</th><th>Clan</th><th>Pilots</th><th>XP</th><th>Wins</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No clans yet. Start the first one.</p>'}
+    <h3>CLAN LEADERBOARD</h3>${rows ? `<div class="tscroll" style="max-height:30vh"><table class="tbl"><thead><tr><th>#</th><th>Clan</th><th>Pilots</th><th>Rating</th><th>Battles W–L</th><th>XP</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p>No clans yet. Start the first one.</p>'}
     <div class="btns">${needAcct ? '<button id="ovAcct">Sign in</button>' : ''}<button class="primary" id="ovBack">Back</button></div>`, true);
   $('#ovBack').onclick = backToMenu; if ($('#ovAcct')) $('#ovAcct').onclick = () => showAccount(showClans);
   for (const id of ['#clTag', '#clName']) if ($(id)) $(id).addEventListener('keydown', e => e.stopPropagation());
   const run = async (op, a) => { try { await beClan(op, a); lobbyPresence(); showClans(); } catch (e) { toast(e.message); } };
   if ($('#clMake')) $('#clMake').onclick = () => run('create', { tag: $('#clTag').value, name: $('#clName').value });
+  if ($('#clWar')) $('#clWar').onclick = () => { const sv = clanRoom(); if (!sv || !canDeploy()) return; hideOverlay(); joinGame(sv.id, sv, null); };
   if ($('#clLeave')) $('#clLeave').onclick = () => { if (armed($('#clLeave'))) run('leave'); };
   document.querySelectorAll('[data-join]').forEach(b => b.onclick = () => run('join', { tag: b.dataset.join }));
 }
