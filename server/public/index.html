@@ -779,7 +779,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
-  ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.']],
+  ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.', 'Better flying: Space climbs and C descends quickly, and letting go holds your height. Helicopters respond faster, planes climb and dive toward where you aim, and C drops jump-jet bots faster.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
   ['2.8.2', ['Servers keep themselves up to date: they check for new releases every hour, install them, and restart when nobody is playing.', 'The desktop app updates itself from each new release automatically.']],
@@ -942,7 +942,7 @@ function mobility(s) {
   if ((s.thrusters || s.props) && mode !== 'plane' && mode !== 'none') maxSpeed *= 1 + Math.min(.4, thrust * .4);
   return {
     mode, f, maxSpeed, turn: TU[mode], legKind, step: legKind === 'insect' ? 4.5 : legKind ? 2.6 : 0,
-    accel: mode === 'tread' || mode === 'leg' ? 6 + 22 * f : mode === 'rotor' ? 4 + 16 * f : mode === 'plane' ? 8 + 14 * f : 6 + 28 * f,
+    accel: mode === 'tread' || mode === 'leg' ? 6 + 22 * f : mode === 'rotor' ? 4 + 16 * f : mode === 'plane' ? 11 + 18 * f : 6 + 28 * f,
     hoverH: mode === 'hover' ? 1.5 * clamp((lift - 0.55) / 0.45, 0.25, 1) : 0,
     maxAlt: mode === 'plane' ? 80 : mode === 'rotor' ? 55 * clamp((rlift - .7) / .6, .35, 1) : mode === 'hover' ? 6 : 0,
     jetAcc: s.jets ? s.jets * 40 * 1.45 * GRAV / mass : 0,
@@ -4464,16 +4464,25 @@ class Bot {
     if (this.flyT > 0) { this.flyT -= dt; if (this.flyT <= 0 && this.isPlayer && !HEADLESS) SFX.flyEnd(); }
     if (fly) {
       if (inp.up || inp.jet) this.flyAlt = Math.min(22, this.flyAlt + 8 * dt);
-      if (inp.down) this.flyAlt = Math.max(1, this.flyAlt - 12 * dt);
+      if (inp.down) this.flyAlt = Math.max(1, Math.min(this.flyAlt, above + 1) - 18 * dt);
       const goal = this.flyT < 1.2 ? Math.min(this.flyAlt, this.flyT * 6) : this.flyAlt; // eases down as the fuel runs out
       this.vel.y += ((goal - above) * 3.6 - this.vel.y * 2.4) * dt + GRAV * dt; this.vel.y = clamp(this.vel.y, -14, 14);
       driving = true; inp.jet = false;
       if (!HEADLESS && Math.random() < dt * 30) emit(this.pos.x + rand(-.5, .5), this.pos.y + this.bottomLocal - .4, this.pos.z + rand(-.5, .5), rand(-.5, .5), -rand(4, 7), rand(-.5, .5), rand(.5, .9), rand(.5, .9), 0xffa040, 0, 0);
     }
     if (air) {
-      const rate = m.mode === 'rotor' ? 9 : m.mode === 'plane' ? 8 : m.mode === 'space' ? 9 + 8 * m.f : 4;
-      if (inp.up) this.alt = Math.min(m.maxAlt, this.alt + rate * dt);
-      if (inp.down) this.alt = Math.max(world.space ? -40 : 0, this.alt - rate * 1.5 * dt);
+      // Space climbs and C descends at a steady rate; letting go holds the height you are at (no drifting on)
+      const rate = m.mode === 'rotor' ? 14 : m.mode === 'plane' ? 10 : m.mode === 'space' ? 12 + 8 * m.f : 6, base = m.mode === 'hover' ? m.hoverH : m.mode === 'space' ? 0 : 1.2;
+      const cur = m.mode === 'space' ? this.pos.y : above - base, lo = world.space ? -40 : 0;
+      if (inp.up && !inp.down) this.alt = Math.min(m.maxAlt, Math.max(this.alt, cur - 1) + rate * dt);
+      else if (inp.down && !inp.up) this.alt = Math.max(lo, Math.min(this.alt, cur + 1) - rate * 1.4 * dt);
+      else if (this.vChange) this.alt = clamp(cur + this.vel.y * .12, lo, m.maxAlt); // just let go: settle right here
+      this.vChange = !!(inp.up || inp.down);
+      // planes climb and dive toward where you aim
+      if (m.mode === 'plane' && inp.aim && !inp.up && !inp.down) {
+        const dx = inp.aim.x - this.pos.x, dz = inp.aim.z - this.pos.z, ap = Math.atan2(inp.aim.y - this.pos.y, Math.hypot(dx, dz) || 1);
+        const sp = Math.max(0, this.vel.x * fx + this.vel.z * fz); this.alt = clamp(this.alt + clamp(ap, -.7, .7) * sp * .85 * dt, 0, m.maxAlt);
+      }
       this.alt = Math.min(this.alt, m.maxAlt);
     }
     if (m.mode === 'hover') {
@@ -4481,31 +4490,32 @@ class Bot {
       if (above < hh + 2.5) { this.vel.y += ((hh - above) * 26 - this.vel.y * 5) * dt + GRAV * dt; driving = true; }
     } else if (m.mode === 'rotor') {
       const hh = 1.2 + this.alt;
-      this.vel.y += ((hh - above) * 4.5 - this.vel.y * 2.4) * dt + GRAV * dt; driving = true;
-      this.vel.y = clamp(this.vel.y, -16, 12);
+      this.vel.y += ((hh - above) * 7 - this.vel.y * 3.6) * dt + GRAV * dt; driving = true;
+      this.vel.y = clamp(this.vel.y, -20, 16);
     } else if (m.mode === 'plane') { // lift only comes with airspeed
       const speed = Math.max(0, this.vel.x * fx + this.vel.z * fz), liftK = clamp((speed - 9) / 9, 0, 1);
-      this.vel.y += ((1.2 + this.alt - above) * 3.2 * liftK - this.vel.y * 1.6 * liftK) * dt + GRAV * dt * liftK;
+      this.vel.y += ((1.2 + this.alt - above) * 4.2 * liftK - this.vel.y * 2 * liftK) * dt + GRAV * dt * liftK;
       this.vel.y = clamp(this.vel.y, -22, 14); driving = true;
       if (liftK < .3 && this.alt > 0) this.alt = Math.max(0, this.alt - 6 * dt);
     } else if (m.mode === 'space') { // zero gravity: thrusters hold the chosen height, everything glides
-      this.vel.y += ((this.alt - this.pos.y) * 2.2 - this.vel.y * 1.8) * dt; this.vel.y = clamp(this.vel.y, -18, 18); driving = true;
+      this.vel.y += ((this.alt - this.pos.y) * 3.2 - this.vel.y * 2.4) * dt; this.vel.y = clamp(this.vel.y, -22, 22); driving = true;
     } else if (world.space) { this.vel.y *= Math.exp(-.3 * dt); // a bot with nothing to push it just drifts
     } else if (m.mode === 'wheel' || m.mode === 'tread' || m.mode === 'leg' || m.mode === 'ski') driving = grounded;
     this.vel.y -= GRAV * dt;
     this.jetting = false;
-    if (inp.jet && m.jetAcc > 0 && this.fuel > 0) { this.vel.y += m.jetAcc * dt; this.fuel = Math.max(0, this.fuel - dt * .42); this.jetting = true; }
+    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * dt; this.fuel = Math.max(0, this.fuel - dt * .42); this.jetting = true; }
+    else if (inp.down && !air && !fly && !grounded && this.vel.y > -30) this.vel.y -= GRAV * 1.2 * dt; // C: drop faster after a jump
     else this.fuel = Math.min(1, this.fuel + dt * (grounded || driving ? .3 : .08));
     let vf = this.vel.x * fx + this.vel.z * fz, vs = this.vel.x * lx + this.vel.z * lz;
     if (driving) {
       const flyMul = fly ? 1.15 : 1;
       const target = fly ? inp.throttle * Math.max(m.maxSpeed, 24) * flyMul : m.mode === 'plane' ? (inp.throttle > 0 ? m.maxSpeed : inp.throttle < 0 ? 0 : clamp(vf, 0, m.maxSpeed)) : inp.throttle * (inp.throttle > 0 ? m.maxSpeed * (m.mode === 'ski' && onIce ? 1.3 : 1) : m.maxSpeed * (m.mode === 'tread' || m.mode === 'leg' ? .8 : .55));
-      let acc = m.accel * (inp.throttle === 0 ? .7 : 1) * (Math.sign(target - vf) !== Math.sign(vf) && Math.abs(vf) > 1 ? 1.6 : 1);
+      let acc = m.accel * (m.mode === 'rotor' ? 1.4 : 1) * (inp.throttle === 0 ? .7 : 1) * (Math.sign(target - vf) !== Math.sign(vf) && Math.abs(vf) > 1 ? 1.6 : 1);
       if (onIce && !air) acc *= m.mode === 'ski' ? 1.25 : .4;
       if (Math.abs(target - vf) < acc * dt) vf = target; else vf += Math.sign(target - vf) * acc * dt;
       if (m.mode === 'plane') vs *= Math.exp(-6 * dt);
       else if (air || fly) {
-        const st = (inp.strafe || 0) * Math.max(m.maxSpeed, fly ? 20 : 0) * .75, a2 = m.accel * .8 * dt;
+        const st = (inp.strafe || 0) * Math.max(m.maxSpeed, fly ? 20 : 0) * .8, a2 = m.accel * (m.mode === 'rotor' ? 1.2 : .8) * dt;
         vs += clamp(st - vs, -a2, a2); if (!inp.strafe) vs *= Math.exp(-(m.mode === 'rotor' ? 1.4 : 1.8) * dt);
       } else vs *= Math.exp(-(m.mode === 'ski' ? 2.5 : onIce ? 1.1 : m.mode === 'tread' ? 14 : 9) * dt);
       const turn = m.turn * (m.mode === 'wheel' ? clamp(.6 + Math.abs(vf) / 12, .6, 1) : 1);
