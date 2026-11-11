@@ -1,7 +1,7 @@
 {
   "name": "roboblocks",
   "productName": "RoboBlocks",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "RoboBlocks desktop app: a launcher that keeps the game up to date and runs it in its own window.",
   "main": "main.js",
   "author": "RoboBlocks",

@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('ROBOBLOCKS', {
   platform: info.platform || '',
   setServer: url => ipcRenderer.invoke('set-server', String(url || '')),
   restart: () => ipcRenderer.invoke('restart-game'),
+  quit: () => ipcRenderer.invoke('quit-app'),
   openExternal: url => ipcRenderer.invoke('open-external', String(url || '')),
   onUpdate: cb => { if (typeof cb === 'function') ipcRenderer.on('update-ready', (_e, v) => cb(String(v))); },
 });

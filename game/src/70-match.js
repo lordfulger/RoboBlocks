@@ -341,6 +341,16 @@ $('#mGarage').onclick = () => { SFX.init(); SFX.ui(); toGarage(); };
 $('#mTest').onclick = () => { SFX.init(); SFX.ui(); startBattle({ mode: 'test' }); };
 $('#mSettings').onclick = () => { SFX.init(); SFX.ui(); showSettings(); };
 $('#mHelp').onclick = () => { SFX.init(); SFX.ui(); showHelp(); };
+$('#mQuit').onclick = () => {
+  SFX.ui(); saveBays(); if (typeof cloudDirty === 'function') cloudDirty();
+  showOverlay(`<h2>Quit RoboBlocks?</h2><p>Your bots and progress are saved.</p><div class="btns"><button class="primary" id="qYes">Quit</button><button id="qNo">Cancel</button></div>`);
+  $('#qNo').onclick = () => { hideOverlay(); buildPilotCard(); };
+  $('#qYes').onclick = () => {
+    if (HOST && HOST.quit) { HOST.quit(); return; }
+    try { window.close(); } catch (e) { }
+    setTimeout(() => showOverlay(`<h2>Quit RoboBlocks</h2><p>Your browser keeps this tab open. Close the tab to quit; everything is saved.</p><div class="btns"><button class="primary" id="qOk">OK</button></div>`) || ($('#qOk').onclick = () => { hideOverlay(); buildPilotCard(); }), 250);
+  };
+};
 $('#mTut').onclick = () => { SFX.init(); SFX.ui(); tutStart(); toGarage(); };
 $('#mProfile').onclick = () => { SFX.init(); SFX.ui(); showProfile(); };
 $('#mQuests').onclick = () => { SFX.init(); SFX.ui(); showQuests(); };

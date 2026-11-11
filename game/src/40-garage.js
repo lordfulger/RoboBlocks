@@ -25,8 +25,11 @@ function setupGarage() {
   garage.ghost.scale.setScalar(1.04);
   garage.ghostEdges = new T.LineSegments(edgesOf(GEO.box), new T.LineBasicMaterial({ color: 0x62e08f }));
   garage.ghost.add(garage.ghostEdges); garage.ghost.visible = false; s.add(garage.ghost);
-  const dirArrow = new T.Mesh(new T.ConeGeometry(.22, .55, 10).rotateX(HALF_PI), new T.MeshBasicMaterial({ color: 0xff8a1f, depthTest: false, transparent: true }));
-  dirArrow.renderOrder = 3; garage.dirPivot = new T.Group(); dirArrow.position.z = .85; garage.dirPivot.add(dirArrow); garage.ghost.add(garage.dirPivot);
+  // the direction marker: an arrow painted on the face the part points out of, so it reads as part of the block being placed
+  const ash = new T.Shape(); ash.moveTo(0, .34); ash.lineTo(.3, -.08); ash.lineTo(.11, -.08); ash.lineTo(.11, -.32); ash.lineTo(-.11, -.32); ash.lineTo(-.11, -.08); ash.lineTo(-.3, -.08); ash.closePath();
+  const dirArrow = new T.Mesh(new T.ShapeGeometry(ash).rotateX(HALF_PI), new T.MeshBasicMaterial({ color: 0xff8a1f, side: T.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2 }));
+  dirArrow.position.set(0, .505, 0); const dirTip = new T.Mesh(new T.PlaneGeometry(.9, .06), new T.MeshBasicMaterial({ color: 0xff8a1f, side: T.DoubleSide })); dirTip.position.set(0, 0, .505);
+  garage.dirPivot = new T.Group(); garage.dirPivot.add(dirArrow, dirTip); garage.ghost.add(garage.dirPivot);
   garage.mirrorGhost = garage.ghost.clone(); garage.mirrorGhost.material = garage.ghost.material.clone(); garage.mirrorGhost.material.opacity = .14; s.add(garage.mirrorGhost);
   garage.mirrorGhost.visible = false;
   garage.floorPlane = new T.Plane(new T.Vector3(0, 1, 0), .5);
@@ -114,7 +117,7 @@ function gPick(cx, cy) {
 }
 function updateGhost(cx, cy) {
   const g = garage.ghost, mg = garage.mirrorGhost; g.visible = mg.visible = false; garage.hover = null;
-  if (cx == null) return;
+  if (cx == null || state !== 'garage') return; // never on the main menu
   const pk = gPick(cx, cy); if (!pk) return;
   garage.hover = pk;
   if (garage.erase || garage.paint) {

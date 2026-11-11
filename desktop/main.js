@@ -128,6 +128,7 @@ ipcMain.handle('set-config', async (_e, patch) => {
 // the game's server browser switches servers: update to that server's version and reload
 ipcMain.handle('set-server', async (_e, url) => { cfg.server = cleanServer(url); await saveCfg(); await checkForUpdate('manual'); if (gameWin && !gameWin.isDestroyed()) gameWin.reload(); return cfg.server; });
 ipcMain.handle('restart-game', async () => { await checkForUpdate('manual'); pendingVersion = null; if (gameWin && !gameWin.isDestroyed()) gameWin.reload(); });
+ipcMain.handle('quit-app', () => { app.quit(); });
 ipcMain.handle('open-external', (_e, url) => { if (/^https?:\/\//.test(url)) shell.openExternal(url); });
 
 // ---------- start ----------
