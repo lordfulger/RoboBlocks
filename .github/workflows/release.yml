@@ -1,4 +1,4 @@
-# Release RoboBlocks: push a tag like v2.8.0 and this builds everything and publishes a GitHub Release with
+# Release RoboBlocks: push a tag like v2.8.0 (or 2.8.0) and this builds everything and publishes a GitHub Release with
 #   roboblocks-server.tar.gz   the dedicated server (Pterodactyl eggs install and update from this file)
 #   egg-roboblocks.json        the Pterodactyl egg
 #   RoboBlocks-* installers    the desktop app for Windows, macOS and Linux, plus the latest*.yml update feeds
@@ -6,7 +6,7 @@
 name: Release
 on:
   push:
-    tags: ['v*']
+    tags: ['v*', '[0-9]*']
   workflow_dispatch:
 permissions:
   contents: write
@@ -21,11 +21,11 @@ jobs:
       - name: Build the game
         run: bash game/build.sh
       - name: Check the version matches the tag
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/')
         run: |
           GAME=$(grep -o "const BC_VERSION = '[^']*'" server/public/index.html | cut -d"'" -f2)
           echo "game ${GAME}, tag ${GITHUB_REF_NAME}"
-          if [ "v${GAME}" != "${GITHUB_REF_NAME}" ]; then echo "::warning::BC_VERSION (${GAME}) does not match the tag (${GITHUB_REF_NAME})"; fi
+          if [ "v${GAME}" != "${GITHUB_REF_NAME}" ] && [ "${GAME}" != "${GITHUB_REF_NAME}" ]; then echo "::warning::BC_VERSION (${GAME}) does not match the tag (${GITHUB_REF_NAME})"; fi
       - name: Smoke-test the server
         working-directory: server
         run: |
@@ -47,7 +47,7 @@ jobs:
             roboblocks-server.tar.gz
             egg-roboblocks.json
       - name: Publish the release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           name: RoboBlocks ${{ github.ref_name }}
@@ -92,7 +92,7 @@ jobs:
             desktop/dist/*.blockmap
             desktop/dist/latest*.yml
       - name: Attach to the release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: |
