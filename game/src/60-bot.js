@@ -173,7 +173,7 @@ class Bot {
       const cur = m.mode === 'space' ? this.pos.y : above - base, lo = world.space ? -40 : 0;
       if (inp.up && !inp.down) this.alt = Math.min(m.maxAlt, Math.max(this.alt, cur - 1) + rate * dt);
       else if (inp.down && !inp.up) this.alt = Math.max(lo, Math.min(this.alt, cur + 1) - rate * 1.4 * dt);
-      else if (this.vChange) this.alt = clamp(cur + this.vel.y * .12, lo, m.maxAlt); // just let go: settle right here
+      else if (this.vChange) this.alt = clamp(cur + Math.min(0, this.vel.y) * .12, lo, m.maxAlt); // just let go: settle right here (never above the ceiling)
       this.vChange = !!(inp.up || inp.down);
       // planes climb and dive toward where you aim
       if (m.mode === 'plane' && inp.aim && !inp.up && !inp.down) {
@@ -199,8 +199,11 @@ class Bot {
     } else if (world.space) { this.vel.y *= Math.exp(-.3 * dt); // a bot with nothing to push it just drifts
     } else if (m.mode === 'wheel' || m.mode === 'tread' || m.mode === 'leg' || m.mode === 'ski') driving = grounded;
     this.vel.y -= GRAV * dt;
+    if (!world.space && above > (air ? (m.maxAlt || 6) + 22 : 40) && this.vel.y > 0) this.vel.y *= Math.exp(-6 * dt); // a hard sky limit
     this.jetting = false;
-    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * dt; this.fuel = Math.max(0, this.fuel - dt * .42); this.jetting = true; }
+    // jets lose their push near a ceiling: ~28 m over the ground for ground bots, a little above a flier's normal ceiling
+    const jetCeil = air ? (m.maxAlt || 6) + 14 : 28, jetK = clamp((jetCeil - above) / 8, 0, 1);
+    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * jetK * dt; this.fuel = Math.max(0, this.fuel - dt * .42); this.jetting = jetK > 0; }
     else if (inp.down && !air && !fly && !grounded && this.vel.y > -30) this.vel.y -= GRAV * 1.2 * dt; // C: drop faster after a jump
     else this.fuel = Math.min(1, this.fuel + dt * (grounded || driving ? .3 : .08));
     let vf = this.vel.x * fx + this.vel.z * fz, vs = this.vel.x * lx + this.vel.z * lz;
@@ -403,6 +406,10 @@ class Bot {
     if (!inp.fire || this.fireT > 0 || !guns.length) return;
     if (this.cloakT > 0 && type !== 'nano') this.cloakT = 0; // shooting gives you away
     const W = WEAPONS[type];
+    if (type === 'lancer') { // a charged volley: every Rail Lancer fires together, then they cool down as one
+      for (const g of guns) { g.kick = 1; fireWeapon(this, type, g.muzzle.getWorldPosition(new T.Vector3()), inp.aim); }
+      this.fireT = Math.max(.5, W.cd - W.charge) * (match.fireMul || 1); return;
+    }
     let interval = Math.max(W.minInt, W.cd / guns.length);
     if (type === 'chain') { if (this.spin < .12) return; interval *= lerp(3.5, 1, this.spin); }
     interval *= match.fireMul || 1;

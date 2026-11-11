@@ -3,7 +3,7 @@ const $ = s => document.querySelector(s);
 const L = window.launcher;
 let busy = false;
 const TEXT = {
-  noserver: () => ['No game server set. Enter its address below, or press Play for AI battles.', ''],
+  noserver: () => ['Press Play to start. AI battles work offline too.', ''],
   checking: () => ['Checking for updates…', ''],
   downloading: d => [`Downloading RoboBlocks ${d.target}… ${Math.round((d.progress || 0) * 100)}%`, ''],
   current: d => [`Up to date: RoboBlocks ${d.version}.`, 'good'],
@@ -36,14 +36,12 @@ const selfBox = s => {
 L.on('self-update', selfBox);
 $('#play').onclick = async () => { if (busy) return; $('#play').disabled = true; $('#status').textContent = 'Starting the game…'; await L.play(); setTimeout(() => { $('#play').disabled = false; }, 1500); };
 $('#check').onclick = () => L.check();
-const saveServer = async () => { const c = await L.setConfig({ server: $('#server').value }); $('#server').value = c.server.replace(/^http:\/\//, ''); };
-$('#save').onclick = saveServer;
-$('#server').addEventListener('keydown', e => { if (e.key === 'Enter') saveServer(); });
+// the server is built in; it is only shown, not edited
 for (const [id, key] of [['#fullscreen', 'fullscreen'], ['#hide', 'hideLauncher'], ['#auto', 'autoPlay']]) $(id).onchange = e => L.setConfig({ [key]: e.target.checked });
-addEventListener('keydown', e => { if (e.key === 'Enter' && document.activeElement !== $('#server') && !busy) $('#play').click(); });
+addEventListener('keydown', e => { if (e.key === 'Enter' && !busy) $('#play').click(); });
 (async () => {
   const s = await L.state();
-  $('#server').value = (s.cfg.server || '').replace(/^http:\/\//, '');
+  $('#srvLine').textContent = s.cfg.server ? 'Server: ' + s.cfg.server.replace(/^https?:\/\//, '') : '';
   $('#fullscreen').checked = !!s.cfg.fullscreen; $('#hide').checked = s.cfg.hideLauncher !== false; $('#auto').checked = !!s.cfg.autoPlay;
   $('#meta').dataset.launcher = s.launcher; $('#meta').dataset.game = s.version; meta();
   if (s.last && s.last.status) show(s.last.status); else if (!s.cfg.server) show({ state: 'noserver', version: s.version });

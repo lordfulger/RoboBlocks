@@ -30,7 +30,7 @@ function buildHangar() {
     draw();
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { draw(); t.needsUpdate = true; });
-    const sign = new T.Mesh(new T.PlaneGeometry(26, 4), new T.MeshBasicMaterial({ map: t, transparent: true, color: new T.Color(1.6, 1.6, 1.6), toneMapped: false })); sign.position.set(0, 17, -44.5); s.add(sign); }
+    const sign = new T.Mesh(new T.PlaneGeometry(22, 3.45), new T.MeshBasicMaterial({ map: t, transparent: true, color: new T.Color(1.6, 1.6, 1.6), toneMapped: false })); sign.position.set(0, 17, -42.2); s.add(sign); } // in front of the 12-sided wall, whose panels angle forward either side of centre
   // props: crates, a parts rack and a tool cart near the walls
   const crate = new T.MeshStandardMaterial({ color: 0x5b4632, roughness: .8 }), steel = new T.MeshStandardMaterial({ color: 0x59636b, roughness: .4, metalness: .8 }), hazard = new T.MeshStandardMaterial({ color: 0xd8a21f, roughness: .6 });
   const r = mulberry32(77);

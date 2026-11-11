@@ -147,7 +147,7 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
   const clearOf = (x, z, pad) => !(Math.abs(z) > world.spawnZ - 160 - pad && Math.abs(x) < 105 + pad) && capturePoints(world.half).every(p => Math.hypot(p.x - x, p.z - z) > 30 + pad);
   const wet = (x, z) => world.liquid && bedH(x, z) < world.liquid.y + .8;
   const free = (x, z, r) => world.rocks.every(o => Math.hypot(o.x - x, o.z - z) > o.cr + r + 4);
-  const rockMat = M.rockCol.map(c => new T.MeshStandardMaterial({ color: c, roughness: .92, flatShading: true }));
+  const rockBump = natureBump(), rockMat = M.rockCol.map(c => rockMaterial(c, rockBump)), MESAS = [0, 1, 2, 3].map(i => mesaGeo(M.seed * 17 + i)), BOULDERS = [0, 1, 2, 3, 4].map(i => rockGeo(M.seed * 23 + i));
   const groundMin = (x, z, r) => Math.min(bedH(x - r * .6, z), bedH(x + r * .6, z), bedH(x, z - r * .6), bedH(x, z + r * .6), bedH(x, z));
   for (let i = 0, tries = 0; i < M.mesas && tries < 400 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * (B - 40), z = (rnd() * 2 - 1) * (B - 40), r = 9 + rnd() * 13, h = 9 + rnd() * 16;
@@ -158,18 +158,17 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
       for (let k = 0; k < cnt; k++) { const a = rnd() * 6.28, d = rnd() * r * .6, cr = r * (.25 + rnd() * .2), ch = h * (.6 + rnd() * .6); const m = new T.Mesh(new T.CylinderGeometry(cr, cr * 1.04, ch, 6), rockMat[k % 2]); m.position.set(x + Math.cos(a) * d, gy + ch / 2 - 1, z + Math.sin(a) * d); m.castShadow = m.receiveShadow = true; m.userData.own = true; s.add(m); }
       addObstacle({ x, z, r, cr: r * .85, top: gy + h * 1.1 });
     } else {
-      const m = new T.Mesh(jitterGeo(new T.CylinderGeometry(r * .78, r * 1.05, h, 9, 3), .16, x), rockMat[i % 2]);
+      const m = new T.Mesh(MESAS[i % MESAS.length], rockMat[i % 2]); m.scale.set(r, h, r * (.85 + (i % 3) * .1));
       m.position.set(x, gy + h / 2 - 1, z); m.rotation.y = rnd() * 6.28; m.castShadow = m.receiveShadow = true; m.userData.own = true; s.add(m);
       if (mapId === 'frost') { const cap = new T.Mesh(new T.CylinderGeometry(r * .8, r * .82, 1.2, 9), new T.MeshStandardMaterial({ color: 0xf4f8fb, roughness: .8 })); cap.position.set(x, gy + h - .6, z); cap.userData.own = true; s.add(cap); }
       addObstacle({ x, z, r, cr: r * .92, top: gy + h - 1 });
     }
   }
-  const boulderGeo = jitterGeo(new T.IcosahedronGeometry(1, 1), .35, M.seed);
   for (let i = 0, tries = 0; i < M.rocks && tries < 1500 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * B, z = (rnd() * 2 - 1) * B, r = 2.5 + rnd() * 5, h = 2 + rnd() * 4.5;
     if (!clearOf(x, z, 0) || wet(x, z) || !free(x, z, r)) continue; i++;
     const gy = groundMin(x, z, r);
-    const m = new T.Mesh(boulderGeo, rockMat[i % 2]); m.scale.set(r, h, r * (.8 + rnd() * .4)); m.position.set(x, gy + h * .25, z); m.rotation.y = rnd() * 6.28; m.castShadow = m.receiveShadow = true; s.add(m);
+    const m = new T.Mesh(BOULDERS[i % BOULDERS.length], rockMat[i % 2]); m.scale.set(r, h, r * (.8 + rnd() * .4)); m.position.set(x, gy + h * .25, z); m.rotation.y = rnd() * 6.28; m.castShadow = m.receiveShadow = true; s.add(m);
     addObstacle({ x, z, r, cr: r * .85, top: gy + h * 1.2 });
   }
   // wrecked hulks: old bots half-buried in the ground
@@ -190,7 +189,7 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
   if (M.moon) buildMoon(s, M, rnd);
   // trees on Frostline
   if (mapId === 'frost') {
-    const N = Math.round(320 * M.area), trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
+    const N = Math.round(480 * M.area), trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
     const lo = new T.InstancedMesh(new T.ConeGeometry(2.4, 5, 7), new T.MeshStandardMaterial({ color: 0x2d4a3a, roughness: .85 }), N);
     const hi = new T.InstancedMesh(new T.ConeGeometry(1.6, 3.6, 7), new T.MeshStandardMaterial({ color: 0xdfe9ee, roughness: .8 }), N);
     let n = 0; const m4 = new T.Matrix4(), q = new T.Quaternion(), sv = new T.Vector3();
@@ -208,11 +207,13 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
     }
     for (const im of [trunk, lo, hi]) { im.count = n; im.castShadow = true; im.receiveShadow = true; s.add(im); }
   }
+  // foliage: trees and cacti (solid), shrubs (looks only)
+  buildFoliage(s, M, B, (x, z, r, loose) => clearOf(x, z, loose ? 0 : r) && !wet(x, z) && (loose || free(x, z, r)) && !(M.city && (cityStreet(x, z) || (world.buildings || []).some(b => Math.abs(b.x - x) < b.w / 2 + r && Math.abs(b.z - z) < b.d / 2 + r))));
   if (M.space) buildSpace(s, M, rnd);
   // ground scatter (no collision)
   if (!M.space) {
     const N = Math.round(2200 * M.area), kind = M.decor;
-    const pebbles = new T.InstancedMesh(new T.IcosahedronGeometry(.5, 0), new T.MeshStandardMaterial({ color: M.rockCol[0], roughness: .95, flatShading: true }), N);
+    const pebbles = new T.InstancedMesh(rockGeo(M.seed + 77, { detail: 1 }).scale(.5, .5, .5), rockMaterial(M.rockCol[0], null), N);
     const extraGeo = kind === 'desert' ? new T.DodecahedronGeometry(.7, 0) : kind === 'pines' ? new T.SphereGeometry(1, 8, 5) : new T.TetrahedronGeometry(.6, 0);
     const extraMat = kind === 'desert' ? new T.MeshStandardMaterial({ color: 0x6b6a3a, roughness: .9, flatShading: true }) : kind === 'pines' ? new T.MeshStandardMaterial({ color: 0xf2f6f9, roughness: .85 }) : kind === 'rubble' ? new T.MeshStandardMaterial({ color: 0x8a857c, roughness: .9, flatShading: true }) : kind === 'moon' ? new T.MeshStandardMaterial({ color: 0x5c5c60, roughness: .95, flatShading: true }) : new T.MeshStandardMaterial({ color: 0x2a0c04, emissive: 0xff6a1a, emissiveIntensity: 2.4 });
     const extra = new T.InstancedMesh(extraGeo, extraMat, 500);

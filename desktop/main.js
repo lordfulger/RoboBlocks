@@ -25,6 +25,7 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'rbgame', privileges: { standard
 const cleanServer = s => { try { const u = new URL(/^https?:\/\//i.test(String(s).trim()) ? String(s).trim() : 'http://' + String(s).trim()); return /^https?:$/.test(u.protocol) && u.hostname ? u.origin : ''; } catch (e) { return ''; } };
 let cfg = { server: cleanServer((PKG.roboblocks || {}).defaultServer || ''), fullscreen: false, hideLauncher: true, autoPlay: false };
 try { Object.assign(cfg, JSON.parse(fs.readFileSync(CFG_FILE, 'utf8'))); } catch (e) { }
+if (!cfg.server) cfg.server = cleanServer((PKG.roboblocks || {}).defaultServer || ''); // the official server is built in
 const saveCfg = () => fsp.writeFile(CFG_FILE, JSON.stringify(cfg, null, 2)).catch(() => { });
 
 // ---------- installed game ----------

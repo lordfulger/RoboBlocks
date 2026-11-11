@@ -146,7 +146,16 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .frow>div{display:flex;flex-direction:column}.frow span{font-size:13px;color:var(--muted)}.frow .dot{width:9px;height:9px;border-radius:50%;background:#555}.frow.on .dot{background:#5fd36a}
 .sbaddr{display:flex;gap:8px;margin:6px 0}.sbaddr input{flex:1;min-width:0}
 .fcode{margin:4px 0 10px;font-size:14px;color:#c9d2d8}.fcode b{font-family:var(--display);letter-spacing:.08em;color:#ffd36a;margin:0 6px}.fcode button{padding:3px 10px;font-size:12px}
-#sbHost{margin:10px 0}#sbHost summary{cursor:pointer;font-family:var(--display);font-size:13px;letter-spacing:.14em;color:var(--dim,#9aa6ae);padding:6px 0}#sbHost[open] summary{color:inherit}
+#sbHost{margin:10px 0}
+.sbTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.sbTop h2{margin-bottom:2px}.sbHere{margin:0 0 10px;color:#b4c0c8;font-size:14px}.sbHere b{color:var(--fg)}
+.rlist{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.grow.room{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+.grow.room.live{border-left:3px solid var(--accent)}
+.grow.room .ri{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.grow.room .rt{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.grow.room .rt b{font-size:17px}.grow.room .rt em{font-style:normal;font-size:11px;letter-spacing:.12em;color:#ffd36a}
+.grow.room .rs{font-size:14px;color:#dfe6ea}.grow.room .rp{font-size:13px;color:#9fe0b0}.grow.room small{font-size:12px;color:var(--muted)}
+.grow.room .rb{display:flex;flex-direction:column;gap:6px;align-items:stretch}.grow.room .rb button{min-width:96px}.grow.room .rb .watch{font-size:12px;padding:4px 8px}
+#sbOther{margin-top:12px}#sbOther summary{cursor:pointer;color:#b4c0c8;font-size:14px;padding:6px 0}#sbHost summary{cursor:pointer;font-family:var(--display);font-size:13px;letter-spacing:.14em;color:var(--dim,#9aa6ae);padding:6px 0}#sbHost[open] summary{color:inherit}
 .sbt{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:10px}.sbt td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:middle}.sbt tr.here{background:rgba(255,160,40,.08)}.sbt small{color:var(--muted)}.sbt button{padding:4px 10px;margin-left:4px}
 .wslot.grp{border-color:#7a6a2a}.wslot.grp .k{color:#ffd76a}
 .wgrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
@@ -491,7 +500,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
   <nav class="mnav">
     <button id="mPlay" class="primary big">Play</button>
     <button id="mQuick" class="big">Quick play</button>
-    <button id="mOnline" class="big">Server browser</button>
+    <button id="mOnline" class="big">Play online</button>
     <button id="mGarage" class="big">Garage</button>
     <button id="mTech" class="big tech">Tech tree <b class="techN" hidden></b></button>
     <button id="mTest">Test drive</button>
@@ -500,6 +509,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <button id="mQuests">Quests</button>
     <button id="mClans">Clans</button>
     <button id="mPass">Battle pass</button>
+    <button id="mParty">Party</button>
     <button id="mFriends">Friends</button>
     <button id="mReplay">Last replay</button>
     <button id="mLeader">Leaderboards</button>
@@ -1122,6 +1132,7 @@ const hiQ = () => settings.quality === 'high' || settings.quality === 'ultra', u
 // the desktop app (window.ROBOBLOCKS) names its server; a page served by a server uses that server
 const HOST = (typeof window !== 'undefined' && window.ROBOBLOCKS) || null;
 // true when this copy runs inside an embedded web preview (it then plays offline: online play is server-only)
+const OFFICIAL_SERVER = 'http://play.ancientrpg.games:12001'; // the main RoboBlocks server: offline copies offer it first
 const onClaudePage = () => typeof window !== 'undefined' && !!window.claude;
 const SERVER_BASE = (() => { try { if (HOST && HOST.server) { const u = new URL(HOST.server); if (/^https?:$/.test(u.protocol)) return u.origin; } if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol) && !onClaudePage()) return location.origin; } catch (e) { } return null; })();
 const fmtSpeed = ms => settings.units === 'kmh' ? Math.round(ms * 3.6) + ' km/h' : Math.round(ms * 2.23694) + ' mph';
@@ -2178,6 +2189,32 @@ const RECIPES = {
   error: [.35, 1, (c, o) => { AK.osc(c, o, { type: 'square', f: 220, dur: .12, g: .08, lp: 1500 }); AK.osc(c, o, { type: 'square', f: 165, dur: .16, g: .08, t: .13, lp: 1500 }); }],
   chat: [.2, 1, (c, o) => { AK.osc(c, o, { f: 1568, dur: .08, g: .06, fm: { ratio: 2, index: .4 } }); AK.osc(c, o, { f: 2093, dur: .1, g: .05, t: .06 }); }],
 };
+// ---- weapon weight: every gun gets a low punch you feel, a sharp crack, and an outdoor tail, on top of its own voice ----
+// punch: [start Hz, end Hz, seconds, gain]; crack: [Hz, gain]; tail: [lowpass Hz, seconds, gain]
+const WEAPON_LAYERS = {
+  blaster: { punch: [150, 52, .11, .55], crack: [3200, .3], tail: [1400, .35, .16] },
+  chain: { punch: [125, 50, .075, .5], crack: [3800, .28], tail: [1100, .2, .1] },
+  plasma: { punch: [95, 34, .26, .75], crack: [2200, .22], tail: [900, .7, .22] },
+  mortar: { punch: [78, 24, .5, 1.05], crack: [1700, .4], tail: [700, 1.4, .36] },
+  rail: { punch: [70, 24, .38, .95], crack: [5200, .45], tail: [1600, 1.1, .3] },
+  seeker: { punch: [88, 36, .22, .7], crack: [2600, .25], tail: [900, 1.0, .26] },
+  flak: { punch: [105, 32, .3, .9], crack: [2900, .38], tail: [1000, .8, .28] },
+  flakBurst: { punch: [70, 26, .38, .85], crack: [3400, .4], tail: [800, .9, .3] },
+  arc: { punch: [130, 60, .1, .35], tail: [2400, .4, .12] },
+  mine: { punch: [80, 34, .22, .65], crack: [1900, .25], tail: [700, .6, .18] },
+  lancer: { punch: [52, 19, .85, 1.2], crack: [4200, .5], tail: [900, 1.8, .42] },
+};
+for (const [name, L] of Object.entries(WEAPON_LAYERS)) {
+  const R = RECIPES[name]; if (!R) continue;
+  const [dur, n, fn] = R, need = Math.max(dur, L.tail ? L.tail[1] + .08 : 0, L.punch ? L.punch[2] + .05 : 0);
+  RECIPES[name] = [need, n, (c, o, r) => {
+    fn(c, o, r);
+    if (L.punch) { const d = AK.drive(c, o, 2.2); AK.osc(c, d, { f: L.punch[0] * (1 + r * .08), f2: L.punch[1], dur: L.punch[2], g: L.punch[3], glide: L.punch[2] * .7 }); AK.osc(c, o, { type: 'triangle', f: L.punch[0] * 2, f2: L.punch[1] * 2, dur: L.punch[2] * .5, g: L.punch[3] * .25 }); }
+    if (L.crack) AK.nz(c, o, { ft: 'bandpass', f: L.crack[0] * (1 + r * .15), dur: .025, g: L.crack[1], q: 1.4 });
+    if (L.tail) AK.nz(c, o, { f: L.tail[0], f2: 120, dur: L.tail[1], g: L.tail[2], a: .015, t: .02 });
+  }];
+}
+
 
 const SFX = {
   ctx: null, master: null, sfxBus: null, uiBus: null, musicBus: null, wet: null, noise: null, budget: 0, voices: 0, ends: [], eng: null, amb: null, laser: null, bank: {}, ready_: false,
@@ -3115,7 +3152,7 @@ function buildHangar() {
     draw();
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { draw(); t.needsUpdate = true; });
-    const sign = new T.Mesh(new T.PlaneGeometry(26, 4), new T.MeshBasicMaterial({ map: t, transparent: true, color: new T.Color(1.6, 1.6, 1.6), toneMapped: false })); sign.position.set(0, 17, -44.5); s.add(sign); }
+    const sign = new T.Mesh(new T.PlaneGeometry(22, 3.45), new T.MeshBasicMaterial({ map: t, transparent: true, color: new T.Color(1.6, 1.6, 1.6), toneMapped: false })); sign.position.set(0, 17, -42.2); s.add(sign); } // in front of the 12-sided wall, whose panels angle forward either side of centre
   // props: crates, a parts rack and a tool cart near the walls
   const crate = new T.MeshStandardMaterial({ color: 0x5b4632, roughness: .8 }), steel = new T.MeshStandardMaterial({ color: 0x59636b, roughness: .4, metalness: .8 }), hazard = new T.MeshStandardMaterial({ color: 0xd8a21f, roughness: .6 });
   const r = mulberry32(77);
@@ -3422,7 +3459,7 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
   const clearOf = (x, z, pad) => !(Math.abs(z) > world.spawnZ - 160 - pad && Math.abs(x) < 105 + pad) && capturePoints(world.half).every(p => Math.hypot(p.x - x, p.z - z) > 30 + pad);
   const wet = (x, z) => world.liquid && bedH(x, z) < world.liquid.y + .8;
   const free = (x, z, r) => world.rocks.every(o => Math.hypot(o.x - x, o.z - z) > o.cr + r + 4);
-  const rockMat = M.rockCol.map(c => new T.MeshStandardMaterial({ color: c, roughness: .92, flatShading: true }));
+  const rockBump = natureBump(), rockMat = M.rockCol.map(c => rockMaterial(c, rockBump)), MESAS = [0, 1, 2, 3].map(i => mesaGeo(M.seed * 17 + i)), BOULDERS = [0, 1, 2, 3, 4].map(i => rockGeo(M.seed * 23 + i));
   const groundMin = (x, z, r) => Math.min(bedH(x - r * .6, z), bedH(x + r * .6, z), bedH(x, z - r * .6), bedH(x, z + r * .6), bedH(x, z));
   for (let i = 0, tries = 0; i < M.mesas && tries < 400 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * (B - 40), z = (rnd() * 2 - 1) * (B - 40), r = 9 + rnd() * 13, h = 9 + rnd() * 16;
@@ -3433,18 +3470,17 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
       for (let k = 0; k < cnt; k++) { const a = rnd() * 6.28, d = rnd() * r * .6, cr = r * (.25 + rnd() * .2), ch = h * (.6 + rnd() * .6); const m = new T.Mesh(new T.CylinderGeometry(cr, cr * 1.04, ch, 6), rockMat[k % 2]); m.position.set(x + Math.cos(a) * d, gy + ch / 2 - 1, z + Math.sin(a) * d); m.castShadow = m.receiveShadow = true; m.userData.own = true; s.add(m); }
       addObstacle({ x, z, r, cr: r * .85, top: gy + h * 1.1 });
     } else {
-      const m = new T.Mesh(jitterGeo(new T.CylinderGeometry(r * .78, r * 1.05, h, 9, 3), .16, x), rockMat[i % 2]);
+      const m = new T.Mesh(MESAS[i % MESAS.length], rockMat[i % 2]); m.scale.set(r, h, r * (.85 + (i % 3) * .1));
       m.position.set(x, gy + h / 2 - 1, z); m.rotation.y = rnd() * 6.28; m.castShadow = m.receiveShadow = true; m.userData.own = true; s.add(m);
       if (mapId === 'frost') { const cap = new T.Mesh(new T.CylinderGeometry(r * .8, r * .82, 1.2, 9), new T.MeshStandardMaterial({ color: 0xf4f8fb, roughness: .8 })); cap.position.set(x, gy + h - .6, z); cap.userData.own = true; s.add(cap); }
       addObstacle({ x, z, r, cr: r * .92, top: gy + h - 1 });
     }
   }
-  const boulderGeo = jitterGeo(new T.IcosahedronGeometry(1, 1), .35, M.seed);
   for (let i = 0, tries = 0; i < M.rocks && tries < 1500 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * B, z = (rnd() * 2 - 1) * B, r = 2.5 + rnd() * 5, h = 2 + rnd() * 4.5;
     if (!clearOf(x, z, 0) || wet(x, z) || !free(x, z, r)) continue; i++;
     const gy = groundMin(x, z, r);
-    const m = new T.Mesh(boulderGeo, rockMat[i % 2]); m.scale.set(r, h, r * (.8 + rnd() * .4)); m.position.set(x, gy + h * .25, z); m.rotation.y = rnd() * 6.28; m.castShadow = m.receiveShadow = true; s.add(m);
+    const m = new T.Mesh(BOULDERS[i % BOULDERS.length], rockMat[i % 2]); m.scale.set(r, h, r * (.8 + rnd() * .4)); m.position.set(x, gy + h * .25, z); m.rotation.y = rnd() * 6.28; m.castShadow = m.receiveShadow = true; s.add(m);
     addObstacle({ x, z, r, cr: r * .85, top: gy + h * 1.2 });
   }
   // wrecked hulks: old bots half-buried in the ground
@@ -3465,7 +3501,7 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
   if (M.moon) buildMoon(s, M, rnd);
   // trees on Frostline
   if (mapId === 'frost') {
-    const N = Math.round(320 * M.area), trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
+    const N = Math.round(480 * M.area), trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
     const lo = new T.InstancedMesh(new T.ConeGeometry(2.4, 5, 7), new T.MeshStandardMaterial({ color: 0x2d4a3a, roughness: .85 }), N);
     const hi = new T.InstancedMesh(new T.ConeGeometry(1.6, 3.6, 7), new T.MeshStandardMaterial({ color: 0xdfe9ee, roughness: .8 }), N);
     let n = 0; const m4 = new T.Matrix4(), q = new T.Quaternion(), sv = new T.Vector3();
@@ -3483,11 +3519,13 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
     }
     for (const im of [trunk, lo, hi]) { im.count = n; im.castShadow = true; im.receiveShadow = true; s.add(im); }
   }
+  // foliage: trees and cacti (solid), shrubs (looks only)
+  buildFoliage(s, M, B, (x, z, r, loose) => clearOf(x, z, loose ? 0 : r) && !wet(x, z) && (loose || free(x, z, r)) && !(M.city && (cityStreet(x, z) || (world.buildings || []).some(b => Math.abs(b.x - x) < b.w / 2 + r && Math.abs(b.z - z) < b.d / 2 + r))));
   if (M.space) buildSpace(s, M, rnd);
   // ground scatter (no collision)
   if (!M.space) {
     const N = Math.round(2200 * M.area), kind = M.decor;
-    const pebbles = new T.InstancedMesh(new T.IcosahedronGeometry(.5, 0), new T.MeshStandardMaterial({ color: M.rockCol[0], roughness: .95, flatShading: true }), N);
+    const pebbles = new T.InstancedMesh(rockGeo(M.seed + 77, { detail: 1 }).scale(.5, .5, .5), rockMaterial(M.rockCol[0], null), N);
     const extraGeo = kind === 'desert' ? new T.DodecahedronGeometry(.7, 0) : kind === 'pines' ? new T.SphereGeometry(1, 8, 5) : new T.TetrahedronGeometry(.6, 0);
     const extraMat = kind === 'desert' ? new T.MeshStandardMaterial({ color: 0x6b6a3a, roughness: .9, flatShading: true }) : kind === 'pines' ? new T.MeshStandardMaterial({ color: 0xf2f6f9, roughness: .85 }) : kind === 'rubble' ? new T.MeshStandardMaterial({ color: 0x8a857c, roughness: .9, flatShading: true }) : kind === 'moon' ? new T.MeshStandardMaterial({ color: 0x5c5c60, roughness: .95, flatShading: true }) : new T.MeshStandardMaterial({ color: 0x2a0c04, emissive: 0xff6a1a, emissiveIntensity: 2.4 });
     const extra = new T.InstancedMesh(extraGeo, extraMat, 500);
@@ -4141,6 +4179,136 @@ function pushOutOfSpheres(b) {
     const vn = b.vel.x * nx + b.vel.y * ny + b.vel.z * nz; if (vn < 0) { b.vel.x -= vn * nx * 1.3; b.vel.y -= vn * ny * 1.3; b.vel.z -= vn * nz * 1.3; }
   }
 }
+// ---- 53-nature.js ----
+// ================= NATURE: detailed rocks and foliage =================
+// Rock shapes are built once per map from seeded noise (so every client gets the same ones). Foliage that blocks
+// shots and movement (trees, cacti) is placed from its own seeded random stream, identical on every client and on
+// the dedicated server; grass and shrubs are only for looks.
+
+// cheap 3D noise from two 2D value-noise fields
+function noise3(seed) { const a = valueNoise(seed), b = valueNoise(seed + 1); return (x, y, z) => a(x + z * .71, y - z * .37) * .6 + b(y + x * .43, z + x * .19) * .4; }
+const _vk = v => `${Math.round(v.x * 1e3)},${Math.round(v.y * 1e3)},${Math.round(v.z * 1e3)}`;
+// smooth normals across the duplicated vertices of a non-indexed geometry (polyhedra), keeping one shape
+function smoothNormals(g) {
+  g.computeVertexNormals(); const p = g.attributes.position, n = g.attributes.normal, acc = new Map(), v = new T.Vector3(), w = new T.Vector3();
+  for (let i = 0; i < p.count; i++) { const k = _vk(v.fromBufferAttribute(p, i)); const s = acc.get(k) || acc.set(k, new T.Vector3()).get(k); s.add(w.fromBufferAttribute(n, i)); }
+  for (let i = 0; i < p.count; i++) { const s = acc.get(_vk(v.fromBufferAttribute(p, i))).clone().normalize(); n.setXYZ(i, s.x, s.y, s.z); }
+  n.needsUpdate = true; return g;
+}
+// a boulder: a dense sphere pushed in and out by two scales of noise, a flat-ish base, darker crevices
+function rockGeo(seed, o = {}) {
+  const g = new T.IcosahedronGeometry(1, o.detail == null ? 3 : o.detail), p = g.attributes.position, v = new T.Vector3();
+  const big = noise3(seed), small = noise3(seed + 17), cols = new Float32Array(p.count * 3);
+  const sx = o.sx || 1, sy = o.sy || 1, sz = o.sz || 1;
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i).normalize();
+    const b = big(v.x * 1.25 + seed * .01, v.y * 1.25, v.z * 1.25), s = small(v.x * 3.9, v.y * 3.9, v.z * 3.9);
+    // a few broad planes (chipped faces) plus lumps and fine grit
+    const chip = Math.max(0, v.dot(_rockCut(seed, 0)) - .55) * .55 + Math.max(0, v.dot(_rockCut(seed, 1)) - .62) * .45;
+    const r = 1 + b * .3 + s * .085 - chip;
+    v.multiplyScalar(r); if (v.y < -.38) v.y = -.38 + (v.y + .38) * .2; // sits on the ground
+    p.setXYZ(i, v.x * sx, v.y * sy, v.z * sz);
+    const shade = clamp(.74 + b * .28 + s * .2 - chip * .5 + (v.y > .35 ? .07 : 0), .45, 1.12); cols[i * 3] = cols[i * 3 + 1] = cols[i * 3 + 2] = shade;
+  }
+  g.setAttribute('color', new T.BufferAttribute(cols, 3)); return smoothNormals(g);
+}
+function _rockCut(seed, k) { const r = mulberry32(seed * 7 + k * 131), a = r() * 6.28, y = r() * .9 - .2; return new T.Vector3(Math.cos(a) * Math.sqrt(1 - y * y), y, Math.sin(a) * Math.sqrt(1 - y * y)); }
+// a mesa / rock pillar: a dense cylinder with layered strata, a weathered outline and a ragged rim (unit size)
+function mesaGeo(seed) {
+  const g = new T.CylinderGeometry(.8, 1.05, 1, 44, 14), p = g.attributes.position, v = new T.Vector3(), out = noise3(seed), fine = noise3(seed + 5), cols = new Float32Array(p.count * 3);
+  for (let i = 0; i < p.count; i++) {
+    v.fromBufferAttribute(p, i); const r = Math.hypot(v.x, v.z), a = Math.atan2(v.z, v.x), y = v.y;
+    const lump = out(Math.cos(a) * 1.6, y * 1.8, Math.sin(a) * 1.6) * .16, grit = fine(Math.cos(a) * 5, y * 6, Math.sin(a) * 5) * .05;
+    const strata = Math.sin(y * 21 + out(Math.cos(a), y, Math.sin(a)) * 2.4) * .028 * (y > -.45 ? 1 : 0);
+    let k = 1 + lump + grit + strata, yy = y;
+    if (y > .49) yy = y + fine(v.x * 3, 0, v.z * 3) * .05 * Math.min(1, r * 1.4); // a rough top
+    if (r > 1e-4) { v.x *= k; v.z *= k; } v.y = yy; p.setXYZ(i, v.x, v.y, v.z);
+    const band = .82 + Math.sin(y * 21) * .07 + lump * .6 + grit * 1.4 + (y > .49 ? .08 : 0); cols[i * 3] = cols[i * 3 + 1] = cols[i * 3 + 2] = clamp(band, .5, 1.1);
+  }
+  g.setAttribute('color', new T.BufferAttribute(cols, 3)); g.computeVertexNormals(); return g;
+}
+// rock materials: vertex shading over the map's rock colour, with a fine surface bump
+function rockMaterial(col, bump) {
+  const m = new T.MeshStandardMaterial({ color: col, vertexColors: true, roughness: .93, metalness: 0 });
+  if (bump) { m.bumpMap = bump; m.bumpScale = 1.4; }
+  return m;
+}
+function natureBump() { if (HEADLESS) return null; const t = noiseTexture(); t.repeat.set(3, 3); return t; }
+
+// ---------- foliage ----------
+function mergeGeos(list) { // [{geo, m4, color}] -> one geometry with vertex colours
+  const pos = [], nor = [], col = [], v = new T.Vector3(), n = new T.Vector3(), nm = new T.Matrix3(), c = new T.Color();
+  for (const { geo, m4, color } of list) {
+    const g = geo.index ? geo.toNonIndexed() : geo, p = g.attributes.position, nn = g.attributes.normal; nm.getNormalMatrix(m4); c.set(color);
+    const vc = g.attributes.color;
+    for (let i = 0; i < p.count; i++) {
+      v.fromBufferAttribute(p, i).applyMatrix4(m4); n.fromBufferAttribute(nn, i).applyMatrix3(nm).normalize(); pos.push(v.x, v.y, v.z); nor.push(n.x, n.y, n.z);
+      const k = vc ? vc.getX(i) : 1; col.push(c.r * k, c.g * k, c.b * k);
+    }
+  }
+  const out = new T.BufferGeometry(); out.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); out.setAttribute('normal', new T.Float32BufferAttribute(nor, 3)); out.setAttribute('color', new T.Float32BufferAttribute(col, 3)); return out;
+}
+const M4 = (x, y, z, sx = 1, sy = 1, sz = 1, rx = 0, ry = 0, rz = 0) => new T.Matrix4().compose(new T.Vector3(x, y, z), new T.Quaternion().setFromEuler(new T.Euler(rx, ry, rz)), new T.Vector3(sx, sy, sz));
+// a shrub: a few lumpy balls
+function shrubGeo(seed, cols) {
+  const r = mulberry32(seed), parts = [];
+  for (let i = 0; i < 4; i++) { const a = r() * 6.28, d = i ? .35 + r() * .25 : 0, s = (i ? .45 : .6) + r() * .2; parts.push({ geo: rockGeo(seed + i, { detail: 1 }), m4: M4(Math.cos(a) * d, s * .55, Math.sin(a) * d, s, s * .8, s), color: cols[i % cols.length] }); }
+  return mergeGeos(parts);
+}
+// a cactus: trunk and two arms
+function cactusGeo(col) {
+  const trunk = new T.CylinderGeometry(.42, .48, 1, 10, 1), cap = new T.SphereGeometry(.42, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), armV = new T.CylinderGeometry(.28, .3, 1, 8, 1), armH = new T.CylinderGeometry(.28, .28, 1, 8, 1);
+  return mergeGeos([
+    { geo: trunk, m4: M4(0, 2.2, 0, 1, 4.4, 1), color: col }, { geo: cap, m4: M4(0, 4.4, 0), color: col },
+    { geo: armH, m4: M4(.7, 2.1, 0, 1, 1, 1, 0, 0, HALF_PI), color: col }, { geo: armV, m4: M4(1.1, 2.9, 0, 1, 1.6, 1), color: col }, { geo: cap, m4: M4(1.1, 3.7, 0, .66, .66, .66), color: col },
+    { geo: armH, m4: M4(-.6, 2.9, 0, 1, .8, 1, 0, 0, HALF_PI), color: col }, { geo: armV, m4: M4(-.95, 3.4, 0, 1, 1, 1), color: col }, { geo: cap, m4: M4(-.95, 3.9, 0, .66, .66, .66), color: col },
+  ]);
+}
+// a flat-topped savanna tree, or a dead charred one
+function treeGeo(seed, kind) {
+  const r = mulberry32(seed), parts = [], bark = kind === 'dead' ? 0x2a2420 : 0x5a4330;
+  parts.push({ geo: new T.CylinderGeometry(.22, .4, 1, 7), m4: M4(0, 2, 0, 1, 4, 1, (r() - .5) * .15, 0, (r() - .5) * .15), color: bark });
+  for (let i = 0; i < 4; i++) { const a = i / 4 * 6.28 + r(), l = 1.6 + r() * 1.2; parts.push({ geo: new T.CylinderGeometry(.08, .16, 1, 5), m4: M4(Math.cos(a) * l * .38, 3.6 + r() * .6, Math.sin(a) * l * .38, 1, l, 1, Math.sin(a) * 1.0, 0, -Math.cos(a) * 1.0), color: bark }); }
+  if (kind !== 'dead') for (let i = 0; i < 4; i++) { const a = i / 4 * 6.28 + r(), d = i ? 1.4 : 0; parts.push({ geo: rockGeo(seed + 40 + i, { detail: 1, sy: .35 }), m4: M4(Math.cos(a) * d, 4.6 + r() * .4, Math.sin(a) * d, 2 + r() * .6, 1.4, 2 + r() * .6), color: [0x55682e, 0x627535, 0x4a5c28][i % 3] }); }
+  return mergeGeos(parts);
+}
+const FOLIAGE = {
+  desert: { shrubs: 360, shrubCols: [0x6f7440, 0x8a8250, 0x5d6a38], cacti: 70, trees: 22, treeKind: 'savanna' },
+  pines: { shrubs: 300, shrubCols: [0x3f5a48, 0xd8e2e6, 0x4c6a52] },
+  embers: { shrubs: 160, shrubCols: [0x3a302a, 0x4a3a2c, 0x2a2420], trees: 110, treeKind: 'dead' },
+  rubble: { shrubs: 220, shrubCols: [0x4f6a2e, 0x5f7a36, 0x3e5524], trees: 26, treeKind: 'savanna' },
+};
+// called from setupArena once rocks are placed; ok(x, z, r) says whether a spot is free
+function buildFoliage(s, M, B, ok) {
+  const F = FOLIAGE[M.decor]; if (!F || M.space) return;
+  const A = M.area || 1, m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
+  const mat = () => new T.MeshStandardMaterial({ vertexColors: true, roughness: .9, metalness: 0 });
+  // trees and cacti block movement and shots: their own random stream, the same everywhere
+  const solid = (n, geo, rad, top) => {
+    const r = mulberry32(M.seed * 101 + n), N = Math.round(n * A), im = new T.InstancedMesh(geo, mat(), N); let k = 0;
+    for (let tries = 0; k < N && tries < N * 30; tries++) {
+      const x = (r() * 2 - 1) * (B - 20), z = (r() * 2 - 1) * (B - 20), sz2 = .8 + r() * .5, ry = r() * 6.28;
+      if (!ok(x, z, rad * sz2 + 2)) continue;
+      const gy = bedH(x, z) - .2; m4.compose(v.set(x, gy, z), q.setFromEuler(e.set(0, ry, 0)), sc.set(sz2, sz2, sz2)); im.setMatrixAt(k++, m4);
+      addObstacle({ x, z, r: rad * sz2, cr: rad * sz2 * .8, top: gy + top * sz2 });
+    }
+    im.count = k; im.castShadow = im.receiveShadow = true; s.add(im);
+  };
+  if (F.cacti) solid(F.cacti, cactusGeo(0x4f7a3a), 1.1, 4.6);
+  if (F.trees) solid(F.trees, treeGeo(M.seed + 3, F.treeKind), F.treeKind === 'dead' ? .6 : 1.2, 5.4);
+  // shrubs: looks only
+  if (F.shrubs && !HEADLESS) {
+    const r = mulberry32(M.seed * 103 + 9), N = Math.round(F.shrubs * A * (hiQ() ? 1 : .6)), geos = [0, 1, 2].map(i => shrubGeo(M.seed + i * 11, F.shrubCols));
+    for (const [gi, geo] of geos.entries()) {
+      const im = new T.InstancedMesh(geo, mat(), Math.ceil(N / 3)); let k = 0;
+      for (let tries = 0; k < im.count && tries < N * 12; tries++) {
+        const x = (r() * 2 - 1) * (B + 10), z = (r() * 2 - 1) * (B + 10); if (!ok(x, z, 1.2, true)) continue;
+        const s2 = .6 + r() * 1.1; m4.compose(v.set(x, bedH(x, z) - .15, z), q.setFromEuler(e.set(0, r() * 6.28, 0)), sc.set(s2, s2 * (.7 + r() * .5), s2)); im.setMatrixAt(k++, m4);
+      }
+      im.count = k; im.receiveShadow = true; im.castShadow = gi === 0; s.add(im);
+    }
+  }
+}
 // ---- 55-fx.js ----
 // ================= WEATHER, SCORCH MARKS, SHOCKWAVES, DAMAGE SMOKE, HOVER GLOW, GRASS =================
 const FX = { wx: null, scorch: null, scorchN: 0, scorchList: [], rings: [], glow: null, grass: [], smokeT: 0 };
@@ -4267,24 +4435,27 @@ function updateGlow() {
 // ---------- grass tufts near the camera ----------
 function grassSetup(rnd) {
   FX.grass = [];
-  if (HEADLESS || !['dust', 'city'].includes(world.mapId) || !hiQ()) return;
+  const GR = { dust: ['#b49a5a', 220], city: ['#5f6a3a', 70], frost: ['#9fb0a4', 110], ash: ['#4a3a2c', 60] }[world.mapId];
+  if (HEADLESS || !GR) return;
   const blade = new T.PlaneGeometry(.9, .8); blade.translate(0, .4, 0);
   const tuft = new T.BufferGeometry(), parts = [0, Math.PI / 3, -Math.PI / 3].map(a => blade.clone().rotateY(a));
   const merged = parts.reduce((acc, g) => { const p = g.attributes.position.array, uv = g.attributes.uv.array; acc.p.push(...p); acc.uv.push(...uv); return acc; }, { p: [], uv: [] });
   tuft.setAttribute('position', new T.Float32BufferAttribute(merged.p, 3)); tuft.setAttribute('uv', new T.Float32BufferAttribute(merged.uv, 2)); tuft.computeVertexNormals();
   const c = document.createElement('canvas'); c.width = 32; c.height = 32; const g = c.getContext('2d');
-  g.strokeStyle = world.mapId === 'city' ? '#5f6a3a' : '#b49a5a'; g.lineWidth = 2;
+  g.strokeStyle = GR[0]; g.lineWidth = 2;
   for (let i = 0; i < 9; i++) { g.beginPath(); const x = 4 + i * 3; g.moveTo(x, 32); g.quadraticCurveTo(x + (i % 3 - 1) * 3, 16, x + (i % 2 ? 4 : -3), 2 + (i * 7) % 10); g.stroke(); }
   const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
   const mat = new T.MeshStandardMaterial({ map: tex, alphaTest: .4, side: T.DoubleSide, roughness: 1 });
+  // wind: the tips sway, each tuft a little out of step with its neighbours
+  mat.onBeforeCompile = sh => { sh.uniforms.uTime = FX.windT || (FX.windT = { value: 0 }); sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n#ifdef USE_INSTANCING\nfloat ph = instanceMatrix[3].x * .37 + instanceMatrix[3].z * .23;\n#else\nfloat ph = 0.0;\n#endif\nfloat sw = sin(uTime * 2.1 + ph) * .14 + sin(uTime * 3.7 + ph * 1.7) * .05;\ntransformed.x += sw * position.y; transformed.z += sw * .6 * position.y;'); };
   const CH = 64, B = world.bound, m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
   for (let cx = -B; cx < B; cx += CH) for (let cz = -B; cz < B; cz += CH) {
-    const im = new T.InstancedMesh(tuft, mat, 120); let n = 0;
-    const cap = world.mapId === 'city' ? 40 : 120;
-    for (let i = 0; i < 160 && n < cap; i++) {
+    const cap = Math.round(GR[1] * (hiQ() ? 1 : .45)), im = new T.InstancedMesh(tuft, mat, cap); let n = 0;
+    for (let i = 0; i < cap * 1.4 && n < cap; i++) {
       const x = cx + rnd() * CH, z = cz + rnd() * CH;
       if (world.mapId === 'city' && cityStreet(x, z) && rnd() < .85) continue;
       if (rocksAt(x, z).some(o => Math.hypot(o.x - x, o.z - z) < o.cr + .5)) continue;
+      if (world.liquid && bedH(x, z) < world.liquid.y + .5) continue; // not on lakes or lava
       const k = .6 + rnd() * .9; q.setFromEuler(e.set(0, rnd() * 6.28, 0));
       m4.compose(v.set(x, bedH(x, z) - .05, z), q, sc.set(k, k * (.7 + rnd() * .6), k)); im.setMatrixAt(n++, m4);
     }
@@ -4294,7 +4465,8 @@ function grassSetup(rnd) {
 function updateGrass() {
   if (!FX.grass.length) return;
   const cp = camera.position;
-  for (const g of FX.grass) g.im.visible = Math.hypot(g.x - cp.x, g.z - cp.z) < 150;
+  for (const g of FX.grass) g.im.visible = Math.hypot(g.x - cp.x, g.z - cp.z) < (hiQ() ? 170 : 110);
+  if (FX.windT) FX.windT.value = world.time;
 }
 // called at the end of setupArena and every battle frame
 function fxSetup() { FX.rings = []; FX.wx = null; scorchSetup(); glowSetup(); grassSetup(mulberry32(world.map.seed * 13 + 5)); }
@@ -4476,7 +4648,7 @@ class Bot {
       const cur = m.mode === 'space' ? this.pos.y : above - base, lo = world.space ? -40 : 0;
       if (inp.up && !inp.down) this.alt = Math.min(m.maxAlt, Math.max(this.alt, cur - 1) + rate * dt);
       else if (inp.down && !inp.up) this.alt = Math.max(lo, Math.min(this.alt, cur + 1) - rate * 1.4 * dt);
-      else if (this.vChange) this.alt = clamp(cur + this.vel.y * .12, lo, m.maxAlt); // just let go: settle right here
+      else if (this.vChange) this.alt = clamp(cur + Math.min(0, this.vel.y) * .12, lo, m.maxAlt); // just let go: settle right here (never above the ceiling)
       this.vChange = !!(inp.up || inp.down);
       // planes climb and dive toward where you aim
       if (m.mode === 'plane' && inp.aim && !inp.up && !inp.down) {
@@ -4502,8 +4674,11 @@ class Bot {
     } else if (world.space) { this.vel.y *= Math.exp(-.3 * dt); // a bot with nothing to push it just drifts
     } else if (m.mode === 'wheel' || m.mode === 'tread' || m.mode === 'leg' || m.mode === 'ski') driving = grounded;
     this.vel.y -= GRAV * dt;
+    if (!world.space && above > (air ? (m.maxAlt || 6) + 22 : 40) && this.vel.y > 0) this.vel.y *= Math.exp(-6 * dt); // a hard sky limit
     this.jetting = false;
-    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * dt; this.fuel = Math.max(0, this.fuel - dt * .42); this.jetting = true; }
+    // jets lose their push near a ceiling: ~28 m over the ground for ground bots, a little above a flier's normal ceiling
+    const jetCeil = air ? (m.maxAlt || 6) + 14 : 28, jetK = clamp((jetCeil - above) / 8, 0, 1);
+    if (inp.jet && m.jetAcc > 0 && this.fuel > 0 && !inp.down) { this.vel.y += m.jetAcc * jetK * dt; this.fuel = Math.max(0, this.fuel - dt * .42); this.jetting = jetK > 0; }
     else if (inp.down && !air && !fly && !grounded && this.vel.y > -30) this.vel.y -= GRAV * 1.2 * dt; // C: drop faster after a jump
     else this.fuel = Math.min(1, this.fuel + dt * (grounded || driving ? .3 : .08));
     let vf = this.vel.x * fx + this.vel.z * fz, vs = this.vel.x * lx + this.vel.z * lz;
@@ -4706,6 +4881,10 @@ class Bot {
     if (!inp.fire || this.fireT > 0 || !guns.length) return;
     if (this.cloakT > 0 && type !== 'nano') this.cloakT = 0; // shooting gives you away
     const W = WEAPONS[type];
+    if (type === 'lancer') { // a charged volley: every Rail Lancer fires together, then they cool down as one
+      for (const g of guns) { g.kick = 1; fireWeapon(this, type, g.muzzle.getWorldPosition(new T.Vector3()), inp.aim); }
+      this.fireT = Math.max(.5, W.cd - W.charge) * (match.fireMul || 1); return;
+    }
     let interval = Math.max(W.minInt, W.cd / guns.length);
     if (type === 'chain') { if (this.spin < .12) return; interval *= lerp(3.5, 1, this.spin); }
     interval *= match.fireMul || 1;
@@ -5829,33 +6008,35 @@ async function showLobby() {
     return;
   }
   NET.me = myPeer();
-  showOverlay(`<h2>Server browser</h2>
-    ${myCodeHtml()}
-    <div class="srow"><label for="callsign">Callsign</label><input id="callsign" maxlength="16" spellcheck="false" value=""><span></span></div>
+  const here = NET.serverName || (SERVER_BASE ? SERVER_BASE.replace(/^https?:\/\//, '') : 'This server');
+  showOverlay(`<div class="sbTop"><div><h2>Play online</h2><p class="sbHere"><b></b> · <span id="sbOnline"></span></p></div><button id="sbParty">Party</button></div>
     <div id="lobbyList"></div>
-    <div id="lobbyPilots"></div>
-    <div id="sbOthers"></div>
-    <div class="sbaddr"><input id="sbAddr" placeholder="Another server's address, e.g. 203.0.113.5:25570" maxlength="200" spellcheck="false"><button id="sbOpen">Connect</button></div>
-    <details id="sbHost"><summary>HOST A CUSTOM GAME</summary>
+    <div class="btns"><button class="primary" id="ovBack">Back</button><button id="sbHostBtn">Host a custom game</button></div>
+    <details id="sbOther"><summary>Other servers</summary><div id="sbOthers"><p class="gempty">Looking for other servers…</p></div>
+      <div class="sbaddr"><input id="sbAddr" placeholder="Server address, e.g. 203.0.113.5:25570" maxlength="200" spellcheck="false"><button id="sbOpen">Connect</button></div></details>`, true);
+  $('.sbHere b').textContent = here;
+  $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
+  $('#sbHostBtn').onclick = () => showHostGame();
+  $('#sbParty').onclick = () => showParty(showLobby);
+  if (NET.party) $('#sbParty').textContent = `Party (${partyMembers().length || 1})`;
+  wireServerList(true);
+  renderLobbyList();
+}
+// hosting a custom game: its own screen
+function showHostGame() {
+  showOverlay(`<h2>Host a custom game</h2><p>Pick the rules; friends join it from Play online.</p>
     ${setupOptsHtml(true)}
-    <div class="btns"><button class="primary" id="ovHost">Host custom game</button></div></details>
-    <div class="btns"><button id="sbRefresh">Refresh</button><button class="primary" id="ovBack">Back</button></div>`, true);
-  $('#callsign').value = NET.name;
-  $('#callsign').addEventListener('keydown', e => e.stopPropagation());
-  $('#callsign').addEventListener('change', () => { NET.name = cleanName($('#callsign').value) || NET.name; $('#callsign').value = NET.name; store.set('sfa.callsign', NET.name); lobbyPresence(); });
+    <div class="btns"><button class="primary" id="ovHost">Host game</button><button id="ovBack">Back</button></div>`, true);
   wireSetupOpts();
   $('#ovHost').onclick = () => { if (!canDeploy()) return; store.set('sfa.setup', setupSel); joinGame('c' + Math.random().toString(36).slice(2, 7), null, { ...setupSel }); };
-  $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
-  $('#sbRefresh').onclick = () => showLobby();
-  wireServerList(true); wireMyCode();
-  renderLobbyList(); renderParty();
+  $('#ovBack').onclick = () => showLobby();
 }
 // other RoboBlocks servers: the hub's list (when this server reports to one) plus your favourites
 async function wireServerList(online) {
   const here = SERVER_BASE || '', cleanUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin : null; } catch (e) { return null; } };
   const go = url => { if (!url || url === here) return; store.set('sfa.mpAddr', url); if (HOST && HOST.setServer) HOST.setServer(url); else if (onClaudePage()) { const w = window.open(url + '/', '_blank', 'noopener'); if (!w) toast('Open ' + url + ' in your browser to play online.'); } else location.href = url + '/'; };
   const inp = $('#sbAddr'); if (inp) {
-    inp.value = online ? '' : store.get('sfa.mpAddr', '') || '';
+    inp.value = online ? '' : store.get('sfa.mpAddr', '') || OFFICIAL_SERVER.replace(/^https?:\/\//, '');
     inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#sbOpen').click(); });
     $('#sbOpen').onclick = () => { let v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!/^https?:\/\//i.test(v)) v = 'http://' + v; const u = cleanUrl(v); if (!u) { toast('That does not look like a server address.'); return; } go(u); };
   }
@@ -5865,7 +6046,7 @@ async function wireServerList(online) {
   const list = (res.ok ? res.list : []).map(s => ({ ...s, url: cleanUrl(s.url) })).filter(s => s.url && s.url !== here);
   for (const f of FAVS.list) if (f.url !== here && !list.some(s => s.url === f.url)) list.push({ url: f.url, name: f.name || f.url, unknown: true });
   list.sort((a, b) => (FAVS.list.some(f => f.url === b.url) - FAVS.list.some(f => f.url === a.url)) || (b.players | 0) - (a.players | 0));
-  if (!list.length) { box.innerHTML = ''; return; }
+  if (!list.length) { box.innerHTML = '<p class="gempty">No other servers right now. You can type an address below.</p>'; return; }
   box.innerHTML = `<h3>OTHER ROBOBLOCKS SERVERS${res.hub ? ' · from ' + esc(res.hub.replace(/^https?:\/\//, '')) : ''}</h3><table class="sbt">${list.map((s, i) => `<tr><td><b>${esc(s.name || s.url)}</b><br><small>${esc(s.url.replace(/^https?:\/\//, ''))}${s.motd ? ' · ' + esc(String(s.motd).slice(0, 60)) : ''}</small></td><td>${s.unknown ? '' : (s.players | 0) + ' / ' + (s.max | 0)}</td><td>${esc(s.version || '')}</td><td><button data-go="${i}">Connect</button><button data-fav="${i}" title="Favourite">${FAVS.list.some(f => f.url === s.url) ? '★' : '☆'}</button></td></tr>`).join('')}</table>`;
   box.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(list[+b.dataset.go].url));
   box.querySelectorAll('[data-fav]').forEach(b => b.onclick = () => { const s = list[+b.dataset.fav], i = FAVS.list.findIndex(f => f.url === s.url); if (i >= 0) FAVS.list.splice(i, 1); else FAVS.list.push({ url: s.url, name: s.name }); store.set('sfa.favServers', FAVS.list.slice(0, 30)); wireServerList(online); });
@@ -5890,17 +6071,19 @@ function renderLobbyList() {
     const inRoom = others.filter(p => p.presence.sv === sv.id), cnt = inRoom.length, meIn = NET.game && NET.game.code === sv.id;
     const who = inRoom.slice(0, 4).map(p => pilotTag(p.presence)).join(', ') + (cnt > 4 ? ` +${cnt - 4}` : '');
     const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', sv.noAi ? 'PLAYERS ONLY' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
-    want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.rot && sv.rot.length && sv.rot.every(r => r[0] === 'pit') ? sv.n * 2 + ' pilots' : sv.n + 'v' + sv.n}. ${cnt || meIn ? `👤 ${cnt + (meIn ? 1 : 0)} playing${cnt ? ': ' + who : ''}${meIn ? (cnt ? ', you' : ' (you)') : ''} · ` : 'Nobody here yet · '}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
+    const size = sv.rot && sv.rot.length && sv.rot.every(r => r[0] === 'pit') ? sv.n * 2 + ' pilots, free-for-all' : sv.n + ' v ' + sv.n, total = cnt + (meIn ? 1 : 0);
+    want.push({ key: sv.id, group: 'sv', title: sv.name, tags, status: phaseText(h && h.host), players: total ? `👤 ${total} · ${[who, meIn ? 'you' : ''].filter(Boolean).join(', ')}` : '👤 Nobody here yet', small: `${sv.blurb} ${size}.`, live: !!(h && h.host && h.host.phase === 'live'),
+      btn: total || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
   }
   for (const p of hosts.filter(p => !p.presence.host.server && String(p.presence.host.code).startsWith('c'))) {
     const h = p.presence.host, code = String(h.code).replace(/[^a-z0-9-]/g, '').slice(0, 12);
-    want.push({ key: code, group: 'cu', title: `${cleanName(p.presence.name) || 'Pilot'}'s game`, sub: `${(MODES[h.mode] || MODES.tdm).name} · ${(MAPS[h.map] || { name: 'Random map' }).name} · ${h.n | 0}v${h.n | 0} · ${h.cnt | 0} player${(h.cnt | 0) === 1 ? '' : 's'} · ${phaseText(h)}`, btn: h.phase === 'live' ? 'Join in progress' : 'Join', go: () => { if (canDeploy()) joinGame(code, null, null); }, watch: h.phase === 'live' ? () => joinGame(code, null, null, true) : null });
+    want.push({ key: code, group: 'cu', title: `${cleanName(p.presence.name) || 'Pilot'}'s game`, tags: '', status: h.phase === 'live' ? phaseText(h) : `${(MODES[h.mode] || MODES.tdm).name} on ${(MAPS[h.map] || { name: 'a random map' }).name} · waiting for the host to start`, players: `👤 ${h.cnt | 0}`, small: `Custom game · ${h.n | 0} v ${h.n | 0}`, live: h.phase === 'live', btn: h.phase === 'live' ? 'Join in progress' : 'Join', go: () => { if (canDeploy()) joinGame(code, null, null); }, watch: h.phase === 'live' ? () => joinGame(code, null, null, true) : null });
   }
   if (!el.dataset.built) {
     el.dataset.built = '1';
-    el.innerHTML = '<p id="lobbyMotd" class="motd" hidden></p><h3 id="lhSv"></h3><div class="glist" id="lgSv"></div><h3 id="lhCu" hidden>CUSTOM GAMES</h3><div class="glist" id="lgCu"></div>';
+    el.innerHTML = '<p id="lobbyMotd" class="motd" hidden></p><div class="rlist" id="lgSv"></div><h3 id="lhCu" hidden>CUSTOM GAMES</h3><div class="rlist" id="lgCu"></div>';
   }
-  $('#lhSv').textContent = `ROOMS ON THIS SERVER · ${others.length} other pilot${others.length === 1 ? '' : 's'} online`;
+  if ($('#sbOnline')) $('#sbOnline').textContent = `${others.length + 1} pilot${others.length ? 's' : ''} online`;
   const mo = $('#lobbyMotd'); if (mo) { mo.hidden = !NET.motd; mo.textContent = NET.motd ? '📣 ' + NET.motd : ''; }
   $('#lhCu').hidden = !want.some(w => w.group === 'cu');
   const seen = new Set();
@@ -5908,11 +6091,11 @@ function renderLobbyList() {
     seen.add(w.key);
     let r = el.querySelector(`.grow[data-key="${w.key}"]`);
     if (!r) {
-      r = document.createElement('div'); r.className = 'grow'; r.dataset.key = w.key;
-      r.innerHTML = '<div><b></b><span></span></div><button class="watch" hidden>Watch</button><button class="primary"></button>';
+      r = document.createElement('div'); r.className = 'grow room'; r.dataset.key = w.key;
+      r.innerHTML = '<div class="ri"><div class="rt"><b></b><em></em></div><span class="rs"></span><span class="rp"></span><small></small></div><div class="rb"><button class="primary"></button><button class="watch" hidden>Watch</button></div>';
       $(w.group === 'sv' ? '#lgSv' : '#lgCu').appendChild(r);
     }
-    r.querySelector('b').textContent = w.title; r.querySelector('span').textContent = w.sub;
+    r.querySelector('b').textContent = w.title; r.querySelector('em').textContent = w.tags || ''; r.querySelector('.rs').textContent = w.status; r.querySelector('.rp').textContent = w.players; r.querySelector('small').textContent = w.small; r.classList.toggle('live', !!w.live);
     const btn = r.querySelector('button.primary'); if (btn.textContent !== w.btn) btn.textContent = w.btn; btn.onclick = w.go;
     const wb = r.querySelector('button.watch'); wb.hidden = !w.watch; wb.onclick = w.watch;
   }
@@ -6378,7 +6561,7 @@ function relayRoom() {
       if (m.t === 'kicked') { NET.kicked = String(m.reason || 'Removed from the server.'); if (NET.game) netLeave(); if (state === 'battle') toMenu(); showOverlay(`<h2>Disconnected</h2><p>${esc(NET.kicked)}</p><div class="btns"><button class="primary" id="ovDone">OK</button></div>`); $('#ovDone').onclick = () => { hideOverlay(); buildPilotCard(); }; return; }
       if (m.t === 'denied') { const w = waits.get(m.room); rooms.delete(m.room); if (w) { waits.delete(m.room); w.reject(Object.assign(new Error(String(m.reason || 'Not allowed.')), { denied: true })); } return; }
       if (m.t === 'welcome') {
-        me = m.peer; open = true; NET.motd = String(m.motd || ''); NET.accounts = !!m.accounts; NET.requireAccount = !!m.requireAccount; setUnlockAll(!!m.unlockAll); serverVersion(m.version); applyBalance(m.balance); const recon = done;
+        me = m.peer; open = true; NET.motd = String(m.motd || ''); NET.serverName = String(m.name || '').slice(0, 40); NET.accounts = !!m.accounts; NET.requireAccount = !!m.requireAccount; setUnlockAll(!!m.unlockAll); serverVersion(m.version); applyBalance(m.balance); const recon = done;
         if (BE.kind === 'server' && BE.token) api('resume', { token: BE.token }).then(r => BE.onSignedIn(r && r.me, BE.token)).catch(() => BE.onSignedOut());
         if (Array.isArray(m.servers) && m.servers.length) SERVERS.splice(0, SERVERS.length, ...m.servers.filter(s => s && s.id && Array.isArray(s.rot) && s.rot.length));
         for (const [name, r] of rooms) { r.peers.clear(); r.peers.set(me, { presence: r.mine, t: Date.now() }); send({ t: 'join', room: name, pw: r.pw }); if (Object.keys(r.mine).length) send({ t: 'pres', room: name, p: r.mine }); }
@@ -6589,7 +6772,7 @@ function partyTick() {
   for (const p of NET.lobbyPeers) {
     const v = p.presence && p.presence.pinv;
     if (!v || v.to !== NET.me || p.sameTab || (PARTY.seenInv.get(p.peer) || 0) >= v.t || (NET.party && NET.party.id === v.pid)) continue;
-    PARTY.seenInv.set(p.peer, v.t); showInvite(p, v);
+    PARTY.seenInv.set(p.peer, v.t); (PARTY.pending || (PARTY.pending = new Map())).set(p.peer, v); if ($('#partyBody')) renderParty(); else showInvite(p, v);
   }
   if (NET.party && NET.party.leader !== NET.me) {
     const lead = NET.lobbyPeers.find(p => p.peer === NET.party.leader);
@@ -6603,34 +6786,65 @@ function partyTick() {
       }
     }
   }
-  if (!$('#overlay').hidden && $('#lobbyPilots')) renderParty();
+  if (!$('#overlay').hidden && $('#partyBody')) renderParty();
 }
 function showInvite(p, v) {
   const el = $('#partyInv'); el.hidden = false;
   el.querySelector('span').textContent = `${pilotTag(p.presence)} invites you to a party.`;
-  el.querySelector('.ok').onclick = () => { NET.party = { id: v.pid, leader: p.peer }; PARTY.inv = null; el.hidden = true; lobbyPresence(); renderParty(); toast('Joined the party. You will follow the leader into games.'); };
+  el.querySelector('.ok').onclick = () => acceptInvite(p, v);
   el.querySelector('.no').onclick = () => { el.hidden = true; };
   clearTimeout(PARTY.invT); PARTY.invT = setTimeout(() => { el.hidden = true; }, 30000);
 }
+// ---------- Party menu: your name and friend code, your party, invites, and who you can invite ----------
+async function showParty(back) {
+  PARTY.back = back || null;
+  showOverlay('<h2>Party</h2><p>Connecting…</p>', true);
+  const room = await netInit();
+  if (!room) { showOverlay(`<h2>Party</h2><p>Parties work when you are connected to a RoboBlocks server.</p><div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true); $('#ovBack').onclick = () => { if (PARTY.back) PARTY.back(); else backToMenu(); }; return; }
+  NET.me = myPeer();
+  showOverlay(`<h2>Party</h2>
+    <div class="srow"><label for="callsign">Your name</label><input id="callsign" maxlength="16" spellcheck="false"><span></span></div>
+    ${myCodeHtml()}
+    <div id="partyBody"></div>
+    <p style="font-size:13px">Party members follow the leader into games and always play on the same team.</p>
+    <div class="btns"><button class="primary" id="ovBack">Back</button><button id="ptFriends">Friends…</button></div>`, true);
+  $('#callsign').value = NET.name;
+  $('#callsign').addEventListener('keydown', e => e.stopPropagation());
+  $('#callsign').addEventListener('change', () => { NET.name = cleanName($('#callsign').value) || NET.name; $('#callsign').value = NET.name; store.set('sfa.callsign', NET.name); lobbyPresence(); });
+  wireMyCode();
+  $('#ovBack').onclick = () => { if (PARTY.back) PARTY.back(); else backToMenu(); };
+  $('#ptFriends').onclick = () => showFriends();
+  renderParty();
+}
 function renderParty() {
-  const el = $('#lobbyPilots'); if (!el) return;
+  const el = $('#partyBody'); if (!el) return;
   const others = NET.lobbyPeers.filter(p => !p.sameTab && p.presence && p.presence.bc && !p.presence.srv);
   const inParty = !!NET.party, lead = inParty && NET.party.leader === NET.me, mates = partyMembers().filter(p => !p.sameTab);
-  let html = `<h3>PARTY</h3>`;
-  html += inParty ? `<p>${lead ? 'You lead this party.' : 'Following ' + esc(pilotTag((NET.lobbyPeers.find(p => p.peer === NET.party.leader) || {}).presence)) + '.'} ${mates.length ? 'With ' + mates.map(p => esc(pilotTag(p.presence))).join(', ') + '.' : 'Nobody else yet.'} <button id="ptLeave">Leave party</button></p>` : '<p>Invite pilots below to play together. Members follow the leader into games and stay on the same team.</p>';
-  html += `<h3>PILOTS ONLINE</h3><div class="glist">${others.length ? '' : '<p class="gempty">Nobody else is online.</p>'}</div>`;
-  el.innerHTML = html; const list = el.querySelector('.glist');
-  for (const p of others) {
-    const r = document.createElement('div'); r.className = 'grow';
-    const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = pilotTag(p.presence);
-    const s = document.createElement('span'); s.textContent = `Lv ${(p.presence.lv | 0) || 1} · ${p.presence.sv ? (SERVERS.find(x => x.id === p.presence.sv) || { name: 'a custom game' }).name : 'in the menu'}${NET.party && p.presence.party === NET.party.id ? ' · in your party' : ''}`; info.append(b, s);
-    const btn = document.createElement('button'); btn.textContent = NET.party && p.presence.party === NET.party.id ? 'In party' : 'Invite'; btn.disabled = NET.party && (p.presence.party === NET.party.id || NET.party.leader !== NET.me);
-    btn.onclick = () => partyInvite(p.peer);
-    const fb = document.createElement('button'); const fr = isFriendPeer(p); fb.textContent = fr ? 'Friend ✓' : 'Add friend'; fb.disabled = fr || !peerKey(p);
-    fb.onclick = () => { addFriend(p); renderParty(); };
-    r.append(info, fb, btn); list.appendChild(r);
-  }
+  const where = p => p.presence.sv ? (SERVERS.find(x => x.id === p.presence.sv) || { name: 'a custom game' }).name : 'in the menu';
+  // invites waiting for you (newest first), dropped once their sender leaves
+  const pend = [...(PARTY.pending || new Map()).entries()].map(([peer, v]) => ({ p: NET.lobbyPeers.find(x => x.peer === peer), v })).filter(x => x.p && !(NET.party && NET.party.id === x.v.pid));
+  let html = '<h3>YOUR PARTY</h3>';
+  html += inParty ? `<div class="glist">${[{ me: true }, ...mates].map(m => `<div class="grow"><div><b>${m.me ? esc(NET.name) + ' (you)' : esc(pilotTag(m.presence))}</b><span>${(m.me ? lead : m.peer === NET.party.leader) ? '★ Leader' : 'Member'}</span></div></div>`).join('')}</div><div class="btns" style="justify-content:flex-start"><button id="ptLeave">Leave party</button></div>`
+    : '<p class="gempty">You are not in a party. Invite someone below.</p>';
+  if (pend.length) html += `<h3>INVITES</h3><div class="glist">${pend.map((x, i) => `<div class="grow"><div><b>${esc(pilotTag(x.p.presence))}</b><span>invited you to their party</span></div><button class="primary" data-acc="${i}">Join</button><button data-dec="${i}">No thanks</button></div>`).join('')}</div>`;
+  const friends = others.filter(p => isFriendPeer(p)), rest = others.filter(p => !isFriendPeer(p));
+  const row = (p, kind) => {
+    const mine = NET.party && p.presence.party === NET.party.id, sent = PARTY.inv && PARTY.inv.to === p.peer && Date.now() - PARTY.inv.t < 60000;
+    const canInvite = !mine && (!NET.party || lead);
+    return `<div class="grow"><div><b>${esc(pilotTag(p.presence))}</b><span>Lv ${(p.presence.lv | 0) || 1} · ${esc(where(p))}</span></div>${kind === 'pilot' && !isFriendPeer(p) && peerKey(p) ? `<button data-addf="${p.peer}">Add friend</button>` : ''}<button class="${canInvite && !sent ? 'primary' : ''}" data-inv="${p.peer}" ${canInvite && !sent ? '' : 'disabled'}>${mine ? 'In your party' : sent ? 'Invited' : 'Invite'}</button></div>`;
+  };
+  html += `<h3>FRIENDS ONLINE</h3>${friends.length ? `<div class="glist">${friends.map(p => row(p, 'friend')).join('')}</div>` : '<p class="gempty">No friends online on this server.</p>'}`;
+  html += `<h3>PILOTS ON THIS SERVER</h3>${rest.length ? `<div class="glist">${rest.slice(0, 40).map(p => row(p, 'pilot')).join('')}</div>` : '<p class="gempty">Nobody else is online.</p>'}`;
+  el.innerHTML = html;
   if ($('#ptLeave')) $('#ptLeave').onclick = partyLeave;
+  el.querySelectorAll('[data-inv]').forEach(b => b.onclick = () => { partyInvite(b.dataset.inv); renderParty(); });
+  el.querySelectorAll('[data-addf]').forEach(b => b.onclick = () => { const p = NET.lobbyPeers.find(x => x.peer === b.dataset.addf); if (p) addFriend(p); renderParty(); });
+  el.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => { const x = pend[+b.dataset.acc]; acceptInvite(x.p, x.v); });
+  el.querySelectorAll('[data-dec]').forEach(b => b.onclick = () => { PARTY.pending.delete(pend[+b.dataset.dec].p.peer); renderParty(); });
+}
+function acceptInvite(p, v) {
+  NET.party = { id: v.pid, leader: p.peer }; PARTY.inv = null; if (PARTY.pending) PARTY.pending.delete(p.peer); $('#partyInv').hidden = true; lobbyPresence(); renderParty();
+  toast(`Joined ${pilotTag(p.presence)}'s party. You will follow them into games.`);
 }
 // hosts keep parties together: group pilots by party, then fill the smaller team group by group
 function partyTeams(pilots, partyOf) {
@@ -7259,6 +7473,7 @@ $('#mGarage').onclick = () => { SFX.init(); SFX.ui(); toGarage(); };
 $('#mTest').onclick = () => { SFX.init(); SFX.ui(); startBattle({ mode: 'test' }); };
 $('#mSettings').onclick = () => { SFX.init(); SFX.ui(); showSettings(); };
 $('#mHelp').onclick = () => { SFX.init(); SFX.ui(); showHelp(); };
+$('#mParty').onclick = () => { SFX.init(); SFX.ui(); showParty(); };
 $('#mQuit').onclick = () => {
   SFX.ui(); saveBays(); if (typeof cloudDirty === 'function') cloudDirty();
   showOverlay(`<h2>Quit RoboBlocks?</h2><p>Your bots and progress are saved.</p><div class="btns"><button class="primary" id="qYes">Quit</button><button id="qNo">Cancel</button></div>`);

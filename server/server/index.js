@@ -200,7 +200,8 @@ function backup() {
   } catch (e) { log('backup failed:', e.message); }
 }
 setTimeout(backup, 60000); setInterval(backup, 6 * 3600 * 1000);
-const relay = new Relay({ servers: SERVERS, maxClients: MAX_CLIENTS, log, db, api, requireAccount: REQUIRE_ACCOUNT, unlockAll: UNLOCK_ALL, version: VERSION, balance: () => BALANCE });
+const SERVER_NAME = String(env.BC_NAME || 'RoboBlocks server').replace(/[<>]/g, '').slice(0, 40);
+const relay = new Relay({ servers: SERVERS, maxClients: MAX_CLIENTS, log, db, api, requireAccount: REQUIRE_ACCOUNT, unlockAll: UNLOCK_ALL, serverName: SERVER_NAME, version: VERSION, balance: () => BALANCE });
 // a hosted match ended: award XP (and rating on ranked servers) to the signed-in pilots who played it
 function onMatchReport(server, r) {
   if (!r || !Array.isArray(r.humans)) return;
@@ -224,7 +225,6 @@ function onMatchReport(server, r) {
 const hosts = [];
 
 // ---------- server browser: one server acts as the hub, the others report to it ----------
-const SERVER_NAME = String(env.BC_NAME || 'RoboBlocks server').replace(/[<>]/g, '').slice(0, 40);
 const PUBLIC_URL = cleanOrigin(env.BC_PUBLIC_URL || '');
 // where desktop app updates come from when downloads/ is empty: DESKTOP_REPO (owner/repo), else the GitHub repo in DOWNLOAD_URL
 const DESKTOP_REPO = (() => { const m = String(env.DESKTOP_REPO || '').trim().replace(/^https?:\/\/github\.com\//i, '').match(/^([\w.-]+\/[\w.-]+?)(?:\.git)?\/?$/) || String(env.DOWNLOAD_URL || '').match(/^https?:\/\/github\.com\/([\w.-]+\/[\w.-]+)\/releases\//i); return /^(0|off|none)$/i.test(String(env.DESKTOP_REPO || '').trim()) ? '' : m ? m[1] : ''; })();

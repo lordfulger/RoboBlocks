@@ -1,14 +1,14 @@
 {
   "name": "roboblocks",
   "productName": "RoboBlocks",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "RoboBlocks desktop app: a launcher that keeps the game up to date and runs it in its own window.",
   "main": "main.js",
   "author": "RoboBlocks",
   "homepage": "https://github.com/lordfulger/RoboBlocks",
   "license": "UNLICENSED",
   "roboblocks": {
-    "defaultServer": ""
+    "defaultServer": "http://play.ancientrpg.games:12001"
   },
   "scripts": {
     "bundle": "node scripts/bundle-game.js",

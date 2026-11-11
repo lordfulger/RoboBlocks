@@ -146,7 +146,16 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .frow>div{display:flex;flex-direction:column}.frow span{font-size:13px;color:var(--muted)}.frow .dot{width:9px;height:9px;border-radius:50%;background:#555}.frow.on .dot{background:#5fd36a}
 .sbaddr{display:flex;gap:8px;margin:6px 0}.sbaddr input{flex:1;min-width:0}
 .fcode{margin:4px 0 10px;font-size:14px;color:#c9d2d8}.fcode b{font-family:var(--display);letter-spacing:.08em;color:#ffd36a;margin:0 6px}.fcode button{padding:3px 10px;font-size:12px}
-#sbHost{margin:10px 0}#sbHost summary{cursor:pointer;font-family:var(--display);font-size:13px;letter-spacing:.14em;color:var(--dim,#9aa6ae);padding:6px 0}#sbHost[open] summary{color:inherit}
+#sbHost{margin:10px 0}
+.sbTop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}.sbTop h2{margin-bottom:2px}.sbHere{margin:0 0 10px;color:#b4c0c8;font-size:14px}.sbHere b{color:var(--fg)}
+.rlist{display:flex;flex-direction:column;gap:8px;margin-bottom:8px}
+.grow.room{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);background:rgba(255,255,255,.02)}
+.grow.room.live{border-left:3px solid var(--accent)}
+.grow.room .ri{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.grow.room .rt{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}.grow.room .rt b{font-size:17px}.grow.room .rt em{font-style:normal;font-size:11px;letter-spacing:.12em;color:#ffd36a}
+.grow.room .rs{font-size:14px;color:#dfe6ea}.grow.room .rp{font-size:13px;color:#9fe0b0}.grow.room small{font-size:12px;color:var(--muted)}
+.grow.room .rb{display:flex;flex-direction:column;gap:6px;align-items:stretch}.grow.room .rb button{min-width:96px}.grow.room .rb .watch{font-size:12px;padding:4px 8px}
+#sbOther{margin-top:12px}#sbOther summary{cursor:pointer;color:#b4c0c8;font-size:14px;padding:6px 0}#sbHost summary{cursor:pointer;font-family:var(--display);font-size:13px;letter-spacing:.14em;color:var(--dim,#9aa6ae);padding:6px 0}#sbHost[open] summary{color:inherit}
 .sbt{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:10px}.sbt td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:middle}.sbt tr.here{background:rgba(255,160,40,.08)}.sbt small{color:var(--muted)}.sbt button{padding:4px 10px;margin-left:4px}
 .wslot.grp{border-color:#7a6a2a}.wslot.grp .k{color:#ffd76a}
 .wgrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
@@ -491,7 +500,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
   <nav class="mnav">
     <button id="mPlay" class="primary big">Play</button>
     <button id="mQuick" class="big">Quick play</button>
-    <button id="mOnline" class="big">Server browser</button>
+    <button id="mOnline" class="big">Play online</button>
     <button id="mGarage" class="big">Garage</button>
     <button id="mTech" class="big tech">Tech tree <b class="techN" hidden></b></button>
     <button id="mTest">Test drive</button>
@@ -500,6 +509,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <button id="mQuests">Quests</button>
     <button id="mClans">Clans</button>
     <button id="mPass">Battle pass</button>
+    <button id="mParty">Party</button>
     <button id="mFriends">Friends</button>
     <button id="mReplay">Last replay</button>
     <button id="mLeader">Leaderboards</button>

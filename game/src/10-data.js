@@ -504,6 +504,7 @@ const hiQ = () => settings.quality === 'high' || settings.quality === 'ultra', u
 // the desktop app (window.ROBOBLOCKS) names its server; a page served by a server uses that server
 const HOST = (typeof window !== 'undefined' && window.ROBOBLOCKS) || null;
 // true when this copy runs inside an embedded web preview (it then plays offline: online play is server-only)
+const OFFICIAL_SERVER = 'http://play.ancientrpg.games:12001'; // the main RoboBlocks server: offline copies offer it first
 const onClaudePage = () => typeof window !== 'undefined' && !!window.claude;
 const SERVER_BASE = (() => { try { if (HOST && HOST.server) { const u = new URL(HOST.server); if (/^https?:$/.test(u.protocol)) return u.origin; } if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol) && !onClaudePage()) return location.origin; } catch (e) { } return null; })();
 const fmtSpeed = ms => settings.units === 'kmh' ? Math.round(ms * 3.6) + ' km/h' : Math.round(ms * 2.23694) + ' mph';

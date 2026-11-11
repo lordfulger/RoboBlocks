@@ -17,7 +17,7 @@ function partyTick() {
   for (const p of NET.lobbyPeers) {
     const v = p.presence && p.presence.pinv;
     if (!v || v.to !== NET.me || p.sameTab || (PARTY.seenInv.get(p.peer) || 0) >= v.t || (NET.party && NET.party.id === v.pid)) continue;
-    PARTY.seenInv.set(p.peer, v.t); showInvite(p, v);
+    PARTY.seenInv.set(p.peer, v.t); (PARTY.pending || (PARTY.pending = new Map())).set(p.peer, v); if ($('#partyBody')) renderParty(); else showInvite(p, v);
   }
   if (NET.party && NET.party.leader !== NET.me) {
     const lead = NET.lobbyPeers.find(p => p.peer === NET.party.leader);
@@ -31,34 +31,65 @@ function partyTick() {
       }
     }
   }
-  if (!$('#overlay').hidden && $('#lobbyPilots')) renderParty();
+  if (!$('#overlay').hidden && $('#partyBody')) renderParty();
 }
 function showInvite(p, v) {
   const el = $('#partyInv'); el.hidden = false;
   el.querySelector('span').textContent = `${pilotTag(p.presence)} invites you to a party.`;
-  el.querySelector('.ok').onclick = () => { NET.party = { id: v.pid, leader: p.peer }; PARTY.inv = null; el.hidden = true; lobbyPresence(); renderParty(); toast('Joined the party. You will follow the leader into games.'); };
+  el.querySelector('.ok').onclick = () => acceptInvite(p, v);
   el.querySelector('.no').onclick = () => { el.hidden = true; };
   clearTimeout(PARTY.invT); PARTY.invT = setTimeout(() => { el.hidden = true; }, 30000);
 }
+// ---------- Party menu: your name and friend code, your party, invites, and who you can invite ----------
+async function showParty(back) {
+  PARTY.back = back || null;
+  showOverlay('<h2>Party</h2><p>Connecting…</p>', true);
+  const room = await netInit();
+  if (!room) { showOverlay(`<h2>Party</h2><p>Parties work when you are connected to a RoboBlocks server.</p><div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true); $('#ovBack').onclick = () => { if (PARTY.back) PARTY.back(); else backToMenu(); }; return; }
+  NET.me = myPeer();
+  showOverlay(`<h2>Party</h2>
+    <div class="srow"><label for="callsign">Your name</label><input id="callsign" maxlength="16" spellcheck="false"><span></span></div>
+    ${myCodeHtml()}
+    <div id="partyBody"></div>
+    <p style="font-size:13px">Party members follow the leader into games and always play on the same team.</p>
+    <div class="btns"><button class="primary" id="ovBack">Back</button><button id="ptFriends">Friends…</button></div>`, true);
+  $('#callsign').value = NET.name;
+  $('#callsign').addEventListener('keydown', e => e.stopPropagation());
+  $('#callsign').addEventListener('change', () => { NET.name = cleanName($('#callsign').value) || NET.name; $('#callsign').value = NET.name; store.set('sfa.callsign', NET.name); lobbyPresence(); });
+  wireMyCode();
+  $('#ovBack').onclick = () => { if (PARTY.back) PARTY.back(); else backToMenu(); };
+  $('#ptFriends').onclick = () => showFriends();
+  renderParty();
+}
 function renderParty() {
-  const el = $('#lobbyPilots'); if (!el) return;
+  const el = $('#partyBody'); if (!el) return;
   const others = NET.lobbyPeers.filter(p => !p.sameTab && p.presence && p.presence.bc && !p.presence.srv);
   const inParty = !!NET.party, lead = inParty && NET.party.leader === NET.me, mates = partyMembers().filter(p => !p.sameTab);
-  let html = `<h3>PARTY</h3>`;
-  html += inParty ? `<p>${lead ? 'You lead this party.' : 'Following ' + esc(pilotTag((NET.lobbyPeers.find(p => p.peer === NET.party.leader) || {}).presence)) + '.'} ${mates.length ? 'With ' + mates.map(p => esc(pilotTag(p.presence))).join(', ') + '.' : 'Nobody else yet.'} <button id="ptLeave">Leave party</button></p>` : '<p>Invite pilots below to play together. Members follow the leader into games and stay on the same team.</p>';
-  html += `<h3>PILOTS ONLINE</h3><div class="glist">${others.length ? '' : '<p class="gempty">Nobody else is online.</p>'}</div>`;
-  el.innerHTML = html; const list = el.querySelector('.glist');
-  for (const p of others) {
-    const r = document.createElement('div'); r.className = 'grow';
-    const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = pilotTag(p.presence);
-    const s = document.createElement('span'); s.textContent = `Lv ${(p.presence.lv | 0) || 1} · ${p.presence.sv ? (SERVERS.find(x => x.id === p.presence.sv) || { name: 'a custom game' }).name : 'in the menu'}${NET.party && p.presence.party === NET.party.id ? ' · in your party' : ''}`; info.append(b, s);
-    const btn = document.createElement('button'); btn.textContent = NET.party && p.presence.party === NET.party.id ? 'In party' : 'Invite'; btn.disabled = NET.party && (p.presence.party === NET.party.id || NET.party.leader !== NET.me);
-    btn.onclick = () => partyInvite(p.peer);
-    const fb = document.createElement('button'); const fr = isFriendPeer(p); fb.textContent = fr ? 'Friend ✓' : 'Add friend'; fb.disabled = fr || !peerKey(p);
-    fb.onclick = () => { addFriend(p); renderParty(); };
-    r.append(info, fb, btn); list.appendChild(r);
-  }
+  const where = p => p.presence.sv ? (SERVERS.find(x => x.id === p.presence.sv) || { name: 'a custom game' }).name : 'in the menu';
+  // invites waiting for you (newest first), dropped once their sender leaves
+  const pend = [...(PARTY.pending || new Map()).entries()].map(([peer, v]) => ({ p: NET.lobbyPeers.find(x => x.peer === peer), v })).filter(x => x.p && !(NET.party && NET.party.id === x.v.pid));
+  let html = '<h3>YOUR PARTY</h3>';
+  html += inParty ? `<div class="glist">${[{ me: true }, ...mates].map(m => `<div class="grow"><div><b>${m.me ? esc(NET.name) + ' (you)' : esc(pilotTag(m.presence))}</b><span>${(m.me ? lead : m.peer === NET.party.leader) ? '★ Leader' : 'Member'}</span></div></div>`).join('')}</div><div class="btns" style="justify-content:flex-start"><button id="ptLeave">Leave party</button></div>`
+    : '<p class="gempty">You are not in a party. Invite someone below.</p>';
+  if (pend.length) html += `<h3>INVITES</h3><div class="glist">${pend.map((x, i) => `<div class="grow"><div><b>${esc(pilotTag(x.p.presence))}</b><span>invited you to their party</span></div><button class="primary" data-acc="${i}">Join</button><button data-dec="${i}">No thanks</button></div>`).join('')}</div>`;
+  const friends = others.filter(p => isFriendPeer(p)), rest = others.filter(p => !isFriendPeer(p));
+  const row = (p, kind) => {
+    const mine = NET.party && p.presence.party === NET.party.id, sent = PARTY.inv && PARTY.inv.to === p.peer && Date.now() - PARTY.inv.t < 60000;
+    const canInvite = !mine && (!NET.party || lead);
+    return `<div class="grow"><div><b>${esc(pilotTag(p.presence))}</b><span>Lv ${(p.presence.lv | 0) || 1} · ${esc(where(p))}</span></div>${kind === 'pilot' && !isFriendPeer(p) && peerKey(p) ? `<button data-addf="${p.peer}">Add friend</button>` : ''}<button class="${canInvite && !sent ? 'primary' : ''}" data-inv="${p.peer}" ${canInvite && !sent ? '' : 'disabled'}>${mine ? 'In your party' : sent ? 'Invited' : 'Invite'}</button></div>`;
+  };
+  html += `<h3>FRIENDS ONLINE</h3>${friends.length ? `<div class="glist">${friends.map(p => row(p, 'friend')).join('')}</div>` : '<p class="gempty">No friends online on this server.</p>'}`;
+  html += `<h3>PILOTS ON THIS SERVER</h3>${rest.length ? `<div class="glist">${rest.slice(0, 40).map(p => row(p, 'pilot')).join('')}</div>` : '<p class="gempty">Nobody else is online.</p>'}`;
+  el.innerHTML = html;
   if ($('#ptLeave')) $('#ptLeave').onclick = partyLeave;
+  el.querySelectorAll('[data-inv]').forEach(b => b.onclick = () => { partyInvite(b.dataset.inv); renderParty(); });
+  el.querySelectorAll('[data-addf]').forEach(b => b.onclick = () => { const p = NET.lobbyPeers.find(x => x.peer === b.dataset.addf); if (p) addFriend(p); renderParty(); });
+  el.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => { const x = pend[+b.dataset.acc]; acceptInvite(x.p, x.v); });
+  el.querySelectorAll('[data-dec]').forEach(b => b.onclick = () => { PARTY.pending.delete(pend[+b.dataset.dec].p.peer); renderParty(); });
+}
+function acceptInvite(p, v) {
+  NET.party = { id: v.pid, leader: p.peer }; PARTY.inv = null; if (PARTY.pending) PARTY.pending.delete(p.peer); $('#partyInv').hidden = true; lobbyPresence(); renderParty();
+  toast(`Joined ${pilotTag(p.presence)}'s party. You will follow them into games.`);
 }
 // hosts keep parties together: group pilots by party, then fill the smaller team group by group
 function partyTeams(pilots, partyOf) {

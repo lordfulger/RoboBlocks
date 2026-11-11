@@ -94,6 +94,32 @@ const RECIPES = {
   error: [.35, 1, (c, o) => { AK.osc(c, o, { type: 'square', f: 220, dur: .12, g: .08, lp: 1500 }); AK.osc(c, o, { type: 'square', f: 165, dur: .16, g: .08, t: .13, lp: 1500 }); }],
   chat: [.2, 1, (c, o) => { AK.osc(c, o, { f: 1568, dur: .08, g: .06, fm: { ratio: 2, index: .4 } }); AK.osc(c, o, { f: 2093, dur: .1, g: .05, t: .06 }); }],
 };
+// ---- weapon weight: every gun gets a low punch you feel, a sharp crack, and an outdoor tail, on top of its own voice ----
+// punch: [start Hz, end Hz, seconds, gain]; crack: [Hz, gain]; tail: [lowpass Hz, seconds, gain]
+const WEAPON_LAYERS = {
+  blaster: { punch: [150, 52, .11, .55], crack: [3200, .3], tail: [1400, .35, .16] },
+  chain: { punch: [125, 50, .075, .5], crack: [3800, .28], tail: [1100, .2, .1] },
+  plasma: { punch: [95, 34, .26, .75], crack: [2200, .22], tail: [900, .7, .22] },
+  mortar: { punch: [78, 24, .5, 1.05], crack: [1700, .4], tail: [700, 1.4, .36] },
+  rail: { punch: [70, 24, .38, .95], crack: [5200, .45], tail: [1600, 1.1, .3] },
+  seeker: { punch: [88, 36, .22, .7], crack: [2600, .25], tail: [900, 1.0, .26] },
+  flak: { punch: [105, 32, .3, .9], crack: [2900, .38], tail: [1000, .8, .28] },
+  flakBurst: { punch: [70, 26, .38, .85], crack: [3400, .4], tail: [800, .9, .3] },
+  arc: { punch: [130, 60, .1, .35], tail: [2400, .4, .12] },
+  mine: { punch: [80, 34, .22, .65], crack: [1900, .25], tail: [700, .6, .18] },
+  lancer: { punch: [52, 19, .85, 1.2], crack: [4200, .5], tail: [900, 1.8, .42] },
+};
+for (const [name, L] of Object.entries(WEAPON_LAYERS)) {
+  const R = RECIPES[name]; if (!R) continue;
+  const [dur, n, fn] = R, need = Math.max(dur, L.tail ? L.tail[1] + .08 : 0, L.punch ? L.punch[2] + .05 : 0);
+  RECIPES[name] = [need, n, (c, o, r) => {
+    fn(c, o, r);
+    if (L.punch) { const d = AK.drive(c, o, 2.2); AK.osc(c, d, { f: L.punch[0] * (1 + r * .08), f2: L.punch[1], dur: L.punch[2], g: L.punch[3], glide: L.punch[2] * .7 }); AK.osc(c, o, { type: 'triangle', f: L.punch[0] * 2, f2: L.punch[1] * 2, dur: L.punch[2] * .5, g: L.punch[3] * .25 }); }
+    if (L.crack) AK.nz(c, o, { ft: 'bandpass', f: L.crack[0] * (1 + r * .15), dur: .025, g: L.crack[1], q: 1.4 });
+    if (L.tail) AK.nz(c, o, { f: L.tail[0], f2: 120, dur: L.tail[1], g: L.tail[2], a: .015, t: .02 });
+  }];
+}
+
 
 const SFX = {
   ctx: null, master: null, sfxBus: null, uiBus: null, musicBus: null, wet: null, noise: null, budget: 0, voices: 0, ends: [], eng: null, amb: null, laser: null, bank: {}, ready_: false,

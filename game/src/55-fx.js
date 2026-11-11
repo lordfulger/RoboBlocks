@@ -123,24 +123,27 @@ function updateGlow() {
 // ---------- grass tufts near the camera ----------
 function grassSetup(rnd) {
   FX.grass = [];
-  if (HEADLESS || !['dust', 'city'].includes(world.mapId) || !hiQ()) return;
+  const GR = { dust: ['#b49a5a', 220], city: ['#5f6a3a', 70], frost: ['#9fb0a4', 110], ash: ['#4a3a2c', 60] }[world.mapId];
+  if (HEADLESS || !GR) return;
   const blade = new T.PlaneGeometry(.9, .8); blade.translate(0, .4, 0);
   const tuft = new T.BufferGeometry(), parts = [0, Math.PI / 3, -Math.PI / 3].map(a => blade.clone().rotateY(a));
   const merged = parts.reduce((acc, g) => { const p = g.attributes.position.array, uv = g.attributes.uv.array; acc.p.push(...p); acc.uv.push(...uv); return acc; }, { p: [], uv: [] });
   tuft.setAttribute('position', new T.Float32BufferAttribute(merged.p, 3)); tuft.setAttribute('uv', new T.Float32BufferAttribute(merged.uv, 2)); tuft.computeVertexNormals();
   const c = document.createElement('canvas'); c.width = 32; c.height = 32; const g = c.getContext('2d');
-  g.strokeStyle = world.mapId === 'city' ? '#5f6a3a' : '#b49a5a'; g.lineWidth = 2;
+  g.strokeStyle = GR[0]; g.lineWidth = 2;
   for (let i = 0; i < 9; i++) { g.beginPath(); const x = 4 + i * 3; g.moveTo(x, 32); g.quadraticCurveTo(x + (i % 3 - 1) * 3, 16, x + (i % 2 ? 4 : -3), 2 + (i * 7) % 10); g.stroke(); }
   const tex = new T.CanvasTexture(c); tex.colorSpace = T.SRGBColorSpace;
   const mat = new T.MeshStandardMaterial({ map: tex, alphaTest: .4, side: T.DoubleSide, roughness: 1 });
+  // wind: the tips sway, each tuft a little out of step with its neighbours
+  mat.onBeforeCompile = sh => { sh.uniforms.uTime = FX.windT || (FX.windT = { value: 0 }); sh.vertexShader = 'uniform float uTime;\n' + sh.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\n#ifdef USE_INSTANCING\nfloat ph = instanceMatrix[3].x * .37 + instanceMatrix[3].z * .23;\n#else\nfloat ph = 0.0;\n#endif\nfloat sw = sin(uTime * 2.1 + ph) * .14 + sin(uTime * 3.7 + ph * 1.7) * .05;\ntransformed.x += sw * position.y; transformed.z += sw * .6 * position.y;'); };
   const CH = 64, B = world.bound, m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
   for (let cx = -B; cx < B; cx += CH) for (let cz = -B; cz < B; cz += CH) {
-    const im = new T.InstancedMesh(tuft, mat, 120); let n = 0;
-    const cap = world.mapId === 'city' ? 40 : 120;
-    for (let i = 0; i < 160 && n < cap; i++) {
+    const cap = Math.round(GR[1] * (hiQ() ? 1 : .45)), im = new T.InstancedMesh(tuft, mat, cap); let n = 0;
+    for (let i = 0; i < cap * 1.4 && n < cap; i++) {
       const x = cx + rnd() * CH, z = cz + rnd() * CH;
       if (world.mapId === 'city' && cityStreet(x, z) && rnd() < .85) continue;
       if (rocksAt(x, z).some(o => Math.hypot(o.x - x, o.z - z) < o.cr + .5)) continue;
+      if (world.liquid && bedH(x, z) < world.liquid.y + .5) continue; // not on lakes or lava
       const k = .6 + rnd() * .9; q.setFromEuler(e.set(0, rnd() * 6.28, 0));
       m4.compose(v.set(x, bedH(x, z) - .05, z), q, sc.set(k, k * (.7 + rnd() * .6), k)); im.setMatrixAt(n++, m4);
     }
@@ -150,7 +153,8 @@ function grassSetup(rnd) {
 function updateGrass() {
   if (!FX.grass.length) return;
   const cp = camera.position;
-  for (const g of FX.grass) g.im.visible = Math.hypot(g.x - cp.x, g.z - cp.z) < 150;
+  for (const g of FX.grass) g.im.visible = Math.hypot(g.x - cp.x, g.z - cp.z) < (hiQ() ? 170 : 110);
+  if (FX.windT) FX.windT.value = world.time;
 }
 // called at the end of setupArena and every battle frame
 function fxSetup() { FX.rings = []; FX.wx = null; scorchSetup(); glowSetup(); grassSetup(mulberry32(world.map.seed * 13 + 5)); }

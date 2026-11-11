@@ -107,33 +107,35 @@ async function showLobby() {
     return;
   }
   NET.me = myPeer();
-  showOverlay(`<h2>Server browser</h2>
-    ${myCodeHtml()}
-    <div class="srow"><label for="callsign">Callsign</label><input id="callsign" maxlength="16" spellcheck="false" value=""><span></span></div>
+  const here = NET.serverName || (SERVER_BASE ? SERVER_BASE.replace(/^https?:\/\//, '') : 'This server');
+  showOverlay(`<div class="sbTop"><div><h2>Play online</h2><p class="sbHere"><b></b> · <span id="sbOnline"></span></p></div><button id="sbParty">Party</button></div>
     <div id="lobbyList"></div>
-    <div id="lobbyPilots"></div>
-    <div id="sbOthers"></div>
-    <div class="sbaddr"><input id="sbAddr" placeholder="Another server's address, e.g. 203.0.113.5:25570" maxlength="200" spellcheck="false"><button id="sbOpen">Connect</button></div>
-    <details id="sbHost"><summary>HOST A CUSTOM GAME</summary>
+    <div class="btns"><button class="primary" id="ovBack">Back</button><button id="sbHostBtn">Host a custom game</button></div>
+    <details id="sbOther"><summary>Other servers</summary><div id="sbOthers"><p class="gempty">Looking for other servers…</p></div>
+      <div class="sbaddr"><input id="sbAddr" placeholder="Server address, e.g. 203.0.113.5:25570" maxlength="200" spellcheck="false"><button id="sbOpen">Connect</button></div></details>`, true);
+  $('.sbHere b').textContent = here;
+  $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
+  $('#sbHostBtn').onclick = () => showHostGame();
+  $('#sbParty').onclick = () => showParty(showLobby);
+  if (NET.party) $('#sbParty').textContent = `Party (${partyMembers().length || 1})`;
+  wireServerList(true);
+  renderLobbyList();
+}
+// hosting a custom game: its own screen
+function showHostGame() {
+  showOverlay(`<h2>Host a custom game</h2><p>Pick the rules; friends join it from Play online.</p>
     ${setupOptsHtml(true)}
-    <div class="btns"><button class="primary" id="ovHost">Host custom game</button></div></details>
-    <div class="btns"><button id="sbRefresh">Refresh</button><button class="primary" id="ovBack">Back</button></div>`, true);
-  $('#callsign').value = NET.name;
-  $('#callsign').addEventListener('keydown', e => e.stopPropagation());
-  $('#callsign').addEventListener('change', () => { NET.name = cleanName($('#callsign').value) || NET.name; $('#callsign').value = NET.name; store.set('sfa.callsign', NET.name); lobbyPresence(); });
+    <div class="btns"><button class="primary" id="ovHost">Host game</button><button id="ovBack">Back</button></div>`, true);
   wireSetupOpts();
   $('#ovHost').onclick = () => { if (!canDeploy()) return; store.set('sfa.setup', setupSel); joinGame('c' + Math.random().toString(36).slice(2, 7), null, { ...setupSel }); };
-  $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
-  $('#sbRefresh').onclick = () => showLobby();
-  wireServerList(true); wireMyCode();
-  renderLobbyList(); renderParty();
+  $('#ovBack').onclick = () => showLobby();
 }
 // other RoboBlocks servers: the hub's list (when this server reports to one) plus your favourites
 async function wireServerList(online) {
   const here = SERVER_BASE || '', cleanUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin : null; } catch (e) { return null; } };
   const go = url => { if (!url || url === here) return; store.set('sfa.mpAddr', url); if (HOST && HOST.setServer) HOST.setServer(url); else if (onClaudePage()) { const w = window.open(url + '/', '_blank', 'noopener'); if (!w) toast('Open ' + url + ' in your browser to play online.'); } else location.href = url + '/'; };
   const inp = $('#sbAddr'); if (inp) {
-    inp.value = online ? '' : store.get('sfa.mpAddr', '') || '';
+    inp.value = online ? '' : store.get('sfa.mpAddr', '') || OFFICIAL_SERVER.replace(/^https?:\/\//, '');
     inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#sbOpen').click(); });
     $('#sbOpen').onclick = () => { let v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!/^https?:\/\//i.test(v)) v = 'http://' + v; const u = cleanUrl(v); if (!u) { toast('That does not look like a server address.'); return; } go(u); };
   }
@@ -143,7 +145,7 @@ async function wireServerList(online) {
   const list = (res.ok ? res.list : []).map(s => ({ ...s, url: cleanUrl(s.url) })).filter(s => s.url && s.url !== here);
   for (const f of FAVS.list) if (f.url !== here && !list.some(s => s.url === f.url)) list.push({ url: f.url, name: f.name || f.url, unknown: true });
   list.sort((a, b) => (FAVS.list.some(f => f.url === b.url) - FAVS.list.some(f => f.url === a.url)) || (b.players | 0) - (a.players | 0));
-  if (!list.length) { box.innerHTML = ''; return; }
+  if (!list.length) { box.innerHTML = '<p class="gempty">No other servers right now. You can type an address below.</p>'; return; }
   box.innerHTML = `<h3>OTHER ROBOBLOCKS SERVERS${res.hub ? ' · from ' + esc(res.hub.replace(/^https?:\/\//, '')) : ''}</h3><table class="sbt">${list.map((s, i) => `<tr><td><b>${esc(s.name || s.url)}</b><br><small>${esc(s.url.replace(/^https?:\/\//, ''))}${s.motd ? ' · ' + esc(String(s.motd).slice(0, 60)) : ''}</small></td><td>${s.unknown ? '' : (s.players | 0) + ' / ' + (s.max | 0)}</td><td>${esc(s.version || '')}</td><td><button data-go="${i}">Connect</button><button data-fav="${i}" title="Favourite">${FAVS.list.some(f => f.url === s.url) ? '★' : '☆'}</button></td></tr>`).join('')}</table>`;
   box.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(list[+b.dataset.go].url));
   box.querySelectorAll('[data-fav]').forEach(b => b.onclick = () => { const s = list[+b.dataset.fav], i = FAVS.list.findIndex(f => f.url === s.url); if (i >= 0) FAVS.list.splice(i, 1); else FAVS.list.push({ url: s.url, name: s.name }); store.set('sfa.favServers', FAVS.list.slice(0, 30)); wireServerList(online); });
@@ -168,17 +170,19 @@ function renderLobbyList() {
     const inRoom = others.filter(p => p.presence.sv === sv.id), cnt = inRoom.length, meIn = NET.game && NET.game.code === sv.id;
     const who = inRoom.slice(0, 4).map(p => pilotTag(p.presence)).join(', ') + (cnt > 4 ? ` +${cnt - 4}` : '');
     const tags = [sv.locked ? '🔒 Password' : '', sv.ranked ? 'RANKED' : '', sv.noAi ? 'PLAYERS ONLY' : '', (sv.minLv || 1) > 1 || (sv.maxLv || 10) < 10 ? `Lv ${sv.minLv || 1}–${sv.maxLv || 10}` : ''].filter(Boolean).join(' · ');
-    want.push({ key: sv.id, group: 'sv', title: sv.name + (tags ? '  ·  ' + tags : ''), sub: `${sv.blurb} ${sv.rot && sv.rot.length && sv.rot.every(r => r[0] === 'pit') ? sv.n * 2 + ' pilots' : sv.n + 'v' + sv.n}. ${cnt || meIn ? `👤 ${cnt + (meIn ? 1 : 0)} playing${cnt ? ': ' + who : ''}${meIn ? (cnt ? ', you' : ' (you)') : ''} · ` : 'Nobody here yet · '}${phaseText(h && h.host)}`, btn: cnt || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
+    const size = sv.rot && sv.rot.length && sv.rot.every(r => r[0] === 'pit') ? sv.n * 2 + ' pilots, free-for-all' : sv.n + ' v ' + sv.n, total = cnt + (meIn ? 1 : 0);
+    want.push({ key: sv.id, group: 'sv', title: sv.name, tags, status: phaseText(h && h.host), players: total ? `👤 ${total} · ${[who, meIn ? 'you' : ''].filter(Boolean).join(', ')}` : '👤 Nobody here yet', small: `${sv.blurb} ${size}.`, live: !!(h && h.host && h.host.phase === 'live'),
+      btn: total || (h && h.host && h.host.phase === 'live') ? 'Join' : 'Start', go: () => { if (canDeploy()) joinGame(sv.id, sv, null); }, watch: h && h.host && h.host.phase === 'live' ? () => joinGame(sv.id, sv, null, true) : null });
   }
   for (const p of hosts.filter(p => !p.presence.host.server && String(p.presence.host.code).startsWith('c'))) {
     const h = p.presence.host, code = String(h.code).replace(/[^a-z0-9-]/g, '').slice(0, 12);
-    want.push({ key: code, group: 'cu', title: `${cleanName(p.presence.name) || 'Pilot'}'s game`, sub: `${(MODES[h.mode] || MODES.tdm).name} · ${(MAPS[h.map] || { name: 'Random map' }).name} · ${h.n | 0}v${h.n | 0} · ${h.cnt | 0} player${(h.cnt | 0) === 1 ? '' : 's'} · ${phaseText(h)}`, btn: h.phase === 'live' ? 'Join in progress' : 'Join', go: () => { if (canDeploy()) joinGame(code, null, null); }, watch: h.phase === 'live' ? () => joinGame(code, null, null, true) : null });
+    want.push({ key: code, group: 'cu', title: `${cleanName(p.presence.name) || 'Pilot'}'s game`, tags: '', status: h.phase === 'live' ? phaseText(h) : `${(MODES[h.mode] || MODES.tdm).name} on ${(MAPS[h.map] || { name: 'a random map' }).name} · waiting for the host to start`, players: `👤 ${h.cnt | 0}`, small: `Custom game · ${h.n | 0} v ${h.n | 0}`, live: h.phase === 'live', btn: h.phase === 'live' ? 'Join in progress' : 'Join', go: () => { if (canDeploy()) joinGame(code, null, null); }, watch: h.phase === 'live' ? () => joinGame(code, null, null, true) : null });
   }
   if (!el.dataset.built) {
     el.dataset.built = '1';
-    el.innerHTML = '<p id="lobbyMotd" class="motd" hidden></p><h3 id="lhSv"></h3><div class="glist" id="lgSv"></div><h3 id="lhCu" hidden>CUSTOM GAMES</h3><div class="glist" id="lgCu"></div>';
+    el.innerHTML = '<p id="lobbyMotd" class="motd" hidden></p><div class="rlist" id="lgSv"></div><h3 id="lhCu" hidden>CUSTOM GAMES</h3><div class="rlist" id="lgCu"></div>';
   }
-  $('#lhSv').textContent = `ROOMS ON THIS SERVER · ${others.length} other pilot${others.length === 1 ? '' : 's'} online`;
+  if ($('#sbOnline')) $('#sbOnline').textContent = `${others.length + 1} pilot${others.length ? 's' : ''} online`;
   const mo = $('#lobbyMotd'); if (mo) { mo.hidden = !NET.motd; mo.textContent = NET.motd ? '📣 ' + NET.motd : ''; }
   $('#lhCu').hidden = !want.some(w => w.group === 'cu');
   const seen = new Set();
@@ -186,11 +190,11 @@ function renderLobbyList() {
     seen.add(w.key);
     let r = el.querySelector(`.grow[data-key="${w.key}"]`);
     if (!r) {
-      r = document.createElement('div'); r.className = 'grow'; r.dataset.key = w.key;
-      r.innerHTML = '<div><b></b><span></span></div><button class="watch" hidden>Watch</button><button class="primary"></button>';
+      r = document.createElement('div'); r.className = 'grow room'; r.dataset.key = w.key;
+      r.innerHTML = '<div class="ri"><div class="rt"><b></b><em></em></div><span class="rs"></span><span class="rp"></span><small></small></div><div class="rb"><button class="primary"></button><button class="watch" hidden>Watch</button></div>';
       $(w.group === 'sv' ? '#lgSv' : '#lgCu').appendChild(r);
     }
-    r.querySelector('b').textContent = w.title; r.querySelector('span').textContent = w.sub;
+    r.querySelector('b').textContent = w.title; r.querySelector('em').textContent = w.tags || ''; r.querySelector('.rs').textContent = w.status; r.querySelector('.rp').textContent = w.players; r.querySelector('small').textContent = w.small; r.classList.toggle('live', !!w.live);
     const btn = r.querySelector('button.primary'); if (btn.textContent !== w.btn) btn.textContent = w.btn; btn.onclick = w.go;
     const wb = r.querySelector('button.watch'); wb.hidden = !w.watch; wb.onclick = w.watch;
   }
@@ -656,7 +660,7 @@ function relayRoom() {
       if (m.t === 'kicked') { NET.kicked = String(m.reason || 'Removed from the server.'); if (NET.game) netLeave(); if (state === 'battle') toMenu(); showOverlay(`<h2>Disconnected</h2><p>${esc(NET.kicked)}</p><div class="btns"><button class="primary" id="ovDone">OK</button></div>`); $('#ovDone').onclick = () => { hideOverlay(); buildPilotCard(); }; return; }
       if (m.t === 'denied') { const w = waits.get(m.room); rooms.delete(m.room); if (w) { waits.delete(m.room); w.reject(Object.assign(new Error(String(m.reason || 'Not allowed.')), { denied: true })); } return; }
       if (m.t === 'welcome') {
-        me = m.peer; open = true; NET.motd = String(m.motd || ''); NET.accounts = !!m.accounts; NET.requireAccount = !!m.requireAccount; setUnlockAll(!!m.unlockAll); serverVersion(m.version); applyBalance(m.balance); const recon = done;
+        me = m.peer; open = true; NET.motd = String(m.motd || ''); NET.serverName = String(m.name || '').slice(0, 40); NET.accounts = !!m.accounts; NET.requireAccount = !!m.requireAccount; setUnlockAll(!!m.unlockAll); serverVersion(m.version); applyBalance(m.balance); const recon = done;
         if (BE.kind === 'server' && BE.token) api('resume', { token: BE.token }).then(r => BE.onSignedIn(r && r.me, BE.token)).catch(() => BE.onSignedOut());
         if (Array.isArray(m.servers) && m.servers.length) SERVERS.splice(0, SERVERS.length, ...m.servers.filter(s => s && s.id && Array.isArray(s.rot) && s.rot.length));
         for (const [name, r] of rooms) { r.peers.clear(); r.peers.set(me, { presence: r.mine, t: Date.now() }); send({ t: 'join', room: name, pw: r.pw }); if (Object.keys(r.mine).length) send({ t: 'pres', room: name, p: r.mine }); }

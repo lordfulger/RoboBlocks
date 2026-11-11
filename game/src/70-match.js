@@ -343,6 +343,7 @@ $('#mGarage').onclick = () => { SFX.init(); SFX.ui(); toGarage(); };
 $('#mTest').onclick = () => { SFX.init(); SFX.ui(); startBattle({ mode: 'test' }); };
 $('#mSettings').onclick = () => { SFX.init(); SFX.ui(); showSettings(); };
 $('#mHelp').onclick = () => { SFX.init(); SFX.ui(); showHelp(); };
+$('#mParty').onclick = () => { SFX.init(); SFX.ui(); showParty(); };
 $('#mQuit').onclick = () => {
   SFX.ui(); saveBays(); if (typeof cloudDirty === 'function') cloudDirty();
   showOverlay(`<h2>Quit RoboBlocks?</h2><p>Your bots and progress are saved.</p><div class="btns"><button class="primary" id="qYes">Quit</button><button id="qNo">Cancel</button></div>`);
