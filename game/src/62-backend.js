@@ -1,10 +1,9 @@
 // ================= BACKEND: PROFILES, LEADERBOARDS, HISTORY, SHOP, ADMIN =================
-// One interface, three providers:
+// One interface, two providers in use:
 //  - 'server':   a RoboBlocks dedicated server. Accounts, server-awarded XP, ranked rating, shop and admin
 //                tools all live on the server and travel over the game's WebSocket.
-//  - 'artifact': opened on claude.ai. Profiles, leaderboards, the shop and moderation use the page's
-//                shared database; your claude.ai sign-in is your account.
-//  - 'local':    anywhere else. Progress and history stay in this browser; no leaderboards or shop.
+//  - 'local':    anywhere else (including an embedded preview copy). Progress and history stay in this browser.
+// (The older 'artifact' provider code below is no longer selected: everything online goes through a RoboBlocks server.)
 const BE = { kind: 'local', token: store.get('sfa.token', null), me: null, admin: false, db: null, user: null, uid: null, mod: { motd: '', bans: {} }, ready: false };
 const RANKS = [[0, 'Bronze', '#c88a5a'], [1100, 'Silver', '#c9d3d9'], [1300, 'Gold', '#ffd36a'], [1500, 'Platinum', '#7fe7ff'], [1700, 'Diamond', '#b59cff']];
 const rankOf = elo => { let r = RANKS[0]; for (const x of RANKS) if (elo >= x[0]) r = x; return { name: r[1], col: r[2] }; };
@@ -12,13 +11,8 @@ const localHistory = () => store.get('sfa.history', []);
 async function beInit() {
   if (HEADLESS) return;
   try {
-    if (window.claude && window.claude.use) {
-      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
-      if (db && user) {
-        BE.db = db; BE.user = user; BE.uid = await user.id();
-        if (BE.uid) { BE.kind = 'artifact'; BE.admin = !!(await user.canEdit()); await artLoad(); await cloudPull(); }
-      }
-    } else if (SERVER_BASE) {
+    // accounts, saves, leaderboards, shop and clans come only from a RoboBlocks server
+    if (SERVER_BASE && !onClaudePage()) {
       const room = await netInit(); // a self-hosted page: the server is right here
       if (room && room.relay && NET.accounts) BE.kind = 'server';
     }
@@ -28,13 +22,13 @@ async function beInit() {
   if (NET.requireAccount && !BE.me && state === 'menu') showAccount();
 }
 // ---------- cloud saves: garage bays, settings, tutorial, mutes ----------
-// Signed in to a server (or on claude.ai), your save lives there and follows you to any browser.
+// Signed in to a server, your save lives there and follows you to any browser.
 // The browser keeps a copy as a cache; your guest save is set aside and comes back when you sign out.
 const CLOUD = { timer: null, busy: false, pulled: false, last: '' };
 const cloudOn = () => !HEADLESS && ((BE.kind === 'server' && !!BE.me) || (BE.kind === 'artifact' && !!BE.uid));
 function cloudSnapshot() {
   const { quality, detail, ...portable } = settings; // graphics quality and model detail stay per device
-  return { v: 1, bays: bays.map(d => d && d.blocks && d.blocks.length ? { n: cleanName(d.name || '') || '', d: encodeDesign(d), wg: d.wg || undefined } : (d ? { n: cleanName(d.name || ''), d: '' } : null)), bay: bayIdx, settings: portable, tut: !!TUT.done, muted: [...CHAT.muted].slice(0, 100), cs: NET.name, prog: { life: PROG.life, ach: PROG.ach, q: PROG.q, badge: PROG.badge, clan: PROG.clan, bp: PROG.bp, tech: PROG.tech, title: PROG.title || '', hangar: PROG.hangar || '', sr: progress.sr || 0 }, fr: FRIENDS.list, t: Date.now() };
+  return { v: 1, bays: bays.map(d => d && d.blocks && d.blocks.length ? { n: cleanName(d.name || '') || '', d: encodeDesign(d), wg: d.wg || undefined } : (d ? { n: cleanName(d.name || ''), d: '' } : null)), bay: bayIdx, settings: portable, tut: !!TUT.done, muted: [...CHAT.muted].slice(0, 100), cs: NET.name, prog: { life: PROG.life, ach: PROG.ach, q: PROG.q, badge: PROG.badge, clan: PROG.clan, bp: PROG.bp, tech: PROG.tech, title: PROG.title || '', hangar: PROG.hangar || '', sr: progress.sr || 0 }, fr: FRIENDS.list, fc: MY_FC || undefined, t: Date.now() };
 }
 function cloudDirty() { try { if (!cloudOn() || !CLOUD.pulled) return; setSaveBadge('Saving…'); clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 2000); } catch (e) { /* called during load, before this file has run */ } }
 async function cloudPush() {
@@ -67,6 +61,7 @@ function cloudApply(s) {
   store.set('sfa.bays', bays); store.set('sfa.bay', bayIdx);
   if (s.settings && typeof s.settings === 'object') { for (const k of ['master', 'music', 'sfx', 'sens']) if (typeof s.settings[k] === 'number') settings[k] = s.settings[k]; if (typeof s.settings.invertY === 'boolean') settings.invertY = s.settings.invertY; if (s.settings.pad && typeof s.settings.pad === 'object') { const pd = {}; for (const [k2, v2] of Object.entries(s.settings.pad)) if (/^[a-zA-Z0-9]{1,12}$/.test(k2) && Number.isInteger(v2) && v2 >= -1 && v2 < 32) pd[k2] = v2; settings.pad = pd; } if (s.settings.units === 'mph' || s.settings.units === 'kmh') settings.units = s.settings.units; if (typeof s.settings.padSwap === 'boolean') settings.padSwap = s.settings.padSwap; if (typeof s.settings.padSens === 'number') settings.padSens = clamp(s.settings.padSens, .4, 2.5); if (s.settings.keys && typeof s.settings.keys === 'object') { const k = {}; for (const a of Object.keys(KEY_DEFAULTS)) if (typeof s.settings.keys[a] === 'string' && /^[A-Za-z0-9]{2,20}$/.test(s.settings.keys[a])) k[a] = s.settings.keys[a]; settings.keys = k; } store.set('sfa.settings', settings); SFX.apply && SFX.apply(); }
   if (s.tut) { TUT.done = true; TUT.on = false; store.set('sfa.tut', { on: false, i: TUT.i, done: true }); }
+  if (normCode(s.fc)) { MY_FC = normCode(s.fc); store.set('sfa.fc', MY_FC); if (NET.room) lobbyPresence(); } // your code follows your account
   if (Array.isArray(s.fr)) { FRIENDS.list = s.fr.filter(f => f && typeof f.k === 'string').slice(0, 100).map(f => ({ k: f.k.slice(0, 80), name: cleanName(f.name) || 'Pilot', t: +f.t || 0 })); store.set('sfa.friends', FRIENDS.list); }
   if (Array.isArray(s.muted)) { CHAT.muted = new Set(s.muted.map(String).slice(0, 100)); store.set('sfa.muted', [...CHAT.muted]); }
   if (s.prog && typeof s.prog === 'object') { if (s.prog.life) PROG.life = Object.assign(PROG.life, s.prog.life); if (s.prog.ach) PROG.ach = Object.assign({}, s.prog.ach); if (s.prog.q && s.prog.q.day >= ((PROG.q || {}).day || 0)) PROG.q = s.prog.q; if (typeof s.prog.badge === 'string') PROG.badge = s.prog.badge; if (s.prog.bp && typeof s.prog.bp === 'object' && (s.prog.bp.s | 0) >= ((PROG.bp || {}).s | 0) && (s.prog.bp.xp | 0) >= (((PROG.bp || {}).s === s.prog.bp.s && PROG.bp.xp) | 0)) PROG.bp = { s: s.prog.bp.s | 0, xp: s.prog.bp.xp | 0 }; if (typeof s.prog.title === 'string') PROG.title = s.prog.title.slice(0, 40); if (s.prog.tech && typeof s.prog.tech === 'object' && s.prog.tech.got && typeof s.prog.tech.got === 'object') { const got = {}; for (const [k2, v2] of Object.entries(s.prog.tech.got)) if (TECH[k2] && (v2 === 'B' || v2 === 'L')) got[k2] = v2; PROG.tech = { got, v: 1 }; } else PROG.tech = null; /* saved before the tech tree: rebuilt from the account level */ if (typeof s.prog.hangar === 'string') PROG.hangar = s.prog.hangar.slice(0, 20); if (typeof s.prog.sr === 'number' && s.prog.sr > 0) { progress.sr = s.prog.sr; store.set('sfa.progress', progress); } if (s.prog.clan !== undefined && BE.kind === 'artifact') PROG.clan = s.prog.clan; store.set('sfa.prog', PROG); }
@@ -152,7 +147,7 @@ async function beLeaderboard(sort) {
     const snap = await BE.db.collection('lb').orderBy(sort === 'elo' ? 'elo' : sort, 'desc').limit(50).get();
     return snap.docs.filter(d => !artBanned(d.id)).map(d => { const x = d.data() || {}; return { name: cleanName(x.cs) || 'Pilot', xp: x.xp | 0, lv: x.lv | 0 || levelFromXp(x.xp | 0), wins: x.wins | 0, kills: x.kills | 0, matches: x.matches | 0, elo: x.elo | 0 || 1200, me: d.id === BE.uid }; });
   }
-  throw new Error('Leaderboards need a RoboBlocks server or claude.ai. In this view your stats stay on this computer.');
+  throw new Error('Leaderboards live on RoboBlocks servers. Open your server address to see them; here your stats stay on this computer.');
 }
 // ---------- robot shop ----------
 const designCpu = d => computeStats(d.blocks).cpu;
@@ -168,7 +163,7 @@ async function beShopList(sort) {
     const by = { new: (a, b) => b.t - a.t, dl: (a, b) => b.dl - a.dl || b.score - a.score, top: (a, b) => b.score - a.score || b.dl - a.dl, mine: (a, b) => b.t - a.t }[sort] || ((a, b) => b.score - a.score);
     return all.filter(x => sort !== 'mine' || x.mine).sort(by).slice(0, 60);
   }
-  throw new Error('The robot shop needs a RoboBlocks server or claude.ai.');
+  throw new Error('The robot shop lives on RoboBlocks servers. Open your server address to use it.');
 }
 async function beShopPublish(d) {
   const item = { name: cleanName(d.name || '') || 'Robot', d: encodeDesign(d), cpu: designCpu(d), lv: designLevel(d) };
@@ -180,7 +175,7 @@ async function beShopPublish(d) {
     items.push({ ...item, id: Math.random().toString(36).slice(2, 10), cs: NET.name, t: Date.now() });
     await ref.set({ items }); return {};
   }
-  throw new Error('The robot shop needs a RoboBlocks server or claude.ai.');
+  throw new Error('The robot shop lives on RoboBlocks servers. Open your server address to use it.');
 }
 async function beShopVote(key, v) {
   if (BE.kind === 'server') return beApi('shop.rate', { key, v });

@@ -54,7 +54,9 @@ function renderParty() {
     const s = document.createElement('span'); s.textContent = `Lv ${(p.presence.lv | 0) || 1}${p.presence.sv ? ' · in a game' : ' · in the menu'}${NET.party && p.presence.party === NET.party.id ? ' · in your party' : ''}`; info.append(b, s);
     const btn = document.createElement('button'); btn.textContent = NET.party && p.presence.party === NET.party.id ? 'In party' : 'Invite'; btn.disabled = NET.party && (p.presence.party === NET.party.id || NET.party.leader !== NET.me);
     btn.onclick = () => partyInvite(p.peer);
-    r.append(info, btn); list.appendChild(r);
+    const fb = document.createElement('button'); const fr = isFriendPeer(p); fb.textContent = fr ? 'Friend ✓' : 'Add friend'; fb.disabled = fr || !peerKey(p);
+    fb.onclick = () => { addFriend(p); renderParty(); };
+    r.append(info, fb, btn); list.appendChild(r);
   }
   if ($('#ptLeave')) $('#ptLeave').onclick = partyLeave;
 }
@@ -68,7 +70,7 @@ function partyTeams(pilots, partyOf) {
 // ---------- clans ----------
 async function beClan(op, a) {
   if (BE.kind === 'server') { const r = await beApi('clan.' + op, a); if (op !== 'get' && op !== 'list') await beRefresh(); return r; }
-  if (BE.kind !== 'artifact') throw new Error('Clans need a RoboBlocks server or claude.ai.');
+  if (BE.kind !== 'artifact') throw new Error('Clans live on RoboBlocks servers. Open your server address to join one.');
   const db = BE.db;
   const all = async () => { const [cl, lb] = await Promise.all([db.collection('clans').get(), db.collection('lb').get()]); return { clans: cl.docs.map(d => ({ owner: d.id, ...(d.data() || {}) })).filter(c => c.tag), lb: lb.docs.map(d => ({ id: d.id, ...(d.data() || {}) })) }; };
   if (op === 'create') {

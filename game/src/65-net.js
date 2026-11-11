@@ -60,9 +60,9 @@ const NET = {
 async function netInit() {
   if (NET.room || NET.tried) return NET.room;
   NET.tried = true;
-  try { NET.room = window.claude && window.claude.use ? await window.claude.use('room') : null; } catch (e) { NET.room = null; }
-  // self-hosted (e.g. Pterodactyl): talk to the RoboBlocks server's WebSocket relay instead
-  if (!NET.room && !window.claude && (window.__BC_LOCAL_CONN || SERVER_BASE)) NET.room = await relayRoom();
+  // online play only ever goes through a RoboBlocks dedicated server (e.g. on Pterodactyl): its WebSocket relay.
+  // A copy opened anywhere else (such as an embedded preview) stays offline and points players at a server.
+  if (!onClaudePage() && (window.__BC_LOCAL_CONN || SERVER_BASE)) NET.room = await relayRoom();
   if (!NET.room) return null;
   NET.lobbyUnsub = NET.room.onPeers(ch => {
     NET.lobbyPeers = ch.peers; const me = ch.peers.find(p => p.isMe && p.sameTab); if (me) NET.me = me.peer;
@@ -77,7 +77,7 @@ function lobbyPresence() {
   if (!NET.room) return;
   const g = NET.game, i = g && g.info;
   NET.room.presence({
-    bc: 1, srv: HEADLESS ? 1 : null, name: HEADLESS ? 'Server' : NET.name, lv: level(), sr: HEADLESS ? null : mySR(), sv: g ? g.code : null, ch: CHAT.lobbyRing.length ? CHAT.lobbyRing : null,
+    bc: 1, srv: HEADLESS ? 1 : null, name: HEADLESS ? 'Server' : NET.name, fc: HEADLESS ? null : MY_FC, lv: level(), sr: HEADLESS ? null : mySR(), sv: g ? g.code : null, ch: CHAT.lobbyRing.length ? CHAT.lobbyRing : null,
     party: NET.party ? NET.party.id : null, pinv: HEADLESS ? null : PARTY.inv, bd: HEADLESS ? null : myBadge() || null, clan: HEADLESS ? null : myClan(),
     host: g && g.isHost && i ? { code: g.code, server: g.server ? g.server.id : null, mode: i.mode, map: i.map, n: i.n, cnt: NET.slowPeers.length || 1, phase: i.phase, cd: Math.round(i.cd || 0), tl: Math.round(i.tl || 0), started: i.phase === 'live' } : null,
   }).catch(() => { });
@@ -87,32 +87,62 @@ const phaseText = h => !h ? 'Empty: a match starts when you join' : h.phase === 
   : h.phase === 'post' ? `Next: ${(MODES[h.mode] || MODES.tdm).name} on ${(MAPS[h.map] || MAPS.dust).name} in ${h.cd | 0}s` : h.phase === 'warmup' ? `Warmup · starts in ${h.cd | 0}s` : 'Waiting for the host to start';
 
 // ---------- lobby UI ----------
+// The Server browser (the main menu's online button): the rooms on this server with live status, other
+// RoboBlocks servers (from the hub) and favourites, a box to type any server's address, and custom games.
 async function showLobby() {
-  showOverlay(`<h2>Multiplayer</h2><p>Connecting…</p>`, true);
+  showOverlay(`<h2>Server browser</h2><p>Connecting…</p>`, true);
   const room = await netInit();
   if (!room) {
-    showOverlay(`<h2>Multiplayer</h2>
-      <p>Online play isn't available in this view. It works when the page is opened from claude.ai by a signed-in member of the workspace, or someone invited to the artifact. Public links can't connect.</p>
-      <p>Share the artifact with your friends from its Share menu, then open it from there.</p>
-      <div class="btns"><button class="primary" id="ovDone">OK</button></div>`);
-    $('#ovDone').onclick = () => { hideOverlay(); buildPilotCard(); };
+    showOverlay(`<h2>Server browser</h2>
+      <p>${onClaudePage() ? 'This copy of the game is offline.' : 'Could not reach the RoboBlocks server.'} Online play runs on RoboBlocks servers: connect to one by its address (for example <b>your-server-ip:port</b>).</p>
+      <div id="sbOthers"></div>
+      <div class="sbaddr"><input id="sbAddr" placeholder="Server address, e.g. 203.0.113.5:25570" maxlength="200" spellcheck="false"><button id="sbOpen" class="primary">Connect</button></div>
+      <div class="btns"><button id="ovBack">Back</button></div>`, true);
+    wireServerList(false);
+    $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
     return;
   }
   NET.me = myPeer();
-  showOverlay(`<h2>Multiplayer</h2>
+  showOverlay(`<h2>Server browser</h2>
+    ${myCodeHtml()}
     <div class="srow"><label for="callsign">Callsign</label><input id="callsign" maxlength="16" spellcheck="false" value=""><span></span></div>
     <div id="lobbyList"></div>
     <div id="lobbyPilots"></div>
-    <h3>HOST A CUSTOM GAME</h3>
+    <div id="sbOthers"></div>
+    <div class="sbaddr"><input id="sbAddr" placeholder="Another server's address, e.g. 203.0.113.5:25570" maxlength="200" spellcheck="false"><button id="sbOpen">Connect</button></div>
+    <details id="sbHost"><summary>HOST A CUSTOM GAME</summary>
     ${setupOptsHtml(true)}
-    <div class="btns"><button class="primary" id="ovHost">Host custom game</button><button id="ovBack">Back</button></div>`, true);
+    <div class="btns"><button class="primary" id="ovHost">Host custom game</button></div></details>
+    <div class="btns"><button id="sbRefresh">Refresh</button><button class="primary" id="ovBack">Back</button></div>`, true);
   $('#callsign').value = NET.name;
   $('#callsign').addEventListener('keydown', e => e.stopPropagation());
   $('#callsign').addEventListener('change', () => { NET.name = cleanName($('#callsign').value) || NET.name; $('#callsign').value = NET.name; store.set('sfa.callsign', NET.name); lobbyPresence(); });
   wireSetupOpts();
   $('#ovHost').onclick = () => { if (!canDeploy()) return; store.set('sfa.setup', setupSel); joinGame('c' + Math.random().toString(36).slice(2, 7), null, { ...setupSel }); };
   $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
+  $('#sbRefresh').onclick = () => showLobby();
+  wireServerList(true); wireMyCode();
   renderLobbyList(); renderParty();
+}
+// other RoboBlocks servers: the hub's list (when this server reports to one) plus your favourites
+async function wireServerList(online) {
+  const here = SERVER_BASE || '', cleanUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin : null; } catch (e) { return null; } };
+  const go = url => { if (!url || url === here) return; store.set('sfa.mpAddr', url); if (HOST && HOST.setServer) HOST.setServer(url); else if (onClaudePage()) { const w = window.open(url + '/', '_blank', 'noopener'); if (!w) toast('Open ' + url + ' in your browser to play online.'); } else location.href = url + '/'; };
+  const inp = $('#sbAddr'); if (inp) {
+    inp.value = online ? '' : store.get('sfa.mpAddr', '') || '';
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#sbOpen').click(); });
+    $('#sbOpen').onclick = () => { let v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!/^https?:\/\//i.test(v)) v = 'http://' + v; const u = cleanUrl(v); if (!u) { toast('That does not look like a server address.'); return; } go(u); };
+  }
+  const box = $('#sbOthers'); if (!box) return;
+  const res = online ? await fetchServerList() : { ok: false };
+  if (!$('#sbOthers')) return; // the window was closed meanwhile
+  const list = (res.ok ? res.list : []).map(s => ({ ...s, url: cleanUrl(s.url) })).filter(s => s.url && s.url !== here);
+  for (const f of FAVS.list) if (f.url !== here && !list.some(s => s.url === f.url)) list.push({ url: f.url, name: f.name || f.url, unknown: true });
+  list.sort((a, b) => (FAVS.list.some(f => f.url === b.url) - FAVS.list.some(f => f.url === a.url)) || (b.players | 0) - (a.players | 0));
+  if (!list.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<h3>OTHER ROBOBLOCKS SERVERS${res.hub ? ' · from ' + esc(res.hub.replace(/^https?:\/\//, '')) : ''}</h3><table class="sbt">${list.map((s, i) => `<tr><td><b>${esc(s.name || s.url)}</b><br><small>${esc(s.url.replace(/^https?:\/\//, ''))}${s.motd ? ' · ' + esc(String(s.motd).slice(0, 60)) : ''}</small></td><td>${s.unknown ? '' : (s.players | 0) + ' / ' + (s.max | 0)}</td><td>${esc(s.version || '')}</td><td><button data-go="${i}">Connect</button><button data-fav="${i}" title="Favourite">${FAVS.list.some(f => f.url === s.url) ? '★' : '☆'}</button></td></tr>`).join('')}</table>`;
+  box.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(list[+b.dataset.go].url));
+  box.querySelectorAll('[data-fav]').forEach(b => b.onclick = () => { const s = list[+b.dataset.fav], i = FAVS.list.findIndex(f => f.url === s.url); if (i >= 0) FAVS.list.splice(i, 1); else FAVS.list.push({ url: s.url, name: s.name }); store.set('sfa.favServers', FAVS.list.slice(0, 30)); wireServerList(online); });
 }
 function askPassword(server, then) {
   showOverlay(`<h2>${esc(server.name)}</h2><p>This server needs a password.</p>
@@ -143,7 +173,7 @@ function renderLobbyList() {
     el.dataset.built = '1';
     el.innerHTML = '<p id="lobbyMotd" class="motd" hidden></p><h3 id="lhSv"></h3><div class="glist" id="lgSv"></div><h3 id="lhCu" hidden>CUSTOM GAMES</h3><div class="glist" id="lgCu"></div>';
   }
-  $('#lhSv').textContent = `SERVERS · ${others.length} other pilot${others.length === 1 ? '' : 's'} online`;
+  $('#lhSv').textContent = `ROOMS ON THIS SERVER · ${others.length} other pilot${others.length === 1 ? '' : 's'} online`;
   const mo = $('#lobbyMotd'); if (mo) { mo.hidden = !NET.motd; mo.textContent = NET.motd ? '📣 ' + NET.motd : ''; }
   $('#lhCu').hidden = !want.some(w => w.group === 'cu');
   const seen = new Set();

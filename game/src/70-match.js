@@ -231,7 +231,7 @@ function buildPilotCard() {
     ${myTitle() ? `<div class="row"><span>Title</span><b>${esc(myTitle())}</b></div>` : ''}
     <div class="row"><span>Armor tier</span><b>${TIERS[maxTier(lv)].name}</b></div>
     <div class="row"><span>Active bay</span><b id="pcBay"></b></div>
-    ${BE.kind === 'server' ? `<div class="row"><span>Save data</span><b>${BE.me ? 'On this server' : (HOST ? 'This computer only' : 'This browser only')}</b></div><button id="pcAcct" class="acct">${BE.me ? '● ' + esc(BE.me.name) : 'Guest · Sign in to save on the server'}</button>` : BE.kind === 'artifact' ? '<div class="row"><span>Save data</span><b>claude.ai account</b></div>' : '<div class="row"><span>Save data</span><b>This browser</b></div>'}`;
+    ${BE.kind === 'server' ? `<div class="row"><span>Save data</span><b>${BE.me ? 'On this server' : (HOST ? 'This computer only' : 'This browser only')}</b></div><button id="pcAcct" class="acct">${BE.me ? '● ' + esc(BE.me.name) : 'Guest · Sign in to save on the server'}</button>` : BE.kind === 'artifact' ? '<div class="row"><span>Save data</span><b>This browser</b></div>' : '<div class="row"><span>Save data</span><b>This browser</b></div>'}`;
   if ($('#pcAcct')) $('#pcAcct').onclick = () => { SFX.ui(); showAccount(); };
   $('#mAdmin').hidden = !BE.admin; techBadge();
   $('#pcBay').textContent = design.name || 'Bay ' + (bayIdx + 1);
@@ -349,7 +349,6 @@ $('#mPass').onclick = () => { SFX.init(); SFX.ui(); showPass(); };
 $('#mTech').onclick = () => { SFX.init(); showTechTree('menu'); };
 $('#btnTech').onclick = () => { SFX.init(); showTechTree('garage'); };
 $('#mFriends').onclick = () => { SFX.init(); SFX.ui(); showFriends(); };
-$('#mBrowse').onclick = () => { SFX.init(); SFX.ui(); showServerBrowser(); };
 $('#mLeader').onclick = () => { SFX.init(); SFX.ui(); showLeaderboard(); };
 $('#mShop').onclick = () => { SFX.init(); SFX.ui(); showShop(); };
 $('#mAdmin').onclick = () => { SFX.init(); SFX.ui(); showAdmin(); };
@@ -386,7 +385,7 @@ addEventListener('keydown', e => {
     else if (e.code === 'KeyT') bumpRot(2);
     else if (e.code === 'KeyF') bumpRot(4);
     else if (e.code === 'KeyP') $('#btnPaint').click();
-    else if (e.code === 'KeyM') $('#btnMirror').click();
+    else if (e.code === 'KeyM') $(e.shiftKey ? '#btnMirAxis' : '#btnMirror').click();
     else if (e.code === 'KeyE') $('#btnErase').click();
     else if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); doRedo(); }
     else if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); doUndo(); }
@@ -763,6 +762,11 @@ function start() {
   beInit();
   if (!HEADLESS) setTimeout(() => { if (state === 'menu' && $('#overlay').hidden) showWhatsNew(); }, 1500);
   applyQuality();
+  if (!HEADLESS) {
+    SFX.init(); // the desktop app plays straight away; browsers may hold audio until the first key or click anywhere
+    const wake = () => { SFX.init(); if (SFX.ctx && SFX.ctx.state === 'running') for (const ev of ['pointerdown', 'keydown', 'touchstart']) removeEventListener(ev, wake, true); };
+    for (const ev of ['pointerdown', 'keydown', 'touchstart']) addEventListener(ev, wake, true);
+  }
   toMenu();
   requestAnimationFrame(frame);
   if (HEADLESS) { // dedicated server: host this official server forever

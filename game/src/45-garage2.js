@@ -58,14 +58,17 @@ function setTool2(t) {
   if (garage.tool2) { garage.erase = garage.paint = false; } syncToolButtons();
   if (garage.tool2) toast({ fill: 'Fill: click a block to repaint every touching block of the same color.', pick: 'Picker: click a block to copy its part, color and armor tier.', select: 'Select: click blocks to add or remove them, then move, copy or delete them.' }[garage.tool2]);
 }
+// copy a block's part, color, armor tier, material and rotation (picker tool, Alt+click or middle click)
+function pickBlock(b) {
+  garage.color = b.c; if (b.k && tierOpen(b.k)) garage.tier = b.k; if (b.m && matOpen(b.m)) garage.mat = b.m; else if (isShape(b.t)) garage.mat = 'std';
+  if (partOpen(b.t)) { selectTool(b.t); if (typeof b.r === 'number') garage.rot = b.r; }
+  garage.tool2 = null; syncToolButtons(); buildSwatches(); buildPartsUI(); refreshGhost(); SFX.ui();
+  toast(partOpen(b.t) ? `Picked ${PARTS[b.t].name}${b.k ? ' · ' + TIERS[b.k].name : ''}.` : `${PARTS[b.t].name} is locked; picked its color.`);
+}
 // returns true when a garage tool used the click
 function garageToolClick(pk) {
   const pick = garage.tool2 === 'pick' || garage.mods.alt;
-  if (pick && pk.block) {
-    const b = pk.block; garage.color = b.c; if (b.k) garage.tier = b.k;
-    if (partOpen(b.t)) selectTool(b.t);
-    garage.tool2 = null; syncToolButtons(); buildSwatches(); buildPartsUI(); SFX.ui(); toast(`Picked ${PARTS[b.t].name}${b.k ? ' · ' + TIERS[b.k].name : ''}.`); return true;
-  }
+  if (pick && pk.block) { pickBlock(pk.block); return true; }
   if (garage.tool2 === 'fill' && pk.block) { fillPaint(pk.block); return true; }
   if (garage.tool2 === 'select') { if (pk.block) { const k = ckey(pk.block.x, pk.block.y, pk.block.z); if (garage.sel.has(k)) garage.sel.delete(k); else garage.sel.add(k); selDraw(); SFX.click(); } return true; }
   return false;

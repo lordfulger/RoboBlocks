@@ -2,7 +2,7 @@
 const BOUNDS = { x: 7, y: 11, z: 7 };
 const garage = {
   scene: new T.Scene(), group: new T.Group(), blocks: new Map(),
-  orbit: { theta: .75, phi: 1.05, r: 20, ty: 2.2 }, tool: 'cube', color: 9, rot: 0, tier: 1, mat: 'std', mirror: true, erase: false, paint: false, undo: [], last: null,
+  orbit: { theta: .75, phi: 1.05, r: 20, ty: 2.2 }, tool: 'cube', color: 9, rot: 0, tier: 1, mat: 'std', mirror: store.get('sfa.mirror', true) !== false, erase: false, paint: false, undo: [], last: null,
   ghost: null, ghostEdges: null, marks: [], raycaster: new T.Raycaster(), pointer: new T.Vector2(), hover: null,
 };
 function setupGarage() {
@@ -264,7 +264,8 @@ function syncToolButtons() {
   if ((garage.erase || garage.paint) && garage.tool2) garage.tool2 = null;
   for (const [id, k] of [['#btnFill', 'fill'], ['#btnPick', 'pick'], ['#btnSel', 'select']]) { const el = $(id); if (el) el.classList.toggle('on', garage.tool2 === k); }
   if ($('#selBar')) { $('#selBar').hidden = garage.tool2 !== 'select'; if (garage.tool2 !== 'select' && garage.sel && garage.sel.size) selClear(); }
-  $('#btnMirror').classList.toggle('on', garage.mirror); $('#btnMirror span').textContent = garage.mirror ? (garage.mirAxis === 'z' ? 'Front/back' : 'Mirror') : 'No mirror'; $('#btnMirror i').textContent = garage.mirror ? (garage.mirAxis === 'z' ? '⇅' : '⇆') : '⇹';
+  $('#btnMirror').classList.toggle('on', garage.mirror); $('#btnMirror span').textContent = garage.mirror ? 'Mirror on' : 'Mirror off'; $('#btnMirror i').textContent = garage.mirror ? '⇆' : '⇹';
+  if ($('#btnMirAxis')) { $('#btnMirAxis').hidden = !garage.mirror; $('#btnMirAxis span').textContent = garage.mirAxis === 'z' ? 'Front/back' : 'Left/right'; $('#btnMirAxis i').textContent = garage.mirAxis === 'z' ? '⇅' : '⇆'; }
   $('#btnErase').classList.toggle('on', garage.erase);
   $('#btnPaint').classList.toggle('on', garage.paint);
   const rotatable = isShape(garage.tool) || garage.tool === 'tesla';
@@ -314,6 +315,7 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
 // garage input
 const gPtrs = new Map(); let gDrag = null, pinch = null;
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); }); // no autoscroll on middle click
 canvas.addEventListener('pointerdown', e => {
   SFX.init();
   if (state !== 'garage') return;
@@ -346,7 +348,7 @@ const endPtr = e => {
   gPtrs.delete(e.pointerId);
   if (gPtrs.size < 2) pinch = null;
   if (gDrag && gPtrs.size === 0) {
-    if (!gDrag.moved && e.type === 'pointerup') { if (gDrag.b === 2) gRightClick(e.clientX, e.clientY); else if (gDrag.b === 0) gClickPlace(e.clientX, e.clientY); }
+    if (!gDrag.moved && e.type === 'pointerup') { if (gDrag.b === 2) gRightClick(e.clientX, e.clientY); else if (gDrag.b === 0) gClickPlace(e.clientX, e.clientY); else if (gDrag.b === 1) { const pk = gPick(e.clientX, e.clientY); if (pk && pk.block) pickBlock(pk.block); } }
     gDrag = null;
   }
 };
@@ -365,7 +367,9 @@ $('#btnTilt').onclick = () => bumpRot(2);
 $('#btnRoll').onclick = () => bumpRot(4);
 $('#btnPaint').onclick = () => { garage.paint = !garage.paint; if (garage.paint) garage.erase = false; syncToolButtons(); refreshGhost(); };
 // Mirror cycles: left/right, front/back, off
-$('#btnMirror').onclick = () => { if (!garage.mirror) { garage.mirror = true; garage.mirAxis = 'x'; } else if (garage.mirAxis !== 'z') garage.mirAxis = 'z'; else garage.mirror = false; syncToolButtons(); refreshGhost(); toast(garage.mirror ? (garage.mirAxis === 'z' ? 'Mirror: front and back' : 'Mirror: left and right') : 'Mirror off'); };
+// Mirror is a plain on/off switch; the second button picks the direction
+$('#btnMirror').onclick = () => { garage.mirror = !garage.mirror; store.set('sfa.mirror', garage.mirror); if (!garage.mirAxis) garage.mirAxis = 'x'; syncToolButtons(); refreshGhost(); toast(garage.mirror ? (garage.mirAxis === 'z' ? 'Mirror on: front and back' : 'Mirror on: left and right') : 'Mirror off: blocks go only where you click'); };
+$('#btnMirAxis').onclick = () => { garage.mirAxis = garage.mirAxis === 'z' ? 'x' : 'z'; garage.mirror = true; store.set('sfa.mirror', true); syncToolButtons(); refreshGhost(); toast(garage.mirAxis === 'z' ? 'Mirror: front and back' : 'Mirror: left and right'); };
 $('#btnErase').onclick = () => { garage.erase = !garage.erase; if (garage.erase) garage.paint = false; syncToolButtons(); refreshGhost(); };
 $('#btnUndo').onclick = doUndo;
 let clearArm = 0;

@@ -145,6 +145,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .flist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.frow{display:grid;grid-template-columns:12px 1fr auto auto auto;gap:10px;align-items:center;border:1px solid var(--line);padding:6px 10px}
 .frow>div{display:flex;flex-direction:column}.frow span{font-size:13px;color:var(--muted)}.frow .dot{width:9px;height:9px;border-radius:50%;background:#555}.frow.on .dot{background:#5fd36a}
 .sbaddr{display:flex;gap:8px;margin:6px 0}.sbaddr input{flex:1;min-width:0}
+.fcode{margin:4px 0 10px;font-size:14px;color:#c9d2d8}.fcode b{font-family:var(--display);letter-spacing:.08em;color:#ffd36a;margin:0 6px}.fcode button{padding:3px 10px;font-size:12px}
+#sbHost{margin:10px 0}#sbHost summary{cursor:pointer;font-family:var(--display);font-size:13px;letter-spacing:.14em;color:var(--dim,#9aa6ae);padding:6px 0}#sbHost[open] summary{color:inherit}
 .sbt{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:10px}.sbt td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:middle}.sbt tr.here{background:rgba(255,160,40,.08)}.sbt small{color:var(--muted)}.sbt button{padding:4px 10px;margin-left:4px}
 .wslot.grp{border-color:#7a6a2a}.wslot.grp .k{color:#ffd76a}
 .wgrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
@@ -393,6 +395,8 @@ body.touch #mods{right:auto;left:50%;transform:translateX(-50%);bottom:calc(64px
 #perf[hidden],#updBanner[hidden],#netBanner[hidden]{display:none}
 #updBanner,#netBanner{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:95;display:flex;gap:12px;align-items:center;padding:10px 14px;border-left:3px solid var(--accent)}
 #netBanner{top:calc(70px + env(safe-area-inset-top,0px));bottom:auto;border-left-color:var(--enemy);font-weight:600}
+#btnMirAxis[hidden]{display:none}
+body.netlost #toast{top:calc(128px + env(safe-area-inset-top,0px))}
 .survey{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0;padding:8px;border:1px solid var(--line);background:#0d1114}.survey span{margin-right:6px}.survey input{flex:1;min-width:160px;background:#0b0f12;border:1px solid var(--line);color:var(--fg);padding:6px 8px;font:inherit;font-size:13px}.survey button{font-size:12px;padding:6px 10px}
 ul.news{margin:4px 0 10px;padding-left:20px}ul.news li{margin:3px 0}
 #mats{display:flex;flex-wrap:wrap;gap:3px}#mats .mat{font-size:11px;padding:4px 7px;clip-path:none}#mats .mat.sel{background:#2b2116;border-color:var(--accent);color:var(--accent)}#mats .mat.locked{opacity:.4}
@@ -453,9 +457,9 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 #techTree .tt-cell .in{position:absolute;inset:4px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:#1b232a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:12px 5px 8px}
 #techTree .tt-cell.bg{background:#121920;opacity:.6;pointer-events:none;width:84px;height:96px;margin:-48px 0 0 -42px}
 #techTree .node{cursor:pointer;transition:transform .12s}#techTree .node:hover{transform:scale(1.07);z-index:2}
-#techTree .node img{width:38px;height:38px;object-fit:contain;pointer-events:none}
-#techTree .node .nm{font-size:9.5px;line-height:1.05;text-align:center;letter-spacing:.02em;max-width:70px;overflow:hidden;max-height:21px;text-transform:uppercase}
-#techTree .node .ct{font-size:10px;color:#ffd76a}
+#techTree .node img{width:30px;height:30px;object-fit:contain;pointer-events:none}
+#techTree .node .nm{font-size:10.5px;line-height:1.12;text-align:center;letter-spacing:.01em;max-width:78px;overflow:hidden;max-height:24px;text-transform:uppercase}
+#techTree .node .ct{font-size:12px;font-weight:700;color:#ffd76a}
 #techTree .node.own{background:var(--accent)}#techTree .node.own .in{background:linear-gradient(#3a2a14,#24190c)}#techTree .node.own .nm{color:#ffd9b3}
 #techTree .node.ready{background:#9fd8ff;animation:ttGlow 1.6s ease-in-out infinite}#techTree .node.ready .in{background:#253744}
 #techTree .node.poor{background:#3a4a56}#techTree .node.poor .in{background:#1f2a32}
@@ -466,14 +470,14 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 @keyframes ttGlow{50%{background:#3a6b8a}}@keyframes ttPop{0%{transform:scale(1.25)}100%{transform:scale(1)}}
 #techTree .tti{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid #5b6b78}#techTree .tti.tcpu{color:#7ff0a0;border-color:#3f8a5a;background:#12261a}
 #techTree img.mat-light{filter:brightness(1.35) saturate(.4) hue-rotate(180deg)}#techTree img.mat-heavy{filter:brightness(.7) contrast(1.3) saturate(.2)}#techTree img.mat-reactive{filter:sepia(1) saturate(3) hue-rotate(-20deg)}#techTree img.mat-energy{filter:sepia(1) saturate(4) hue-rotate(140deg) brightness(1.2)}
-#techTree .tt-side{width:290px;flex-shrink:0;margin:14px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;z-index:2}
-#techTree .tt-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);letter-spacing:.12em}#techTree .tt-head button{padding:4px 10px}
-#techTree .tt-pts b{display:block;font-size:44px;line-height:1;color:var(--accent);font-family:var(--display)}#techTree .tt-pts small{color:var(--muted);font-size:12px}
-#techTree .tt-card{border:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:6px;min-height:120px}#techTree .tt-card p{margin:0;font-size:13px;color:#c9d3d9}#techTree .tt-card small{color:var(--muted)}
+#techTree .tt-side{width:360px;flex-shrink:0;margin:14px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;z-index:2}
+#techTree .tt-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);letter-spacing:.12em;font-size:20px}#techTree .tt-head button{padding:4px 10px}
+#techTree .tt-pts b{display:block;font-size:52px;line-height:1;color:var(--accent);font-family:var(--display)}#techTree .tt-pts small{color:#b4c0c8;font-size:15px}
+#techTree .tt-card{border:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:6px;min-height:120px}#techTree .tt-card{font-size:16px}#techTree .tt-card b{font-size:20px}#techTree .tt-card p{margin:0;font-size:16px;line-height:1.4;color:#dfe6ea}#techTree .tt-card small{color:#b4c0c8;font-size:15px}
 #techTree .tt-card .tt-ci img,#techTree .tt-card .tt-ci .tti{width:56px;height:56px}#techTree .tt-card .st.ready{color:#ffd76a}#techTree .tt-card .st.level,#techTree .tt-card .st.far,#techTree .tt-card .st.poor{color:#ff9a8a}
-#techTree .tt-legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--muted)}#techTree .tt-legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+#techTree .tt-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;color:#b4c0c8}#techTree .tt-legend i{display:inline-block;width:13px;height:13px;margin-right:5px;vertical-align:-1px}
 #techTree .tt-legend i.own{background:var(--accent)}#techTree .tt-legend i.ready{background:#36505f}#techTree .tt-legend i.level{background:#161c22;border:1px solid #444}#techTree .tt-legend i.far{background:#0f1418;border:1px dashed #444}
-#techTree .tt-btns{display:flex;gap:8px}#techTree .tt-btns .warn{border-color:#ff6a5a;color:#ff9a8a}#techTree .tt-tip{font-size:12px;color:var(--muted);margin:0}
+#techTree .tt-btns{display:flex;gap:8px}#techTree .tt-btns .warn{border-color:#ff6a5a;color:#ff9a8a}#techTree .tt-tip{font-size:14px;line-height:1.45;color:#b4c0c8;margin:0}#techTree .tt-btns button{font-size:15px}
 #techTree .tt-side>*{flex-shrink:0}
 @media (max-width:760px){#techTree{flex-direction:column}#techTree .tt-side{width:auto;max-height:44vh;margin:0;padding:12px 14px;gap:8px;border-radius:0}#techTree .tt-legend,#techTree .tt-tip{display:none}#techTree .tt-pts b{font-size:32px;display:inline;margin-right:8px}#techTree .tt-card{min-height:0}#techTree .tt-card .tt-ci{display:none}}
 #toast{z-index:90}
@@ -487,7 +491,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
   <nav class="mnav">
     <button id="mPlay" class="primary big">Play</button>
     <button id="mQuick" class="big">Quick play</button>
-    <button id="mOnline" class="big">Multiplayer</button>
+    <button id="mOnline" class="big">Server browser</button>
     <button id="mGarage" class="big">Garage</button>
     <button id="mTech" class="big tech">Tech tree <b class="techN" hidden></b></button>
     <button id="mTest">Test drive</button>
@@ -497,7 +501,6 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <button id="mClans">Clans</button>
     <button id="mPass">Battle pass</button>
     <button id="mFriends">Friends</button>
-    <button id="mBrowse">Server browser</button>
     <button id="mReplay">Last replay</button>
     <button id="mLeader">Leaderboards</button>
     <button id="mShop">Robot Shop</button>
@@ -550,7 +553,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <div class="tbrow"><div id="swatches"></div><select id="finishSel" title="Paint finish for this bot" aria-label="Paint finish"></select></div>
     <div class="tbrow">
       <div class="tg"><button id="btnPlace" class="tb on" title="Build: place parts (B)"><i>✚</i><span>Build</span></button><button id="btnPaint" class="tb" title="Repaint and re-tier blocks (P)"><i>◐</i><span>Paint</span></button><button id="btnFill" class="tb" title="Repaint a whole patch of one color (G)"><i>▤</i><span>Fill</span></button><button id="btnErase" class="tb" title="Erase blocks (E)"><i>✕</i><span>Erase</span></button><button id="btnPick" class="tb" title="Copy a block's part, color and tier (I, or Alt+click)"><i>◎</i><span>Pick</span></button><button id="btnSel" class="tb" title="Select blocks to move, copy or delete (S)"><i>⬚</i><span>Select</span></button></div>
-      <div class="tg"><button id="btnRot" class="tb" title="Turn the block (R)"><i>⟳</i><span>Rotate</span></button><button id="btnTilt" class="tb" title="Tip the block forward (T)"><i>⤵</i><span>Tilt</span></button><button id="btnRoll" class="tb" title="Roll the block sideways (F)"><i>⇋</i><span>Roll</span></button><button id="btnMirror" class="tb" title="Mirror: left/right, front/back, off (M)"><i>⇆</i><span>Mirror</span></button></div>
+      <div class="tg"><button id="btnRot" class="tb" title="Turn the block (R)"><i>⟳</i><span>Rotate</span></button><button id="btnTilt" class="tb" title="Tip the block forward (T)"><i>⤵</i><span>Tilt</span></button><button id="btnRoll" class="tb" title="Roll the block sideways (F)"><i>⇋</i><span>Roll</span></button><button id="btnMirror" class="tb" title="Mirror building on or off (M)"><i>⇆</i><span>Mirror</span></button><button id="btnMirAxis" class="tb" title="Mirror direction: left/right or front/back (Shift+M)"><i>⇆</i><span>Left/right</span></button></div>
       <div class="tg"><button id="btnUndo" class="tb" title="Undo (Ctrl+Z)"><i>↶</i><span>Undo</span></button><button id="btnRedo" class="tb" title="Redo (Ctrl+Y)"><i>↷</i><span>Redo</span></button></div>
       <div class="tg"><button id="btnLayer" class="tb" title="Cut away the upper layers to build inside (L, then [ and ])"><i>▦</i><span>Layers</span></button><button id="btnBal" class="tb" title="Show the center of mass (C)"><i>⊕</i><span>Balance</span></button><button id="btnWeak" class="tb" title="Show which blocks hold your bot together"><i>⚠</i><span>Weak</span></button><button id="btnViews" class="tb" title="Camera views"><i>⌖</i><span>View</span></button><button id="btnMore" class="tb" title="More"><i>⋯</i><span>More</span></button></div>
     </div>
@@ -763,7 +766,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.0';
+const BC_VERSION = '2.8.1';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -772,6 +775,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.1', ['Online play now runs only on RoboBlocks servers. The main menu\'s Server browser lists this server\'s rooms live, other servers and favourites, and takes any server address.', 'Friend codes: every pilot has a code like RB-7K3Q-X9PD. Add friends by code, or straight from the pilot list in the Server browser.', 'Sound starts as soon as the game opens (on the first key or click in browsers that hold it back).', 'Garage: middle click picks the block under the cursor (part, color, armor). Mirror is now a simple on/off switch, with its own button for the direction.', 'Bigger, easier-to-read text in the Tech Tree.', 'The connection-lost banner no longer covers other messages.']],
   ['2.8.0', ['Loadouts: your garage bays are your loadout. Pick which bot to deploy, and while wrecked press 1–5 (LB/RB on a gamepad, or tap a card) to rebuild as a different bot. Works online.', 'Map sizes: Small, Medium and Large arenas, or Auto to match the team size. Obstacles, trees and craters scale with the map.', 'Three new space maps: Crimson Nebula (glowing gas and ice shards), Dry Dock (a half-built cruiser inside a scaffold) and Ring Belt (bands of rock with clear lanes). Choose one in Battle setup.', 'Painted nebula skies, ringed planets with glowing atmospheres, and work lights in space.', 'New Ultra graphics: full-resolution rendering, light shafts from the sun, film grain, and wider, sharper shadows.', 'Every map has its own colour grade on High and Ultra.', 'RoboBlocks is now on GitHub: servers install and update from the latest release.']],
   ['2.7.0', ['Weapon balance pass, tested with thousands of AI duels: every weapon now wins its fair share in its own range.', 'Splash damage is capped per blast (1.8 times its damage to one bot), so tightly packed bots no longer take ten times the damage from mortars and plasma.', 'Flak shells now burst right next to ground bots instead of short of them.', 'Arc Lance: each extra lance now adds damage. Gravity mines snap shut when they land near an enemy. Tesla blades are cheaper, tougher, hit harder and pull you onto nearby enemies.', 'Blaster, chain gun, plasma, rail and Rail Lancer toned down slightly; seeker, flak and mines buffed.']],
   ['2.6.0', ['New desktop app: RoboBlocks runs in its own window and updates itself from your server.', 'Far more detailed robots: armored turret mounts, cooling rings, ammo boxes, coil rails, tread links, rotor blades and bevelled armor blocks.', 'Barrels kick back when they fire.', 'Speeds show in mph (switch to km/h in Settings). Settings also has a Simple robot detail option for older computers.']],
@@ -1103,7 +1107,9 @@ const hiQ = () => settings.quality === 'high' || settings.quality === 'ultra', u
 // speeds are shown in mph unless the player picks km/h (game units are metres per second)
 // the desktop app (window.ROBOBLOCKS) names its server; a page served by a server uses that server
 const HOST = (typeof window !== 'undefined' && window.ROBOBLOCKS) || null;
-const SERVER_BASE = (() => { try { if (HOST && HOST.server) { const u = new URL(HOST.server); if (/^https?:$/.test(u.protocol)) return u.origin; } if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) return location.origin; } catch (e) { } return null; })();
+// true when this copy runs inside an embedded web preview (it then plays offline: online play is server-only)
+const onClaudePage = () => typeof window !== 'undefined' && !!window.claude;
+const SERVER_BASE = (() => { try { if (HOST && HOST.server) { const u = new URL(HOST.server); if (/^https?:$/.test(u.protocol)) return u.origin; } if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol) && !onClaudePage()) return location.origin; } catch (e) { } return null; })();
 const fmtSpeed = ms => settings.units === 'kmh' ? Math.round(ms * 3.6) + ' km/h' : Math.round(ms * 2.23694) + ' mph';
 const saveSettings = () => { store.set('sfa.settings', settings); cloudDirty(); };
 // ---- 20-render.js ----
@@ -2499,7 +2505,7 @@ const Music = {
 const BOUNDS = { x: 7, y: 11, z: 7 };
 const garage = {
   scene: new T.Scene(), group: new T.Group(), blocks: new Map(),
-  orbit: { theta: .75, phi: 1.05, r: 20, ty: 2.2 }, tool: 'cube', color: 9, rot: 0, tier: 1, mat: 'std', mirror: true, erase: false, paint: false, undo: [], last: null,
+  orbit: { theta: .75, phi: 1.05, r: 20, ty: 2.2 }, tool: 'cube', color: 9, rot: 0, tier: 1, mat: 'std', mirror: store.get('sfa.mirror', true) !== false, erase: false, paint: false, undo: [], last: null,
   ghost: null, ghostEdges: null, marks: [], raycaster: new T.Raycaster(), pointer: new T.Vector2(), hover: null,
 };
 function setupGarage() {
@@ -2761,7 +2767,8 @@ function syncToolButtons() {
   if ((garage.erase || garage.paint) && garage.tool2) garage.tool2 = null;
   for (const [id, k] of [['#btnFill', 'fill'], ['#btnPick', 'pick'], ['#btnSel', 'select']]) { const el = $(id); if (el) el.classList.toggle('on', garage.tool2 === k); }
   if ($('#selBar')) { $('#selBar').hidden = garage.tool2 !== 'select'; if (garage.tool2 !== 'select' && garage.sel && garage.sel.size) selClear(); }
-  $('#btnMirror').classList.toggle('on', garage.mirror); $('#btnMirror span').textContent = garage.mirror ? (garage.mirAxis === 'z' ? 'Front/back' : 'Mirror') : 'No mirror'; $('#btnMirror i').textContent = garage.mirror ? (garage.mirAxis === 'z' ? '⇅' : '⇆') : '⇹';
+  $('#btnMirror').classList.toggle('on', garage.mirror); $('#btnMirror span').textContent = garage.mirror ? 'Mirror on' : 'Mirror off'; $('#btnMirror i').textContent = garage.mirror ? '⇆' : '⇹';
+  if ($('#btnMirAxis')) { $('#btnMirAxis').hidden = !garage.mirror; $('#btnMirAxis span').textContent = garage.mirAxis === 'z' ? 'Front/back' : 'Left/right'; $('#btnMirAxis i').textContent = garage.mirAxis === 'z' ? '⇅' : '⇆'; }
   $('#btnErase').classList.toggle('on', garage.erase);
   $('#btnPaint').classList.toggle('on', garage.paint);
   const rotatable = isShape(garage.tool) || garage.tool === 'tesla';
@@ -2811,6 +2818,7 @@ function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.ad
 // garage input
 const gPtrs = new Map(); let gDrag = null, pinch = null;
 canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('mousedown', e => { if (e.button === 1) e.preventDefault(); }); // no autoscroll on middle click
 canvas.addEventListener('pointerdown', e => {
   SFX.init();
   if (state !== 'garage') return;
@@ -2843,7 +2851,7 @@ const endPtr = e => {
   gPtrs.delete(e.pointerId);
   if (gPtrs.size < 2) pinch = null;
   if (gDrag && gPtrs.size === 0) {
-    if (!gDrag.moved && e.type === 'pointerup') { if (gDrag.b === 2) gRightClick(e.clientX, e.clientY); else if (gDrag.b === 0) gClickPlace(e.clientX, e.clientY); }
+    if (!gDrag.moved && e.type === 'pointerup') { if (gDrag.b === 2) gRightClick(e.clientX, e.clientY); else if (gDrag.b === 0) gClickPlace(e.clientX, e.clientY); else if (gDrag.b === 1) { const pk = gPick(e.clientX, e.clientY); if (pk && pk.block) pickBlock(pk.block); } }
     gDrag = null;
   }
 };
@@ -2862,7 +2870,9 @@ $('#btnTilt').onclick = () => bumpRot(2);
 $('#btnRoll').onclick = () => bumpRot(4);
 $('#btnPaint').onclick = () => { garage.paint = !garage.paint; if (garage.paint) garage.erase = false; syncToolButtons(); refreshGhost(); };
 // Mirror cycles: left/right, front/back, off
-$('#btnMirror').onclick = () => { if (!garage.mirror) { garage.mirror = true; garage.mirAxis = 'x'; } else if (garage.mirAxis !== 'z') garage.mirAxis = 'z'; else garage.mirror = false; syncToolButtons(); refreshGhost(); toast(garage.mirror ? (garage.mirAxis === 'z' ? 'Mirror: front and back' : 'Mirror: left and right') : 'Mirror off'); };
+// Mirror is a plain on/off switch; the second button picks the direction
+$('#btnMirror').onclick = () => { garage.mirror = !garage.mirror; store.set('sfa.mirror', garage.mirror); if (!garage.mirAxis) garage.mirAxis = 'x'; syncToolButtons(); refreshGhost(); toast(garage.mirror ? (garage.mirAxis === 'z' ? 'Mirror on: front and back' : 'Mirror on: left and right') : 'Mirror off: blocks go only where you click'); };
+$('#btnMirAxis').onclick = () => { garage.mirAxis = garage.mirAxis === 'z' ? 'x' : 'z'; garage.mirror = true; store.set('sfa.mirror', true); syncToolButtons(); refreshGhost(); toast(garage.mirAxis === 'z' ? 'Mirror: front and back' : 'Mirror: left and right'); };
 $('#btnErase').onclick = () => { garage.erase = !garage.erase; if (garage.erase) garage.paint = false; syncToolButtons(); refreshGhost(); };
 $('#btnUndo').onclick = doUndo;
 let clearArm = 0;
@@ -2968,14 +2978,17 @@ function setTool2(t) {
   if (garage.tool2) { garage.erase = garage.paint = false; } syncToolButtons();
   if (garage.tool2) toast({ fill: 'Fill: click a block to repaint every touching block of the same color.', pick: 'Picker: click a block to copy its part, color and armor tier.', select: 'Select: click blocks to add or remove them, then move, copy or delete them.' }[garage.tool2]);
 }
+// copy a block's part, color, armor tier, material and rotation (picker tool, Alt+click or middle click)
+function pickBlock(b) {
+  garage.color = b.c; if (b.k && tierOpen(b.k)) garage.tier = b.k; if (b.m && matOpen(b.m)) garage.mat = b.m; else if (isShape(b.t)) garage.mat = 'std';
+  if (partOpen(b.t)) { selectTool(b.t); if (typeof b.r === 'number') garage.rot = b.r; }
+  garage.tool2 = null; syncToolButtons(); buildSwatches(); buildPartsUI(); refreshGhost(); SFX.ui();
+  toast(partOpen(b.t) ? `Picked ${PARTS[b.t].name}${b.k ? ' · ' + TIERS[b.k].name : ''}.` : `${PARTS[b.t].name} is locked; picked its color.`);
+}
 // returns true when a garage tool used the click
 function garageToolClick(pk) {
   const pick = garage.tool2 === 'pick' || garage.mods.alt;
-  if (pick && pk.block) {
-    const b = pk.block; garage.color = b.c; if (b.k) garage.tier = b.k;
-    if (partOpen(b.t)) selectTool(b.t);
-    garage.tool2 = null; syncToolButtons(); buildSwatches(); buildPartsUI(); SFX.ui(); toast(`Picked ${PARTS[b.t].name}${b.k ? ' · ' + TIERS[b.k].name : ''}.`); return true;
-  }
+  if (pick && pk.block) { pickBlock(pk.block); return true; }
   if (garage.tool2 === 'fill' && pk.block) { fillPaint(pk.block); return true; }
   if (garage.tool2 === 'select') { if (pk.block) { const k = ckey(pk.block.x, pk.block.y, pk.block.z); if (garage.sel.has(k)) garage.sel.delete(k); else garage.sel.add(k); selDraw(); SFX.click(); } return true; }
   return false;
@@ -3197,8 +3210,8 @@ function showBays() {
 function showKeys() {
   $('#moreMenu').hidden = true;
   const K = [['Click', 'Place the selected part'], ['Shift + drag', 'Place a row of parts'], ['Right-click', 'Remove a block'], ['Drag', 'Orbit the camera'], ['Right-drag', 'Pan the camera'], ['Scroll', 'Zoom'], ['Double-click', 'Focus on a block'],
-    ['R / T / F', 'Rotate, tilt, roll the next part'], ['B', 'Build'], ['P', 'Paint'], ['G', 'Fill paint'], ['E', 'Erase'], ['I or Alt+click', 'Pick a block\'s part and color'], ['S', 'Select blocks, then arrows to move and Delete to remove'],
-    ['M', 'Mirror: left/right, front/back, off'], ['L', 'Layer cutaway; [ and ] move the layer'], ['C', 'Show the center of mass'], ['1 – 0', 'Quick-pick the first parts'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['?', 'This list']];
+    ['R / T / F', 'Rotate, tilt, roll the next part'], ['B', 'Build'], ['P', 'Paint'], ['G', 'Fill paint'], ['E', 'Erase'], ['I, Alt+click or middle click', 'Pick a block\'s part, color and armor'], ['S', 'Select blocks, then arrows to move and Delete to remove'],
+    ['M / Shift+M', 'Mirror on/off / mirror direction'], ['L', 'Layer cutaway; [ and ] move the layer'], ['C', 'Show the center of mass'], ['1 – 0', 'Quick-pick the first parts'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['?', 'This list']];
   showOverlay(`<h2>Garage shortcuts</h2><div class="keys">${K.map(([k, d]) => `<kbd>${esc(k)}</kbd><span>${esc(d)}</span>`).join('')}</div><div class="btns"><button class="primary" id="ovBack">Got it</button></div>`, true);
   $('#ovBack').onclick = hideOverlay;
 }
@@ -5149,12 +5162,11 @@ function addAiExtras(d, rnd, lv) {
 }
 // ---- 62-backend.js ----
 // ================= BACKEND: PROFILES, LEADERBOARDS, HISTORY, SHOP, ADMIN =================
-// One interface, three providers:
+// One interface, two providers in use:
 //  - 'server':   a RoboBlocks dedicated server. Accounts, server-awarded XP, ranked rating, shop and admin
 //                tools all live on the server and travel over the game's WebSocket.
-//  - 'artifact': opened on claude.ai. Profiles, leaderboards, the shop and moderation use the page's
-//                shared database; your claude.ai sign-in is your account.
-//  - 'local':    anywhere else. Progress and history stay in this browser; no leaderboards or shop.
+//  - 'local':    anywhere else (including an embedded preview copy). Progress and history stay in this browser.
+// (The older 'artifact' provider code below is no longer selected: everything online goes through a RoboBlocks server.)
 const BE = { kind: 'local', token: store.get('sfa.token', null), me: null, admin: false, db: null, user: null, uid: null, mod: { motd: '', bans: {} }, ready: false };
 const RANKS = [[0, 'Bronze', '#c88a5a'], [1100, 'Silver', '#c9d3d9'], [1300, 'Gold', '#ffd36a'], [1500, 'Platinum', '#7fe7ff'], [1700, 'Diamond', '#b59cff']];
 const rankOf = elo => { let r = RANKS[0]; for (const x of RANKS) if (elo >= x[0]) r = x; return { name: r[1], col: r[2] }; };
@@ -5162,13 +5174,8 @@ const localHistory = () => store.get('sfa.history', []);
 async function beInit() {
   if (HEADLESS) return;
   try {
-    if (window.claude && window.claude.use) {
-      const [db, user] = await Promise.all([window.claude.use('db'), window.claude.use('user')]);
-      if (db && user) {
-        BE.db = db; BE.user = user; BE.uid = await user.id();
-        if (BE.uid) { BE.kind = 'artifact'; BE.admin = !!(await user.canEdit()); await artLoad(); await cloudPull(); }
-      }
-    } else if (SERVER_BASE) {
+    // accounts, saves, leaderboards, shop and clans come only from a RoboBlocks server
+    if (SERVER_BASE && !onClaudePage()) {
       const room = await netInit(); // a self-hosted page: the server is right here
       if (room && room.relay && NET.accounts) BE.kind = 'server';
     }
@@ -5178,13 +5185,13 @@ async function beInit() {
   if (NET.requireAccount && !BE.me && state === 'menu') showAccount();
 }
 // ---------- cloud saves: garage bays, settings, tutorial, mutes ----------
-// Signed in to a server (or on claude.ai), your save lives there and follows you to any browser.
+// Signed in to a server, your save lives there and follows you to any browser.
 // The browser keeps a copy as a cache; your guest save is set aside and comes back when you sign out.
 const CLOUD = { timer: null, busy: false, pulled: false, last: '' };
 const cloudOn = () => !HEADLESS && ((BE.kind === 'server' && !!BE.me) || (BE.kind === 'artifact' && !!BE.uid));
 function cloudSnapshot() {
   const { quality, detail, ...portable } = settings; // graphics quality and model detail stay per device
-  return { v: 1, bays: bays.map(d => d && d.blocks && d.blocks.length ? { n: cleanName(d.name || '') || '', d: encodeDesign(d), wg: d.wg || undefined } : (d ? { n: cleanName(d.name || ''), d: '' } : null)), bay: bayIdx, settings: portable, tut: !!TUT.done, muted: [...CHAT.muted].slice(0, 100), cs: NET.name, prog: { life: PROG.life, ach: PROG.ach, q: PROG.q, badge: PROG.badge, clan: PROG.clan, bp: PROG.bp, tech: PROG.tech, title: PROG.title || '', hangar: PROG.hangar || '', sr: progress.sr || 0 }, fr: FRIENDS.list, t: Date.now() };
+  return { v: 1, bays: bays.map(d => d && d.blocks && d.blocks.length ? { n: cleanName(d.name || '') || '', d: encodeDesign(d), wg: d.wg || undefined } : (d ? { n: cleanName(d.name || ''), d: '' } : null)), bay: bayIdx, settings: portable, tut: !!TUT.done, muted: [...CHAT.muted].slice(0, 100), cs: NET.name, prog: { life: PROG.life, ach: PROG.ach, q: PROG.q, badge: PROG.badge, clan: PROG.clan, bp: PROG.bp, tech: PROG.tech, title: PROG.title || '', hangar: PROG.hangar || '', sr: progress.sr || 0 }, fr: FRIENDS.list, fc: MY_FC || undefined, t: Date.now() };
 }
 function cloudDirty() { try { if (!cloudOn() || !CLOUD.pulled) return; setSaveBadge('Saving…'); clearTimeout(CLOUD.timer); CLOUD.timer = setTimeout(cloudPush, 2000); } catch (e) { /* called during load, before this file has run */ } }
 async function cloudPush() {
@@ -5217,6 +5224,7 @@ function cloudApply(s) {
   store.set('sfa.bays', bays); store.set('sfa.bay', bayIdx);
   if (s.settings && typeof s.settings === 'object') { for (const k of ['master', 'music', 'sfx', 'sens']) if (typeof s.settings[k] === 'number') settings[k] = s.settings[k]; if (typeof s.settings.invertY === 'boolean') settings.invertY = s.settings.invertY; if (s.settings.pad && typeof s.settings.pad === 'object') { const pd = {}; for (const [k2, v2] of Object.entries(s.settings.pad)) if (/^[a-zA-Z0-9]{1,12}$/.test(k2) && Number.isInteger(v2) && v2 >= -1 && v2 < 32) pd[k2] = v2; settings.pad = pd; } if (s.settings.units === 'mph' || s.settings.units === 'kmh') settings.units = s.settings.units; if (typeof s.settings.padSwap === 'boolean') settings.padSwap = s.settings.padSwap; if (typeof s.settings.padSens === 'number') settings.padSens = clamp(s.settings.padSens, .4, 2.5); if (s.settings.keys && typeof s.settings.keys === 'object') { const k = {}; for (const a of Object.keys(KEY_DEFAULTS)) if (typeof s.settings.keys[a] === 'string' && /^[A-Za-z0-9]{2,20}$/.test(s.settings.keys[a])) k[a] = s.settings.keys[a]; settings.keys = k; } store.set('sfa.settings', settings); SFX.apply && SFX.apply(); }
   if (s.tut) { TUT.done = true; TUT.on = false; store.set('sfa.tut', { on: false, i: TUT.i, done: true }); }
+  if (normCode(s.fc)) { MY_FC = normCode(s.fc); store.set('sfa.fc', MY_FC); if (NET.room) lobbyPresence(); } // your code follows your account
   if (Array.isArray(s.fr)) { FRIENDS.list = s.fr.filter(f => f && typeof f.k === 'string').slice(0, 100).map(f => ({ k: f.k.slice(0, 80), name: cleanName(f.name) || 'Pilot', t: +f.t || 0 })); store.set('sfa.friends', FRIENDS.list); }
   if (Array.isArray(s.muted)) { CHAT.muted = new Set(s.muted.map(String).slice(0, 100)); store.set('sfa.muted', [...CHAT.muted]); }
   if (s.prog && typeof s.prog === 'object') { if (s.prog.life) PROG.life = Object.assign(PROG.life, s.prog.life); if (s.prog.ach) PROG.ach = Object.assign({}, s.prog.ach); if (s.prog.q && s.prog.q.day >= ((PROG.q || {}).day || 0)) PROG.q = s.prog.q; if (typeof s.prog.badge === 'string') PROG.badge = s.prog.badge; if (s.prog.bp && typeof s.prog.bp === 'object' && (s.prog.bp.s | 0) >= ((PROG.bp || {}).s | 0) && (s.prog.bp.xp | 0) >= (((PROG.bp || {}).s === s.prog.bp.s && PROG.bp.xp) | 0)) PROG.bp = { s: s.prog.bp.s | 0, xp: s.prog.bp.xp | 0 }; if (typeof s.prog.title === 'string') PROG.title = s.prog.title.slice(0, 40); if (s.prog.tech && typeof s.prog.tech === 'object' && s.prog.tech.got && typeof s.prog.tech.got === 'object') { const got = {}; for (const [k2, v2] of Object.entries(s.prog.tech.got)) if (TECH[k2] && (v2 === 'B' || v2 === 'L')) got[k2] = v2; PROG.tech = { got, v: 1 }; } else PROG.tech = null; /* saved before the tech tree: rebuilt from the account level */ if (typeof s.prog.hangar === 'string') PROG.hangar = s.prog.hangar.slice(0, 20); if (typeof s.prog.sr === 'number' && s.prog.sr > 0) { progress.sr = s.prog.sr; store.set('sfa.progress', progress); } if (s.prog.clan !== undefined && BE.kind === 'artifact') PROG.clan = s.prog.clan; store.set('sfa.prog', PROG); }
@@ -5302,7 +5310,7 @@ async function beLeaderboard(sort) {
     const snap = await BE.db.collection('lb').orderBy(sort === 'elo' ? 'elo' : sort, 'desc').limit(50).get();
     return snap.docs.filter(d => !artBanned(d.id)).map(d => { const x = d.data() || {}; return { name: cleanName(x.cs) || 'Pilot', xp: x.xp | 0, lv: x.lv | 0 || levelFromXp(x.xp | 0), wins: x.wins | 0, kills: x.kills | 0, matches: x.matches | 0, elo: x.elo | 0 || 1200, me: d.id === BE.uid }; });
   }
-  throw new Error('Leaderboards need a RoboBlocks server or claude.ai. In this view your stats stay on this computer.');
+  throw new Error('Leaderboards live on RoboBlocks servers. Open your server address to see them; here your stats stay on this computer.');
 }
 // ---------- robot shop ----------
 const designCpu = d => computeStats(d.blocks).cpu;
@@ -5318,7 +5326,7 @@ async function beShopList(sort) {
     const by = { new: (a, b) => b.t - a.t, dl: (a, b) => b.dl - a.dl || b.score - a.score, top: (a, b) => b.score - a.score || b.dl - a.dl, mine: (a, b) => b.t - a.t }[sort] || ((a, b) => b.score - a.score);
     return all.filter(x => sort !== 'mine' || x.mine).sort(by).slice(0, 60);
   }
-  throw new Error('The robot shop needs a RoboBlocks server or claude.ai.');
+  throw new Error('The robot shop lives on RoboBlocks servers. Open your server address to use it.');
 }
 async function beShopPublish(d) {
   const item = { name: cleanName(d.name || '') || 'Robot', d: encodeDesign(d), cpu: designCpu(d), lv: designLevel(d) };
@@ -5330,7 +5338,7 @@ async function beShopPublish(d) {
     items.push({ ...item, id: Math.random().toString(36).slice(2, 10), cs: NET.name, t: Date.now() });
     await ref.set({ items }); return {};
   }
-  throw new Error('The robot shop needs a RoboBlocks server or claude.ai.');
+  throw new Error('The robot shop lives on RoboBlocks servers. Open your server address to use it.');
 }
 async function beShopVote(key, v) {
   if (BE.kind === 'server') return beApi('shop.rate', { key, v });
@@ -5430,7 +5438,7 @@ async function showProfile() {
   showOverlay('<h2>Profile</h2><p>Loading…</p>', true);
   let p; try { p = await beProfile(); } catch (e) { showOverlay('<h2>Profile</h2>' + errBox(e) + '<div class="btns"><button class="primary" id="ovBack">Back</button></div>', true); $('#ovBack').onclick = backToMenu; return; }
   const rk = rankOf(p.elo || 1200), kd = p.deaths ? (p.kills / p.deaths).toFixed(2) : (p.kills || 0).toFixed(2);
-  const where = BE.kind === 'server' ? (BE.me ? 'Saved on this server.' : 'Guest: saved in this browser only. Sign in to keep it on the server.') : BE.kind === 'artifact' ? 'Saved with your claude.ai account.' : 'Saved in this browser.';
+  const where = BE.kind === 'server' ? (BE.me ? 'Saved on this server.' : 'Guest: saved in this browser only. Sign in to keep it on the server.') : 'Saved in this browser.';
   const rows = (p.history || []).map(h => `<tr><td>${esc(ago(h.t))}</td><td>${esc((MODES[h.mode] || { name: h.mode || '?' }).name)}${h.practice ? ' <small>practice</small>' : ''}</td><td>${esc((MAPS[h.map] || { name: h.map || '' }).name)}</td><td class="${h.result === 'win' ? 'win' : h.result === 'loss' ? 'lose' : ''}">${h.result === 'win' ? 'Victory' : h.result === 'loss' ? 'Defeat' : 'Draw'}</td><td class="num">${h.kills | 0} / ${h.deaths | 0}</td><td class="num">${fmtN(h.dmg)}</td><td class="num">+${fmtN(h.xp)}${h.elo ? ` <small>${h.elo > 0 ? '+' : ''}${h.elo}</small>` : ''}</td></tr>`).join('');
   showOverlay(`<h2>${esc(p.name || NET.name || 'Pilot')}</h2><p>${where}</p>
     <div class="grid stats6"><div><span class="label">Level</span><b class="num">${p.lv}</b></div><div><span class="label">XP</span><b class="num">${fmtN(p.xp)}</b></div><div><span class="label">Wins</span><b class="num">${p.wins} / ${p.matches}</b></div>
@@ -5545,7 +5553,7 @@ async function showAdmin() {
   if (!all.length) bl.innerHTML = '<p class="gempty">Nobody is banned.</p>';
   for (const [kind, x] of all) {
     const r = document.createElement('div'); r.className = 'grow';
-    const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = art ? 'Pilot ' + x.slice(0, 10) : x; const s = document.createElement('span'); s.textContent = kind === 'ip' ? 'address' : art ? 'claude.ai account' : 'account'; info.append(b, s);
+    const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = art ? 'Pilot ' + x.slice(0, 10) : x; const s = document.createElement('span'); s.textContent = kind === 'ip' ? 'address' : art ? 'account' : 'account'; info.append(b, s);
     const u = document.createElement('button'); u.textContent = 'Unban'; u.onclick = async () => { try { await beAdmin('unban', { x }); showAdmin(); } catch (e) { toast(e.message); } };
     r.append(info, u); bl.appendChild(r);
   }
@@ -5710,9 +5718,9 @@ const NET = {
 async function netInit() {
   if (NET.room || NET.tried) return NET.room;
   NET.tried = true;
-  try { NET.room = window.claude && window.claude.use ? await window.claude.use('room') : null; } catch (e) { NET.room = null; }
-  // self-hosted (e.g. Pterodactyl): talk to the RoboBlocks server's WebSocket relay instead
-  if (!NET.room && !window.claude && (window.__BC_LOCAL_CONN || SERVER_BASE)) NET.room = await relayRoom();
+  // online play only ever goes through a RoboBlocks dedicated server (e.g. on Pterodactyl): its WebSocket relay.
+  // A copy opened anywhere else (such as an embedded preview) stays offline and points players at a server.
+  if (!onClaudePage() && (window.__BC_LOCAL_CONN || SERVER_BASE)) NET.room = await relayRoom();
   if (!NET.room) return null;
   NET.lobbyUnsub = NET.room.onPeers(ch => {
     NET.lobbyPeers = ch.peers; const me = ch.peers.find(p => p.isMe && p.sameTab); if (me) NET.me = me.peer;
@@ -5727,7 +5735,7 @@ function lobbyPresence() {
   if (!NET.room) return;
   const g = NET.game, i = g && g.info;
   NET.room.presence({
-    bc: 1, srv: HEADLESS ? 1 : null, name: HEADLESS ? 'Server' : NET.name, lv: level(), sr: HEADLESS ? null : mySR(), sv: g ? g.code : null, ch: CHAT.lobbyRing.length ? CHAT.lobbyRing : null,
+    bc: 1, srv: HEADLESS ? 1 : null, name: HEADLESS ? 'Server' : NET.name, fc: HEADLESS ? null : MY_FC, lv: level(), sr: HEADLESS ? null : mySR(), sv: g ? g.code : null, ch: CHAT.lobbyRing.length ? CHAT.lobbyRing : null,
     party: NET.party ? NET.party.id : null, pinv: HEADLESS ? null : PARTY.inv, bd: HEADLESS ? null : myBadge() || null, clan: HEADLESS ? null : myClan(),
     host: g && g.isHost && i ? { code: g.code, server: g.server ? g.server.id : null, mode: i.mode, map: i.map, n: i.n, cnt: NET.slowPeers.length || 1, phase: i.phase, cd: Math.round(i.cd || 0), tl: Math.round(i.tl || 0), started: i.phase === 'live' } : null,
   }).catch(() => { });
@@ -5737,32 +5745,62 @@ const phaseText = h => !h ? 'Empty: a match starts when you join' : h.phase === 
   : h.phase === 'post' ? `Next: ${(MODES[h.mode] || MODES.tdm).name} on ${(MAPS[h.map] || MAPS.dust).name} in ${h.cd | 0}s` : h.phase === 'warmup' ? `Warmup · starts in ${h.cd | 0}s` : 'Waiting for the host to start';
 
 // ---------- lobby UI ----------
+// The Server browser (the main menu's online button): the rooms on this server with live status, other
+// RoboBlocks servers (from the hub) and favourites, a box to type any server's address, and custom games.
 async function showLobby() {
-  showOverlay(`<h2>Multiplayer</h2><p>Connecting…</p>`, true);
+  showOverlay(`<h2>Server browser</h2><p>Connecting…</p>`, true);
   const room = await netInit();
   if (!room) {
-    showOverlay(`<h2>Multiplayer</h2>
-      <p>Online play isn't available in this view. It works when the page is opened from claude.ai by a signed-in member of the workspace, or someone invited to the artifact. Public links can't connect.</p>
-      <p>Share the artifact with your friends from its Share menu, then open it from there.</p>
-      <div class="btns"><button class="primary" id="ovDone">OK</button></div>`);
-    $('#ovDone').onclick = () => { hideOverlay(); buildPilotCard(); };
+    showOverlay(`<h2>Server browser</h2>
+      <p>${onClaudePage() ? 'This copy of the game is offline.' : 'Could not reach the RoboBlocks server.'} Online play runs on RoboBlocks servers: connect to one by its address (for example <b>your-server-ip:port</b>).</p>
+      <div id="sbOthers"></div>
+      <div class="sbaddr"><input id="sbAddr" placeholder="Server address, e.g. 203.0.113.5:25570" maxlength="200" spellcheck="false"><button id="sbOpen" class="primary">Connect</button></div>
+      <div class="btns"><button id="ovBack">Back</button></div>`, true);
+    wireServerList(false);
+    $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
     return;
   }
   NET.me = myPeer();
-  showOverlay(`<h2>Multiplayer</h2>
+  showOverlay(`<h2>Server browser</h2>
+    ${myCodeHtml()}
     <div class="srow"><label for="callsign">Callsign</label><input id="callsign" maxlength="16" spellcheck="false" value=""><span></span></div>
     <div id="lobbyList"></div>
     <div id="lobbyPilots"></div>
-    <h3>HOST A CUSTOM GAME</h3>
+    <div id="sbOthers"></div>
+    <div class="sbaddr"><input id="sbAddr" placeholder="Another server's address, e.g. 203.0.113.5:25570" maxlength="200" spellcheck="false"><button id="sbOpen">Connect</button></div>
+    <details id="sbHost"><summary>HOST A CUSTOM GAME</summary>
     ${setupOptsHtml(true)}
-    <div class="btns"><button class="primary" id="ovHost">Host custom game</button><button id="ovBack">Back</button></div>`, true);
+    <div class="btns"><button class="primary" id="ovHost">Host custom game</button></div></details>
+    <div class="btns"><button id="sbRefresh">Refresh</button><button class="primary" id="ovBack">Back</button></div>`, true);
   $('#callsign').value = NET.name;
   $('#callsign').addEventListener('keydown', e => e.stopPropagation());
   $('#callsign').addEventListener('change', () => { NET.name = cleanName($('#callsign').value) || NET.name; $('#callsign').value = NET.name; store.set('sfa.callsign', NET.name); lobbyPresence(); });
   wireSetupOpts();
   $('#ovHost').onclick = () => { if (!canDeploy()) return; store.set('sfa.setup', setupSel); joinGame('c' + Math.random().toString(36).slice(2, 7), null, { ...setupSel }); };
   $('#ovBack').onclick = () => { hideOverlay(); buildPilotCard(); };
+  $('#sbRefresh').onclick = () => showLobby();
+  wireServerList(true); wireMyCode();
   renderLobbyList(); renderParty();
+}
+// other RoboBlocks servers: the hub's list (when this server reports to one) plus your favourites
+async function wireServerList(online) {
+  const here = SERVER_BASE || '', cleanUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin : null; } catch (e) { return null; } };
+  const go = url => { if (!url || url === here) return; store.set('sfa.mpAddr', url); if (HOST && HOST.setServer) HOST.setServer(url); else if (onClaudePage()) { const w = window.open(url + '/', '_blank', 'noopener'); if (!w) toast('Open ' + url + ' in your browser to play online.'); } else location.href = url + '/'; };
+  const inp = $('#sbAddr'); if (inp) {
+    inp.value = online ? '' : store.get('sfa.mpAddr', '') || '';
+    inp.addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#sbOpen').click(); });
+    $('#sbOpen').onclick = () => { let v = inp.value.trim(); if (!v) { inp.focus(); return; } if (!/^https?:\/\//i.test(v)) v = 'http://' + v; const u = cleanUrl(v); if (!u) { toast('That does not look like a server address.'); return; } go(u); };
+  }
+  const box = $('#sbOthers'); if (!box) return;
+  const res = online ? await fetchServerList() : { ok: false };
+  if (!$('#sbOthers')) return; // the window was closed meanwhile
+  const list = (res.ok ? res.list : []).map(s => ({ ...s, url: cleanUrl(s.url) })).filter(s => s.url && s.url !== here);
+  for (const f of FAVS.list) if (f.url !== here && !list.some(s => s.url === f.url)) list.push({ url: f.url, name: f.name || f.url, unknown: true });
+  list.sort((a, b) => (FAVS.list.some(f => f.url === b.url) - FAVS.list.some(f => f.url === a.url)) || (b.players | 0) - (a.players | 0));
+  if (!list.length) { box.innerHTML = ''; return; }
+  box.innerHTML = `<h3>OTHER ROBOBLOCKS SERVERS${res.hub ? ' · from ' + esc(res.hub.replace(/^https?:\/\//, '')) : ''}</h3><table class="sbt">${list.map((s, i) => `<tr><td><b>${esc(s.name || s.url)}</b><br><small>${esc(s.url.replace(/^https?:\/\//, ''))}${s.motd ? ' · ' + esc(String(s.motd).slice(0, 60)) : ''}</small></td><td>${s.unknown ? '' : (s.players | 0) + ' / ' + (s.max | 0)}</td><td>${esc(s.version || '')}</td><td><button data-go="${i}">Connect</button><button data-fav="${i}" title="Favourite">${FAVS.list.some(f => f.url === s.url) ? '★' : '☆'}</button></td></tr>`).join('')}</table>`;
+  box.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(list[+b.dataset.go].url));
+  box.querySelectorAll('[data-fav]').forEach(b => b.onclick = () => { const s = list[+b.dataset.fav], i = FAVS.list.findIndex(f => f.url === s.url); if (i >= 0) FAVS.list.splice(i, 1); else FAVS.list.push({ url: s.url, name: s.name }); store.set('sfa.favServers', FAVS.list.slice(0, 30)); wireServerList(online); });
 }
 function askPassword(server, then) {
   showOverlay(`<h2>${esc(server.name)}</h2><p>This server needs a password.</p>
@@ -5793,7 +5831,7 @@ function renderLobbyList() {
     el.dataset.built = '1';
     el.innerHTML = '<p id="lobbyMotd" class="motd" hidden></p><h3 id="lhSv"></h3><div class="glist" id="lgSv"></div><h3 id="lhCu" hidden>CUSTOM GAMES</h3><div class="glist" id="lgCu"></div>';
   }
-  $('#lhSv').textContent = `SERVERS · ${others.length} other pilot${others.length === 1 ? '' : 's'} online`;
+  $('#lhSv').textContent = `ROOMS ON THIS SERVER · ${others.length} other pilot${others.length === 1 ? '' : 's'} online`;
   const mo = $('#lobbyMotd'); if (mo) { mo.hidden = !NET.motd; mo.textContent = NET.motd ? '📣 ' + NET.motd : ''; }
   $('#lhCu').hidden = !want.some(w => w.group === 'cu');
   const seen = new Set();
@@ -6506,7 +6544,9 @@ function renderParty() {
     const s = document.createElement('span'); s.textContent = `Lv ${(p.presence.lv | 0) || 1}${p.presence.sv ? ' · in a game' : ' · in the menu'}${NET.party && p.presence.party === NET.party.id ? ' · in your party' : ''}`; info.append(b, s);
     const btn = document.createElement('button'); btn.textContent = NET.party && p.presence.party === NET.party.id ? 'In party' : 'Invite'; btn.disabled = NET.party && (p.presence.party === NET.party.id || NET.party.leader !== NET.me);
     btn.onclick = () => partyInvite(p.peer);
-    r.append(info, btn); list.appendChild(r);
+    const fb = document.createElement('button'); const fr = isFriendPeer(p); fb.textContent = fr ? 'Friend ✓' : 'Add friend'; fb.disabled = fr || !peerKey(p);
+    fb.onclick = () => { addFriend(p); renderParty(); };
+    r.append(info, fb, btn); list.appendChild(r);
   }
   if ($('#ptLeave')) $('#ptLeave').onclick = partyLeave;
 }
@@ -6520,7 +6560,7 @@ function partyTeams(pilots, partyOf) {
 // ---------- clans ----------
 async function beClan(op, a) {
   if (BE.kind === 'server') { const r = await beApi('clan.' + op, a); if (op !== 'get' && op !== 'list') await beRefresh(); return r; }
-  if (BE.kind !== 'artifact') throw new Error('Clans need a RoboBlocks server or claude.ai.');
+  if (BE.kind !== 'artifact') throw new Error('Clans live on RoboBlocks servers. Open your server address to join one.');
   const db = BE.db;
   const all = async () => { const [cl, lb] = await Promise.all([db.collection('clans').get(), db.collection('lb').get()]); return { clans: cl.docs.map(d => ({ owner: d.id, ...(d.data() || {}) })).filter(c => c.tag), lb: lb.docs.map(d => ({ id: d.id, ...(d.data() || {}) })) }; };
   if (op === 'create') {
@@ -7025,7 +7065,7 @@ function buildPilotCard() {
     ${myTitle() ? `<div class="row"><span>Title</span><b>${esc(myTitle())}</b></div>` : ''}
     <div class="row"><span>Armor tier</span><b>${TIERS[maxTier(lv)].name}</b></div>
     <div class="row"><span>Active bay</span><b id="pcBay"></b></div>
-    ${BE.kind === 'server' ? `<div class="row"><span>Save data</span><b>${BE.me ? 'On this server' : (HOST ? 'This computer only' : 'This browser only')}</b></div><button id="pcAcct" class="acct">${BE.me ? '● ' + esc(BE.me.name) : 'Guest · Sign in to save on the server'}</button>` : BE.kind === 'artifact' ? '<div class="row"><span>Save data</span><b>claude.ai account</b></div>' : '<div class="row"><span>Save data</span><b>This browser</b></div>'}`;
+    ${BE.kind === 'server' ? `<div class="row"><span>Save data</span><b>${BE.me ? 'On this server' : (HOST ? 'This computer only' : 'This browser only')}</b></div><button id="pcAcct" class="acct">${BE.me ? '● ' + esc(BE.me.name) : 'Guest · Sign in to save on the server'}</button>` : BE.kind === 'artifact' ? '<div class="row"><span>Save data</span><b>This browser</b></div>' : '<div class="row"><span>Save data</span><b>This browser</b></div>'}`;
   if ($('#pcAcct')) $('#pcAcct').onclick = () => { SFX.ui(); showAccount(); };
   $('#mAdmin').hidden = !BE.admin; techBadge();
   $('#pcBay').textContent = design.name || 'Bay ' + (bayIdx + 1);
@@ -7143,7 +7183,6 @@ $('#mPass').onclick = () => { SFX.init(); SFX.ui(); showPass(); };
 $('#mTech').onclick = () => { SFX.init(); showTechTree('menu'); };
 $('#btnTech').onclick = () => { SFX.init(); showTechTree('garage'); };
 $('#mFriends').onclick = () => { SFX.init(); SFX.ui(); showFriends(); };
-$('#mBrowse').onclick = () => { SFX.init(); SFX.ui(); showServerBrowser(); };
 $('#mLeader').onclick = () => { SFX.init(); SFX.ui(); showLeaderboard(); };
 $('#mShop').onclick = () => { SFX.init(); SFX.ui(); showShop(); };
 $('#mAdmin').onclick = () => { SFX.init(); SFX.ui(); showAdmin(); };
@@ -7180,7 +7219,7 @@ addEventListener('keydown', e => {
     else if (e.code === 'KeyT') bumpRot(2);
     else if (e.code === 'KeyF') bumpRot(4);
     else if (e.code === 'KeyP') $('#btnPaint').click();
-    else if (e.code === 'KeyM') $('#btnMirror').click();
+    else if (e.code === 'KeyM') $(e.shiftKey ? '#btnMirAxis' : '#btnMirror').click();
     else if (e.code === 'KeyE') $('#btnErase').click();
     else if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey) && e.shiftKey) { e.preventDefault(); doRedo(); }
     else if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); doUndo(); }
@@ -7557,6 +7596,11 @@ function start() {
   beInit();
   if (!HEADLESS) setTimeout(() => { if (state === 'menu' && $('#overlay').hidden) showWhatsNew(); }, 1500);
   applyQuality();
+  if (!HEADLESS) {
+    SFX.init(); // the desktop app plays straight away; browsers may hold audio until the first key or click anywhere
+    const wake = () => { SFX.init(); if (SFX.ctx && SFX.ctx.state === 'running') for (const ev of ['pointerdown', 'keydown', 'touchstart']) removeEventListener(ev, wake, true); };
+    for (const ev of ['pointerdown', 'keydown', 'touchstart']) addEventListener(ev, wake, true);
+  }
   toMenu();
   requestAnimationFrame(frame);
   if (HEADLESS) { // dedicated server: host this official server forever
@@ -7788,7 +7832,7 @@ function showReportPlayer(prefill) {
   $('#rpSend').onclick = async () => {
     const target = $('#rpWho').value, w = list.find(p => p.name === target);
     try { await sendReport('player', { target, reason: $('#rpWhy').value + ($('#rpText').value.trim() ? ': ' + $('#rpText').value.trim() : ''), where: w ? w.where : '' }); toast('Report sent. Thank you.'); back(); }
-    catch (e) { toast(e.message === 'local' ? 'Reports need a RoboBlocks server or claude.ai.' : e.message); }
+    catch (e) { toast(e.message === "local" ? "Reports go to a RoboBlocks server. Open your server address to send one." : e.message); }
   };
 }
 // ---------- after-match rating (every fifth battle) ----------
@@ -7846,7 +7890,7 @@ function applyBalance(b) {
   BAL.weaponDamage = wd; BAL.xpRate = +b.xpRate || 1; BAL.cpuBonus = Math.round(+b.cpuBonus || 0); BAL.reactorHealth = +b.reactorHealth || 1; BAL.respawnSeconds = +b.respawnSeconds || 6;
   if (!HEADLESS && state === 'garage') updateStats();
 }
-function netBanner(lost) { const el = $('#netBanner'); if (el && !HEADLESS) el.hidden = !lost; }
+function netBanner(lost) { const el = $('#netBanner'); if (el && !HEADLESS) { el.hidden = !lost; document.body.classList.toggle('netlost', !!lost); } }
 // after a reconnect the relay gives us a new id, so rejoin the game we were in
 NET.onReconnect = () => {
   netBanner(false); NET.me = myPeer();
@@ -8509,17 +8553,39 @@ function showPass() {
 }
 
 // ---------- friends ----------
-// A friend is a pilot you follow: their account on a dedicated server, or their claude.ai identity on the artifact.
+// A friend is a pilot you follow, found by their friend code. Every pilot has one (RB-XXXX-XXXX), guests too;
+// it is kept with your save, so a signed-in account keeps the same code on every computer.
+const FC_ABC = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // no 0/O or 1/I, so codes read back without mistakes
+function normCode(c) {
+  let s = String(c || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); if (s.length === 10 && s.startsWith('RB')) s = s.slice(2);
+  return s.length === 8 && [...s].every(ch => FC_ABC.includes(ch)) ? 'RB-' + s.slice(0, 4) + '-' + s.slice(4) : null;
+}
+function newFriendCode() { const a = new Uint8Array(8); crypto.getRandomValues(a); const s = [...a].map(x => FC_ABC[x & 31]).join(''); return 'RB-' + s.slice(0, 4) + '-' + s.slice(4); }
+let MY_FC = HEADLESS ? null : normCode(store.get('sfa.fc', '')) || (() => { const c = newFriendCode(); store.set('sfa.fc', c); return c; })();
 const FRIENDS = { list: store.get('sfa.friends', []), seen: new Set() };
-const peerKey = p => !p ? null : p.presence && p.presence.acct ? 'a:' + p.presence.acct : p.by ? 'u:' + p.by : null;
+// a pilot's keys: their friend code, plus the older account keys so earlier friends lists still match
+const peerKeys = p => { const pr = p && p.presence || {}, out = []; const c = normCode(pr.fc); if (c) out.push('c:' + c); if (pr.acct) out.push('a:' + pr.acct); if (p && p.by) out.push('u:' + p.by); return out; };
+const peerKey = p => peerKeys(p)[0] || null;
+const isFriendPeer = p => peerKeys(p).some(k => isFriend(k));
 function friendsSave() { FRIENDS.list = FRIENDS.list.slice(0, 100); store.set('sfa.friends', FRIENDS.list); cloudDirty(); }
 const isFriend = k => !!k && FRIENDS.list.some(f => f.k === k);
 function addFriend(p) {
-  const k = peerKey(p); if (!k) { toast('That pilot has no account, so they cannot be added. They need to sign in.'); return; }
-  if (isFriend(k)) { toast('Already on your friends list.'); return; }
+  const k = peerKey(p); if (!k) { toast('That pilot is on an older version of the game and has no friend code yet.'); return; }
+  if (isFriendPeer(p)) { toast('Already on your friends list.'); return; }
   FRIENDS.list.push({ k, name: cleanName(p.presence && p.presence.name) || 'Pilot', t: Date.now() }); friendsSave(); toast(`${cleanName(p.presence.name) || 'Pilot'} added to your friends.`);
 }
-function friendOnline(f) { return (NET.lobbyPeers || []).find(p => !p.sameTab && peerKey(p) === f.k && p.presence && p.presence.bc && !p.presence.srv) || null; }
+function friendOnline(f) { return (NET.lobbyPeers || []).find(p => !p.sameTab && peerKeys(p).includes(f.k) && p.presence && p.presence.bc && !p.presence.srv) || null; }
+function addFriendCode(raw) {
+  const c = normCode(raw); if (!c) { toast('Friend codes look like RB-7K3Q-X9PD.'); return false; }
+  if (c === MY_FC) { toast('That is your own code.'); return false; }
+  if (isFriend('c:' + c)) { toast('Already on your friends list.'); return false; }
+  const p = (NET.lobbyPeers || []).find(x => !x.sameTab && peerKeys(x).includes('c:' + c));
+  FRIENDS.list.push({ k: 'c:' + c, name: p ? cleanName(p.presence.name) || c : c, t: Date.now() }); friendsSave();
+  toast(p ? `${cleanName(p.presence.name) || 'Pilot'} added to your friends.` : `${c} added. They show up as online when they are on this server.`); return true;
+}
+function copyFriendCode() { try { navigator.clipboard.writeText(MY_FC).then(() => toast('Friend code copied.'), () => toast('Your friend code: ' + MY_FC)); } catch (e) { toast('Your friend code: ' + MY_FC); } }
+const myCodeHtml = () => MY_FC ? `<div class="fcode">Your friend code <b>${MY_FC}</b> <button class="fcCopy">Copy</button></div>` : '';
+function wireMyCode() { document.querySelectorAll('.fcCopy').forEach(b => b.onclick = copyFriendCode); }
 function friendWhere(p) {
   const sv = p.presence.sv; if (!sv) return 'In the menus';
   const s = SERVERS.find(x => x.id === sv); return s ? `On ${s.name}` : 'In a custom game';
@@ -8536,13 +8602,17 @@ async function showFriends() {
   const rows = FRIENDS.list.map((f, i) => { const p = friendOnline(f); if (p) f.name = cleanName(p.presence.name) || f.name;
     return `<div class="frow${p ? ' on' : ''}"><span class="dot"></span><div><b>${esc(f.name)}</b><span>${p ? esc(friendWhere(p)) + (p.presence.lv ? ' · level ' + (p.presence.lv | 0) : '') : 'Offline'}</span></div>
       ${p && p.presence.sv ? `<button data-join="${i}">Join</button>` : ''}${p ? `<button data-inv="${i}">Invite to party</button>` : ''}<button data-rm="${i}" title="Remove">✕</button></div>`; }).join('');
-  const others = (NET.lobbyPeers || []).filter(p => !p.sameTab && p.presence && p.presence.bc && !p.presence.srv && peerKey(p) && !isFriend(peerKey(p))).slice(0, 30);
+  const others = (NET.lobbyPeers || []).filter(p => !p.sameTab && p.presence && p.presence.bc && !p.presence.srv && peerKey(p) && !isFriendPeer(p)).slice(0, 30);
   showOverlay(`<h2>Friends</h2>
+    ${myCodeHtml()}
+    <div class="sbaddr"><input id="frCode" placeholder="Add a friend by code, e.g. RB-7K3Q-X9PD" maxlength="20" spellcheck="false"><button id="frAdd" class="primary">Add</button></div>
     <div class="flist">${rows || '<p>No friends yet. Add pilots you meet from the list below, the scoreboard or a profile.</p>'}</div>
     ${others.length ? `<h3>PILOTS ONLINE NOW</h3><div class="flist">${others.map((p, i) => `<div class="frow on"><span class="dot"></span><div><b>${esc(cleanName(p.presence.name) || 'Pilot')}</b><span>${esc(friendWhere(p))} · level ${p.presence.lv | 0}</span></div><button data-add="${i}">Add friend</button></div>`).join('')}</div>` : ''}
-    <p style="font-size:13px">Friends are pilots with an account on this server${BE.kind === 'artifact' ? ' or a claude.ai account' : ''}. You get a chat note when one comes online.</p>
+    <p style="font-size:13px">Share your friend code, or add pilots you meet in the Server browser. You get a chat note when a friend comes online, and can join their game from here.</p>
     <div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true);
-  $('#ovBack').onclick = backToMenu;
+  $('#ovBack').onclick = backToMenu; wireMyCode();
+  $('#frCode').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#frAdd').click(); });
+  $('#frAdd').onclick = () => { if (addFriendCode($('#frCode').value)) showFriends(); };
   document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { addFriend(others[+b.dataset.add]); showFriends(); });
   document.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { FRIENDS.list.splice(+b.dataset.rm, 1); friendsSave(); showFriends(); });
   document.querySelectorAll('[data-inv]').forEach(b => b.onclick = () => { const p = friendOnline(FRIENDS.list[+b.dataset.inv]); if (p) { partyInvite(p.peer); toast('Party invite sent.'); } });
@@ -8553,35 +8623,13 @@ async function showFriends() {
 // Lists every RoboBlocks server that reports to a hub (dedicated servers with BC_HUB_URL set), plus the rooms on this one.
 const FAVS = { list: store.get('sfa.favServers', []) };
 async function fetchServerList() {
-  if (BE.kind !== 'server') return { ok: false, why: 'The server browser lists dedicated RoboBlocks servers. It works when you play on one of them.' };
+  if (BE.kind !== 'server' || !SERVER_BASE) return { ok: false, why: 'Not connected to a RoboBlocks server.' };
   try { const r = await fetch(SERVER_BASE + '/servers', { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); return { ok: true, list: Array.isArray(j.servers) ? j.servers : [], hub: j.hub || '' }; }
   catch (e) { return { ok: false, why: 'Could not load the server list: ' + e.message }; }
 }
-async function showServerBrowser() {
-  showOverlay('<h2>Server browser</h2><p>Loading servers…</p>', true);
-  const res = await fetchServerList();
-  const here = SERVER_BASE || location.origin, cleanUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin : null; } catch (e) { return null; } };
-  const list = (res.ok ? res.list : []).map(s => ({ ...s, url: cleanUrl(s.url) })).filter(s => s.url);
-  for (const f of FAVS.list) if (!list.some(s => s.url === f.url)) list.push({ url: f.url, name: f.name || f.url, unknown: true });
-  list.sort((a, b) => (FAVS.list.some(f => f.url === b.url) - FAVS.list.some(f => f.url === a.url)) || (b.players | 0) - (a.players | 0));
-  const rooms = SERVERS.map(s => `<tr><td><b>${esc(s.name)}</b><br><small>${esc(s.blurb || '')}</small></td><td>${(s.rot || []).map(r => (MODES[r[0]] || { short: r[0] }).short).filter((v, i, a) => a.indexOf(v) === i).join(' · ')}</td><td>${s.n}v${s.n}</td><td>${s.locked ? '🔒' : ''}${s.ranked ? ' Ranked' : ''}</td><td><button data-room="${esc(s.id)}">Join</button></td></tr>`).join('');
-  const rows = list.map((s, i) => `<tr${s.url === here ? ' class="here"' : ''}><td><b>${esc(s.name || s.url)}</b><br><small>${esc(s.url.replace(/^https?:\/\//, ''))}${s.motd ? ' · ' + esc(String(s.motd).slice(0, 60)) : ''}</small></td><td>${s.unknown ? '?' : (s.players | 0) + ' / ' + (s.max | 0)}</td><td>${esc(s.version || '')}</td><td>${s.ping != null ? s.ping + ' ms' : ''}</td>
-    <td>${s.url === here ? '<em>You are here</em>' : `<button data-go="${i}">Connect</button>`}<button data-fav="${i}" title="Favourite">${FAVS.list.some(f => f.url === s.url) ? '★' : '☆'}</button></td></tr>`).join('');
-  showOverlay(`<h2>Server browser</h2>
-    <h3>ROOMS ON THIS SERVER</h3><table class="sbt">${rooms}</table>
-    <h3>ROBOBLOCKS SERVERS${res.hub ? ' · from ' + esc(res.hub.replace(/^https?:\/\//, '')) : ''}</h3>
-    ${res.ok ? `<table class="sbt">${rows || '<tr><td>No other servers have reported in yet.</td></tr>'}</table>` : `<p>${esc(res.why)}</p>`}
-    <div class="sbaddr"><input id="sbAddr" placeholder="Server address, e.g. play.example.com:8080" maxlength="120"><button id="sbOpen">Connect</button></div>
-    <p style="font-size:13px">${HOST ? 'Connecting switches the app to that server and updates the game to its version.' : "Connecting opens that server's page."} Your account and saves belong to each server separately.</p>
-    <div class="btns"><button id="sbRefresh">Refresh</button><button class="primary" id="ovBack">Back</button></div>`, true);
-  $('#ovBack').onclick = backToMenu; $('#sbRefresh').onclick = showServerBrowser;
-  const go = url => { if (!url || url === here) return; if (HOST && HOST.setServer) HOST.setServer(url); else location.href = url + '/'; };
-  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(list[+b.dataset.go].url));
-  document.querySelectorAll('[data-fav]').forEach(b => b.onclick = () => { const s = list[+b.dataset.fav], i = FAVS.list.findIndex(f => f.url === s.url); if (i >= 0) FAVS.list.splice(i, 1); else FAVS.list.push({ url: s.url, name: s.name }); store.set('sfa.favServers', FAVS.list.slice(0, 30)); showServerBrowser(); });
-  document.querySelectorAll('[data-room]').forEach(b => b.onclick = () => { const s = SERVERS.find(x => x.id === b.dataset.room); hideOverlay(); joinGame(s.id, s, null); });
-  $('#sbOpen').onclick = () => { let v = $('#sbAddr').value.trim(); if (!v) return; if (!/^https?:\/\//.test(v)) v = 'http://' + v; const u = cleanUrl(v); if (!u) { toast('That does not look like a server address.'); return; } go(u); };
-}
-Object.assign(window.__sfa, { bpAdd, bpState, bpTier, showPass, showFriends, showServerBrowser, FRIENDS, PROG, seasonNo, mySR, skillTeams, brawlNow });
+// the Server browser is the lobby (65-net.js showLobby)
+const showServerBrowser = () => showLobby();
+Object.assign(window.__sfa, { normCode, addFriendCode, get MY_FC() { return MY_FC; }, bpAdd, bpState, bpTier, showPass, showFriends, showServerBrowser, FRIENDS, PROG, seasonNo, mySR, skillTeams, brawlNow });
 // ---- 77-tech.js ----
 // ================= TECH TREE =================
 // Parts, armor tiers, materials and CPU upgrades sit on a hex map that grows out from START. A node can be

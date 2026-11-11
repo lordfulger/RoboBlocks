@@ -154,8 +154,8 @@ function showBays() {
 function showKeys() {
   $('#moreMenu').hidden = true;
   const K = [['Click', 'Place the selected part'], ['Shift + drag', 'Place a row of parts'], ['Right-click', 'Remove a block'], ['Drag', 'Orbit the camera'], ['Right-drag', 'Pan the camera'], ['Scroll', 'Zoom'], ['Double-click', 'Focus on a block'],
-    ['R / T / F', 'Rotate, tilt, roll the next part'], ['B', 'Build'], ['P', 'Paint'], ['G', 'Fill paint'], ['E', 'Erase'], ['I or Alt+click', 'Pick a block\'s part and color'], ['S', 'Select blocks, then arrows to move and Delete to remove'],
-    ['M', 'Mirror: left/right, front/back, off'], ['L', 'Layer cutaway; [ and ] move the layer'], ['C', 'Show the center of mass'], ['1 – 0', 'Quick-pick the first parts'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['?', 'This list']];
+    ['R / T / F', 'Rotate, tilt, roll the next part'], ['B', 'Build'], ['P', 'Paint'], ['G', 'Fill paint'], ['E', 'Erase'], ['I, Alt+click or middle click', 'Pick a block\'s part, color and armor'], ['S', 'Select blocks, then arrows to move and Delete to remove'],
+    ['M / Shift+M', 'Mirror on/off / mirror direction'], ['L', 'Layer cutaway; [ and ] move the layer'], ['C', 'Show the center of mass'], ['1 – 0', 'Quick-pick the first parts'], ['Ctrl+Z / Ctrl+Y', 'Undo / redo'], ['?', 'This list']];
   showOverlay(`<h2>Garage shortcuts</h2><div class="keys">${K.map(([k, d]) => `<kbd>${esc(k)}</kbd><span>${esc(d)}</span>`).join('')}</div><div class="btns"><button class="primary" id="ovBack">Got it</button></div>`, true);
   $('#ovBack').onclick = hideOverlay;
 }

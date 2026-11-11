@@ -79,7 +79,7 @@ function showReportPlayer(prefill) {
   $('#rpSend').onclick = async () => {
     const target = $('#rpWho').value, w = list.find(p => p.name === target);
     try { await sendReport('player', { target, reason: $('#rpWhy').value + ($('#rpText').value.trim() ? ': ' + $('#rpText').value.trim() : ''), where: w ? w.where : '' }); toast('Report sent. Thank you.'); back(); }
-    catch (e) { toast(e.message === 'local' ? 'Reports need a RoboBlocks server or claude.ai.' : e.message); }
+    catch (e) { toast(e.message === "local" ? "Reports go to a RoboBlocks server. Open your server address to send one." : e.message); }
   };
 }
 // ---------- after-match rating (every fifth battle) ----------
@@ -137,7 +137,7 @@ function applyBalance(b) {
   BAL.weaponDamage = wd; BAL.xpRate = +b.xpRate || 1; BAL.cpuBonus = Math.round(+b.cpuBonus || 0); BAL.reactorHealth = +b.reactorHealth || 1; BAL.respawnSeconds = +b.respawnSeconds || 6;
   if (!HEADLESS && state === 'garage') updateStats();
 }
-function netBanner(lost) { const el = $('#netBanner'); if (el && !HEADLESS) el.hidden = !lost; }
+function netBanner(lost) { const el = $('#netBanner'); if (el && !HEADLESS) { el.hidden = !lost; document.body.classList.toggle('netlost', !!lost); } }
 // after a reconnect the relay gives us a new id, so rejoin the game we were in
 NET.onReconnect = () => {
   netBanner(false); NET.me = myPeer();

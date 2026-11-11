@@ -145,6 +145,8 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .flist{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}.frow{display:grid;grid-template-columns:12px 1fr auto auto auto;gap:10px;align-items:center;border:1px solid var(--line);padding:6px 10px}
 .frow>div{display:flex;flex-direction:column}.frow span{font-size:13px;color:var(--muted)}.frow .dot{width:9px;height:9px;border-radius:50%;background:#555}.frow.on .dot{background:#5fd36a}
 .sbaddr{display:flex;gap:8px;margin:6px 0}.sbaddr input{flex:1;min-width:0}
+.fcode{margin:4px 0 10px;font-size:14px;color:#c9d2d8}.fcode b{font-family:var(--display);letter-spacing:.08em;color:#ffd36a;margin:0 6px}.fcode button{padding:3px 10px;font-size:12px}
+#sbHost{margin:10px 0}#sbHost summary{cursor:pointer;font-family:var(--display);font-size:13px;letter-spacing:.14em;color:var(--dim,#9aa6ae);padding:6px 0}#sbHost[open] summary{color:inherit}
 .sbt{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:10px}.sbt td{border-top:1px solid var(--line);padding:6px 8px;vertical-align:middle}.sbt tr.here{background:rgba(255,160,40,.08)}.sbt small{color:var(--muted)}.sbt button{padding:4px 10px;margin-left:4px}
 .wslot.grp{border-color:#7a6a2a}.wslot.grp .k{color:#ffd76a}
 .wgrow{display:grid;grid-template-columns:auto 1fr auto auto;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
@@ -393,6 +395,8 @@ body.touch #mods{right:auto;left:50%;transform:translateX(-50%);bottom:calc(64px
 #perf[hidden],#updBanner[hidden],#netBanner[hidden]{display:none}
 #updBanner,#netBanner{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:95;display:flex;gap:12px;align-items:center;padding:10px 14px;border-left:3px solid var(--accent)}
 #netBanner{top:calc(70px + env(safe-area-inset-top,0px));bottom:auto;border-left-color:var(--enemy);font-weight:600}
+#btnMirAxis[hidden]{display:none}
+body.netlost #toast{top:calc(128px + env(safe-area-inset-top,0px))}
 .survey{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:8px 0;padding:8px;border:1px solid var(--line);background:#0d1114}.survey span{margin-right:6px}.survey input{flex:1;min-width:160px;background:#0b0f12;border:1px solid var(--line);color:var(--fg);padding:6px 8px;font:inherit;font-size:13px}.survey button{font-size:12px;padding:6px 10px}
 ul.news{margin:4px 0 10px;padding-left:20px}ul.news li{margin:3px 0}
 #mats{display:flex;flex-wrap:wrap;gap:3px}#mats .mat{font-size:11px;padding:4px 7px;clip-path:none}#mats .mat.sel{background:#2b2116;border-color:var(--accent);color:var(--accent)}#mats .mat.locked{opacity:.4}
@@ -453,9 +457,9 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 #techTree .tt-cell .in{position:absolute;inset:4px;clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);background:#1b232a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:12px 5px 8px}
 #techTree .tt-cell.bg{background:#121920;opacity:.6;pointer-events:none;width:84px;height:96px;margin:-48px 0 0 -42px}
 #techTree .node{cursor:pointer;transition:transform .12s}#techTree .node:hover{transform:scale(1.07);z-index:2}
-#techTree .node img{width:38px;height:38px;object-fit:contain;pointer-events:none}
-#techTree .node .nm{font-size:9.5px;line-height:1.05;text-align:center;letter-spacing:.02em;max-width:70px;overflow:hidden;max-height:21px;text-transform:uppercase}
-#techTree .node .ct{font-size:10px;color:#ffd76a}
+#techTree .node img{width:30px;height:30px;object-fit:contain;pointer-events:none}
+#techTree .node .nm{font-size:10.5px;line-height:1.12;text-align:center;letter-spacing:.01em;max-width:78px;overflow:hidden;max-height:24px;text-transform:uppercase}
+#techTree .node .ct{font-size:12px;font-weight:700;color:#ffd76a}
 #techTree .node.own{background:var(--accent)}#techTree .node.own .in{background:linear-gradient(#3a2a14,#24190c)}#techTree .node.own .nm{color:#ffd9b3}
 #techTree .node.ready{background:#9fd8ff;animation:ttGlow 1.6s ease-in-out infinite}#techTree .node.ready .in{background:#253744}
 #techTree .node.poor{background:#3a4a56}#techTree .node.poor .in{background:#1f2a32}
@@ -466,14 +470,14 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 @keyframes ttGlow{50%{background:#3a6b8a}}@keyframes ttPop{0%{transform:scale(1.25)}100%{transform:scale(1)}}
 #techTree .tti{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid #5b6b78}#techTree .tti.tcpu{color:#7ff0a0;border-color:#3f8a5a;background:#12261a}
 #techTree img.mat-light{filter:brightness(1.35) saturate(.4) hue-rotate(180deg)}#techTree img.mat-heavy{filter:brightness(.7) contrast(1.3) saturate(.2)}#techTree img.mat-reactive{filter:sepia(1) saturate(3) hue-rotate(-20deg)}#techTree img.mat-energy{filter:sepia(1) saturate(4) hue-rotate(140deg) brightness(1.2)}
-#techTree .tt-side{width:290px;flex-shrink:0;margin:14px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;z-index:2}
-#techTree .tt-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);letter-spacing:.12em}#techTree .tt-head button{padding:4px 10px}
-#techTree .tt-pts b{display:block;font-size:44px;line-height:1;color:var(--accent);font-family:var(--display)}#techTree .tt-pts small{color:var(--muted);font-size:12px}
-#techTree .tt-card{border:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:6px;min-height:120px}#techTree .tt-card p{margin:0;font-size:13px;color:#c9d3d9}#techTree .tt-card small{color:var(--muted)}
+#techTree .tt-side{width:360px;flex-shrink:0;margin:14px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;z-index:2}
+#techTree .tt-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);letter-spacing:.12em;font-size:20px}#techTree .tt-head button{padding:4px 10px}
+#techTree .tt-pts b{display:block;font-size:52px;line-height:1;color:var(--accent);font-family:var(--display)}#techTree .tt-pts small{color:#b4c0c8;font-size:15px}
+#techTree .tt-card{border:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:6px;min-height:120px}#techTree .tt-card{font-size:16px}#techTree .tt-card b{font-size:20px}#techTree .tt-card p{margin:0;font-size:16px;line-height:1.4;color:#dfe6ea}#techTree .tt-card small{color:#b4c0c8;font-size:15px}
 #techTree .tt-card .tt-ci img,#techTree .tt-card .tt-ci .tti{width:56px;height:56px}#techTree .tt-card .st.ready{color:#ffd76a}#techTree .tt-card .st.level,#techTree .tt-card .st.far,#techTree .tt-card .st.poor{color:#ff9a8a}
-#techTree .tt-legend{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--muted)}#techTree .tt-legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+#techTree .tt-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:14px;color:#b4c0c8}#techTree .tt-legend i{display:inline-block;width:13px;height:13px;margin-right:5px;vertical-align:-1px}
 #techTree .tt-legend i.own{background:var(--accent)}#techTree .tt-legend i.ready{background:#36505f}#techTree .tt-legend i.level{background:#161c22;border:1px solid #444}#techTree .tt-legend i.far{background:#0f1418;border:1px dashed #444}
-#techTree .tt-btns{display:flex;gap:8px}#techTree .tt-btns .warn{border-color:#ff6a5a;color:#ff9a8a}#techTree .tt-tip{font-size:12px;color:var(--muted);margin:0}
+#techTree .tt-btns{display:flex;gap:8px}#techTree .tt-btns .warn{border-color:#ff6a5a;color:#ff9a8a}#techTree .tt-tip{font-size:14px;line-height:1.45;color:#b4c0c8;margin:0}#techTree .tt-btns button{font-size:15px}
 #techTree .tt-side>*{flex-shrink:0}
 @media (max-width:760px){#techTree{flex-direction:column}#techTree .tt-side{width:auto;max-height:44vh;margin:0;padding:12px 14px;gap:8px;border-radius:0}#techTree .tt-legend,#techTree .tt-tip{display:none}#techTree .tt-pts b{font-size:32px;display:inline;margin-right:8px}#techTree .tt-card{min-height:0}#techTree .tt-card .tt-ci{display:none}}
 #toast{z-index:90}
@@ -487,7 +491,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
   <nav class="mnav">
     <button id="mPlay" class="primary big">Play</button>
     <button id="mQuick" class="big">Quick play</button>
-    <button id="mOnline" class="big">Multiplayer</button>
+    <button id="mOnline" class="big">Server browser</button>
     <button id="mGarage" class="big">Garage</button>
     <button id="mTech" class="big tech">Tech tree <b class="techN" hidden></b></button>
     <button id="mTest">Test drive</button>
@@ -497,7 +501,6 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <button id="mClans">Clans</button>
     <button id="mPass">Battle pass</button>
     <button id="mFriends">Friends</button>
-    <button id="mBrowse">Server browser</button>
     <button id="mReplay">Last replay</button>
     <button id="mLeader">Leaderboards</button>
     <button id="mShop">Robot Shop</button>
@@ -550,7 +553,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <div class="tbrow"><div id="swatches"></div><select id="finishSel" title="Paint finish for this bot" aria-label="Paint finish"></select></div>
     <div class="tbrow">
       <div class="tg"><button id="btnPlace" class="tb on" title="Build: place parts (B)"><i>✚</i><span>Build</span></button><button id="btnPaint" class="tb" title="Repaint and re-tier blocks (P)"><i>◐</i><span>Paint</span></button><button id="btnFill" class="tb" title="Repaint a whole patch of one color (G)"><i>▤</i><span>Fill</span></button><button id="btnErase" class="tb" title="Erase blocks (E)"><i>✕</i><span>Erase</span></button><button id="btnPick" class="tb" title="Copy a block's part, color and tier (I, or Alt+click)"><i>◎</i><span>Pick</span></button><button id="btnSel" class="tb" title="Select blocks to move, copy or delete (S)"><i>⬚</i><span>Select</span></button></div>
-      <div class="tg"><button id="btnRot" class="tb" title="Turn the block (R)"><i>⟳</i><span>Rotate</span></button><button id="btnTilt" class="tb" title="Tip the block forward (T)"><i>⤵</i><span>Tilt</span></button><button id="btnRoll" class="tb" title="Roll the block sideways (F)"><i>⇋</i><span>Roll</span></button><button id="btnMirror" class="tb" title="Mirror: left/right, front/back, off (M)"><i>⇆</i><span>Mirror</span></button></div>
+      <div class="tg"><button id="btnRot" class="tb" title="Turn the block (R)"><i>⟳</i><span>Rotate</span></button><button id="btnTilt" class="tb" title="Tip the block forward (T)"><i>⤵</i><span>Tilt</span></button><button id="btnRoll" class="tb" title="Roll the block sideways (F)"><i>⇋</i><span>Roll</span></button><button id="btnMirror" class="tb" title="Mirror building on or off (M)"><i>⇆</i><span>Mirror</span></button><button id="btnMirAxis" class="tb" title="Mirror direction: left/right or front/back (Shift+M)"><i>⇆</i><span>Left/right</span></button></div>
       <div class="tg"><button id="btnUndo" class="tb" title="Undo (Ctrl+Z)"><i>↶</i><span>Undo</span></button><button id="btnRedo" class="tb" title="Redo (Ctrl+Y)"><i>↷</i><span>Redo</span></button></div>
       <div class="tg"><button id="btnLayer" class="tb" title="Cut away the upper layers to build inside (L, then [ and ])"><i>▦</i><span>Layers</span></button><button id="btnBal" class="tb" title="Show the center of mass (C)"><i>⊕</i><span>Balance</span></button><button id="btnWeak" class="tb" title="Show which blocks hold your bot together"><i>⚠</i><span>Weak</span></button><button id="btnViews" class="tb" title="Camera views"><i>⌖</i><span>View</span></button><button id="btnMore" class="tb" title="More"><i>⋯</i><span>More</span></button></div>
     </div>

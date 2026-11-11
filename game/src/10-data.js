@@ -150,7 +150,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.0';
+const BC_VERSION = '2.8.1';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -159,6 +159,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.1', ['Online play now runs only on RoboBlocks servers. The main menu\'s Server browser lists this server\'s rooms live, other servers and favourites, and takes any server address.', 'Friend codes: every pilot has a code like RB-7K3Q-X9PD. Add friends by code, or straight from the pilot list in the Server browser.', 'Sound starts as soon as the game opens (on the first key or click in browsers that hold it back).', 'Garage: middle click picks the block under the cursor (part, color, armor). Mirror is now a simple on/off switch, with its own button for the direction.', 'Bigger, easier-to-read text in the Tech Tree.', 'The connection-lost banner no longer covers other messages.']],
   ['2.8.0', ['Loadouts: your garage bays are your loadout. Pick which bot to deploy, and while wrecked press 1–5 (LB/RB on a gamepad, or tap a card) to rebuild as a different bot. Works online.', 'Map sizes: Small, Medium and Large arenas, or Auto to match the team size. Obstacles, trees and craters scale with the map.', 'Three new space maps: Crimson Nebula (glowing gas and ice shards), Dry Dock (a half-built cruiser inside a scaffold) and Ring Belt (bands of rock with clear lanes). Choose one in Battle setup.', 'Painted nebula skies, ringed planets with glowing atmospheres, and work lights in space.', 'New Ultra graphics: full-resolution rendering, light shafts from the sun, film grain, and wider, sharper shadows.', 'Every map has its own colour grade on High and Ultra.', 'RoboBlocks is now on GitHub: servers install and update from the latest release.']],
   ['2.7.0', ['Weapon balance pass, tested with thousands of AI duels: every weapon now wins its fair share in its own range.', 'Splash damage is capped per blast (1.8 times its damage to one bot), so tightly packed bots no longer take ten times the damage from mortars and plasma.', 'Flak shells now burst right next to ground bots instead of short of them.', 'Arc Lance: each extra lance now adds damage. Gravity mines snap shut when they land near an enemy. Tesla blades are cheaper, tougher, hit harder and pull you onto nearby enemies.', 'Blaster, chain gun, plasma, rail and Rail Lancer toned down slightly; seeker, flak and mines buffed.']],
   ['2.6.0', ['New desktop app: RoboBlocks runs in its own window and updates itself from your server.', 'Far more detailed robots: armored turret mounts, cooling rings, ammo boxes, coil rails, tread links, rotor blades and bevelled armor blocks.', 'Barrels kick back when they fire.', 'Speeds show in mph (switch to km/h in Settings). Settings also has a Simple robot detail option for older computers.']],
@@ -490,6 +491,8 @@ const hiQ = () => settings.quality === 'high' || settings.quality === 'ultra', u
 // speeds are shown in mph unless the player picks km/h (game units are metres per second)
 // the desktop app (window.ROBOBLOCKS) names its server; a page served by a server uses that server
 const HOST = (typeof window !== 'undefined' && window.ROBOBLOCKS) || null;
-const SERVER_BASE = (() => { try { if (HOST && HOST.server) { const u = new URL(HOST.server); if (/^https?:$/.test(u.protocol)) return u.origin; } if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol)) return location.origin; } catch (e) { } return null; })();
+// true when this copy runs inside an embedded web preview (it then plays offline: online play is server-only)
+const onClaudePage = () => typeof window !== 'undefined' && !!window.claude;
+const SERVER_BASE = (() => { try { if (HOST && HOST.server) { const u = new URL(HOST.server); if (/^https?:$/.test(u.protocol)) return u.origin; } if (typeof location !== 'undefined' && /^https?:$/.test(location.protocol) && !onClaudePage()) return location.origin; } catch (e) { } return null; })();
 const fmtSpeed = ms => settings.units === 'kmh' ? Math.round(ms * 3.6) + ' km/h' : Math.round(ms * 2.23694) + ' mph';
 const saveSettings = () => { store.set('sfa.settings', settings); cloudDirty(); };

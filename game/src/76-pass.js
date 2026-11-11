@@ -82,17 +82,39 @@ function showPass() {
 }
 
 // ---------- friends ----------
-// A friend is a pilot you follow: their account on a dedicated server, or their claude.ai identity on the artifact.
+// A friend is a pilot you follow, found by their friend code. Every pilot has one (RB-XXXX-XXXX), guests too;
+// it is kept with your save, so a signed-in account keeps the same code on every computer.
+const FC_ABC = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'; // no 0/O or 1/I, so codes read back without mistakes
+function normCode(c) {
+  let s = String(c || '').toUpperCase().replace(/[^0-9A-Z]/g, ''); if (s.length === 10 && s.startsWith('RB')) s = s.slice(2);
+  return s.length === 8 && [...s].every(ch => FC_ABC.includes(ch)) ? 'RB-' + s.slice(0, 4) + '-' + s.slice(4) : null;
+}
+function newFriendCode() { const a = new Uint8Array(8); crypto.getRandomValues(a); const s = [...a].map(x => FC_ABC[x & 31]).join(''); return 'RB-' + s.slice(0, 4) + '-' + s.slice(4); }
+let MY_FC = HEADLESS ? null : normCode(store.get('sfa.fc', '')) || (() => { const c = newFriendCode(); store.set('sfa.fc', c); return c; })();
 const FRIENDS = { list: store.get('sfa.friends', []), seen: new Set() };
-const peerKey = p => !p ? null : p.presence && p.presence.acct ? 'a:' + p.presence.acct : p.by ? 'u:' + p.by : null;
+// a pilot's keys: their friend code, plus the older account keys so earlier friends lists still match
+const peerKeys = p => { const pr = p && p.presence || {}, out = []; const c = normCode(pr.fc); if (c) out.push('c:' + c); if (pr.acct) out.push('a:' + pr.acct); if (p && p.by) out.push('u:' + p.by); return out; };
+const peerKey = p => peerKeys(p)[0] || null;
+const isFriendPeer = p => peerKeys(p).some(k => isFriend(k));
 function friendsSave() { FRIENDS.list = FRIENDS.list.slice(0, 100); store.set('sfa.friends', FRIENDS.list); cloudDirty(); }
 const isFriend = k => !!k && FRIENDS.list.some(f => f.k === k);
 function addFriend(p) {
-  const k = peerKey(p); if (!k) { toast('That pilot has no account, so they cannot be added. They need to sign in.'); return; }
-  if (isFriend(k)) { toast('Already on your friends list.'); return; }
+  const k = peerKey(p); if (!k) { toast('That pilot is on an older version of the game and has no friend code yet.'); return; }
+  if (isFriendPeer(p)) { toast('Already on your friends list.'); return; }
   FRIENDS.list.push({ k, name: cleanName(p.presence && p.presence.name) || 'Pilot', t: Date.now() }); friendsSave(); toast(`${cleanName(p.presence.name) || 'Pilot'} added to your friends.`);
 }
-function friendOnline(f) { return (NET.lobbyPeers || []).find(p => !p.sameTab && peerKey(p) === f.k && p.presence && p.presence.bc && !p.presence.srv) || null; }
+function friendOnline(f) { return (NET.lobbyPeers || []).find(p => !p.sameTab && peerKeys(p).includes(f.k) && p.presence && p.presence.bc && !p.presence.srv) || null; }
+function addFriendCode(raw) {
+  const c = normCode(raw); if (!c) { toast('Friend codes look like RB-7K3Q-X9PD.'); return false; }
+  if (c === MY_FC) { toast('That is your own code.'); return false; }
+  if (isFriend('c:' + c)) { toast('Already on your friends list.'); return false; }
+  const p = (NET.lobbyPeers || []).find(x => !x.sameTab && peerKeys(x).includes('c:' + c));
+  FRIENDS.list.push({ k: 'c:' + c, name: p ? cleanName(p.presence.name) || c : c, t: Date.now() }); friendsSave();
+  toast(p ? `${cleanName(p.presence.name) || 'Pilot'} added to your friends.` : `${c} added. They show up as online when they are on this server.`); return true;
+}
+function copyFriendCode() { try { navigator.clipboard.writeText(MY_FC).then(() => toast('Friend code copied.'), () => toast('Your friend code: ' + MY_FC)); } catch (e) { toast('Your friend code: ' + MY_FC); } }
+const myCodeHtml = () => MY_FC ? `<div class="fcode">Your friend code <b>${MY_FC}</b> <button class="fcCopy">Copy</button></div>` : '';
+function wireMyCode() { document.querySelectorAll('.fcCopy').forEach(b => b.onclick = copyFriendCode); }
 function friendWhere(p) {
   const sv = p.presence.sv; if (!sv) return 'In the menus';
   const s = SERVERS.find(x => x.id === sv); return s ? `On ${s.name}` : 'In a custom game';
@@ -109,13 +131,17 @@ async function showFriends() {
   const rows = FRIENDS.list.map((f, i) => { const p = friendOnline(f); if (p) f.name = cleanName(p.presence.name) || f.name;
     return `<div class="frow${p ? ' on' : ''}"><span class="dot"></span><div><b>${esc(f.name)}</b><span>${p ? esc(friendWhere(p)) + (p.presence.lv ? ' · level ' + (p.presence.lv | 0) : '') : 'Offline'}</span></div>
       ${p && p.presence.sv ? `<button data-join="${i}">Join</button>` : ''}${p ? `<button data-inv="${i}">Invite to party</button>` : ''}<button data-rm="${i}" title="Remove">✕</button></div>`; }).join('');
-  const others = (NET.lobbyPeers || []).filter(p => !p.sameTab && p.presence && p.presence.bc && !p.presence.srv && peerKey(p) && !isFriend(peerKey(p))).slice(0, 30);
+  const others = (NET.lobbyPeers || []).filter(p => !p.sameTab && p.presence && p.presence.bc && !p.presence.srv && peerKey(p) && !isFriendPeer(p)).slice(0, 30);
   showOverlay(`<h2>Friends</h2>
+    ${myCodeHtml()}
+    <div class="sbaddr"><input id="frCode" placeholder="Add a friend by code, e.g. RB-7K3Q-X9PD" maxlength="20" spellcheck="false"><button id="frAdd" class="primary">Add</button></div>
     <div class="flist">${rows || '<p>No friends yet. Add pilots you meet from the list below, the scoreboard or a profile.</p>'}</div>
     ${others.length ? `<h3>PILOTS ONLINE NOW</h3><div class="flist">${others.map((p, i) => `<div class="frow on"><span class="dot"></span><div><b>${esc(cleanName(p.presence.name) || 'Pilot')}</b><span>${esc(friendWhere(p))} · level ${p.presence.lv | 0}</span></div><button data-add="${i}">Add friend</button></div>`).join('')}</div>` : ''}
-    <p style="font-size:13px">Friends are pilots with an account on this server${BE.kind === 'artifact' ? ' or a claude.ai account' : ''}. You get a chat note when one comes online.</p>
+    <p style="font-size:13px">Share your friend code, or add pilots you meet in the Server browser. You get a chat note when a friend comes online, and can join their game from here.</p>
     <div class="btns"><button class="primary" id="ovBack">Back</button></div>`, true);
-  $('#ovBack').onclick = backToMenu;
+  $('#ovBack').onclick = backToMenu; wireMyCode();
+  $('#frCode').addEventListener('keydown', e => { e.stopPropagation(); if (e.key === 'Enter') $('#frAdd').click(); });
+  $('#frAdd').onclick = () => { if (addFriendCode($('#frCode').value)) showFriends(); };
   document.querySelectorAll('[data-add]').forEach(b => b.onclick = () => { addFriend(others[+b.dataset.add]); showFriends(); });
   document.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { FRIENDS.list.splice(+b.dataset.rm, 1); friendsSave(); showFriends(); });
   document.querySelectorAll('[data-inv]').forEach(b => b.onclick = () => { const p = friendOnline(FRIENDS.list[+b.dataset.inv]); if (p) { partyInvite(p.peer); toast('Party invite sent.'); } });
@@ -126,32 +152,10 @@ async function showFriends() {
 // Lists every RoboBlocks server that reports to a hub (dedicated servers with BC_HUB_URL set), plus the rooms on this one.
 const FAVS = { list: store.get('sfa.favServers', []) };
 async function fetchServerList() {
-  if (BE.kind !== 'server') return { ok: false, why: 'The server browser lists dedicated RoboBlocks servers. It works when you play on one of them.' };
+  if (BE.kind !== 'server' || !SERVER_BASE) return { ok: false, why: 'Not connected to a RoboBlocks server.' };
   try { const r = await fetch(SERVER_BASE + '/servers', { cache: 'no-store' }); if (!r.ok) throw new Error('HTTP ' + r.status); const j = await r.json(); return { ok: true, list: Array.isArray(j.servers) ? j.servers : [], hub: j.hub || '' }; }
   catch (e) { return { ok: false, why: 'Could not load the server list: ' + e.message }; }
 }
-async function showServerBrowser() {
-  showOverlay('<h2>Server browser</h2><p>Loading servers…</p>', true);
-  const res = await fetchServerList();
-  const here = SERVER_BASE || location.origin, cleanUrl = u => { try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.origin : null; } catch (e) { return null; } };
-  const list = (res.ok ? res.list : []).map(s => ({ ...s, url: cleanUrl(s.url) })).filter(s => s.url);
-  for (const f of FAVS.list) if (!list.some(s => s.url === f.url)) list.push({ url: f.url, name: f.name || f.url, unknown: true });
-  list.sort((a, b) => (FAVS.list.some(f => f.url === b.url) - FAVS.list.some(f => f.url === a.url)) || (b.players | 0) - (a.players | 0));
-  const rooms = SERVERS.map(s => `<tr><td><b>${esc(s.name)}</b><br><small>${esc(s.blurb || '')}</small></td><td>${(s.rot || []).map(r => (MODES[r[0]] || { short: r[0] }).short).filter((v, i, a) => a.indexOf(v) === i).join(' · ')}</td><td>${s.n}v${s.n}</td><td>${s.locked ? '🔒' : ''}${s.ranked ? ' Ranked' : ''}</td><td><button data-room="${esc(s.id)}">Join</button></td></tr>`).join('');
-  const rows = list.map((s, i) => `<tr${s.url === here ? ' class="here"' : ''}><td><b>${esc(s.name || s.url)}</b><br><small>${esc(s.url.replace(/^https?:\/\//, ''))}${s.motd ? ' · ' + esc(String(s.motd).slice(0, 60)) : ''}</small></td><td>${s.unknown ? '?' : (s.players | 0) + ' / ' + (s.max | 0)}</td><td>${esc(s.version || '')}</td><td>${s.ping != null ? s.ping + ' ms' : ''}</td>
-    <td>${s.url === here ? '<em>You are here</em>' : `<button data-go="${i}">Connect</button>`}<button data-fav="${i}" title="Favourite">${FAVS.list.some(f => f.url === s.url) ? '★' : '☆'}</button></td></tr>`).join('');
-  showOverlay(`<h2>Server browser</h2>
-    <h3>ROOMS ON THIS SERVER</h3><table class="sbt">${rooms}</table>
-    <h3>ROBOBLOCKS SERVERS${res.hub ? ' · from ' + esc(res.hub.replace(/^https?:\/\//, '')) : ''}</h3>
-    ${res.ok ? `<table class="sbt">${rows || '<tr><td>No other servers have reported in yet.</td></tr>'}</table>` : `<p>${esc(res.why)}</p>`}
-    <div class="sbaddr"><input id="sbAddr" placeholder="Server address, e.g. play.example.com:8080" maxlength="120"><button id="sbOpen">Connect</button></div>
-    <p style="font-size:13px">${HOST ? 'Connecting switches the app to that server and updates the game to its version.' : "Connecting opens that server's page."} Your account and saves belong to each server separately.</p>
-    <div class="btns"><button id="sbRefresh">Refresh</button><button class="primary" id="ovBack">Back</button></div>`, true);
-  $('#ovBack').onclick = backToMenu; $('#sbRefresh').onclick = showServerBrowser;
-  const go = url => { if (!url || url === here) return; if (HOST && HOST.setServer) HOST.setServer(url); else location.href = url + '/'; };
-  document.querySelectorAll('[data-go]').forEach(b => b.onclick = () => go(list[+b.dataset.go].url));
-  document.querySelectorAll('[data-fav]').forEach(b => b.onclick = () => { const s = list[+b.dataset.fav], i = FAVS.list.findIndex(f => f.url === s.url); if (i >= 0) FAVS.list.splice(i, 1); else FAVS.list.push({ url: s.url, name: s.name }); store.set('sfa.favServers', FAVS.list.slice(0, 30)); showServerBrowser(); });
-  document.querySelectorAll('[data-room]').forEach(b => b.onclick = () => { const s = SERVERS.find(x => x.id === b.dataset.room); hideOverlay(); joinGame(s.id, s, null); });
-  $('#sbOpen').onclick = () => { let v = $('#sbAddr').value.trim(); if (!v) return; if (!/^https?:\/\//.test(v)) v = 'http://' + v; const u = cleanUrl(v); if (!u) { toast('That does not look like a server address.'); return; } go(u); };
-}
-Object.assign(window.__sfa, { bpAdd, bpState, bpTier, showPass, showFriends, showServerBrowser, FRIENDS, PROG, seasonNo, mySR, skillTeams, brawlNow });
+// the Server browser is the lobby (65-net.js showLobby)
+const showServerBrowser = () => showLobby();
+Object.assign(window.__sfa, { normCode, addFriendCode, get MY_FC() { return MY_FC; }, bpAdd, bpState, bpTier, showPass, showFriends, showServerBrowser, FRIENDS, PROG, seasonNo, mySR, skillTeams, brawlNow });

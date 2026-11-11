@@ -61,7 +61,7 @@ async function showProfile() {
   showOverlay('<h2>Profile</h2><p>Loading…</p>', true);
   let p; try { p = await beProfile(); } catch (e) { showOverlay('<h2>Profile</h2>' + errBox(e) + '<div class="btns"><button class="primary" id="ovBack">Back</button></div>', true); $('#ovBack').onclick = backToMenu; return; }
   const rk = rankOf(p.elo || 1200), kd = p.deaths ? (p.kills / p.deaths).toFixed(2) : (p.kills || 0).toFixed(2);
-  const where = BE.kind === 'server' ? (BE.me ? 'Saved on this server.' : 'Guest: saved in this browser only. Sign in to keep it on the server.') : BE.kind === 'artifact' ? 'Saved with your claude.ai account.' : 'Saved in this browser.';
+  const where = BE.kind === 'server' ? (BE.me ? 'Saved on this server.' : 'Guest: saved in this browser only. Sign in to keep it on the server.') : 'Saved in this browser.';
   const rows = (p.history || []).map(h => `<tr><td>${esc(ago(h.t))}</td><td>${esc((MODES[h.mode] || { name: h.mode || '?' }).name)}${h.practice ? ' <small>practice</small>' : ''}</td><td>${esc((MAPS[h.map] || { name: h.map || '' }).name)}</td><td class="${h.result === 'win' ? 'win' : h.result === 'loss' ? 'lose' : ''}">${h.result === 'win' ? 'Victory' : h.result === 'loss' ? 'Defeat' : 'Draw'}</td><td class="num">${h.kills | 0} / ${h.deaths | 0}</td><td class="num">${fmtN(h.dmg)}</td><td class="num">+${fmtN(h.xp)}${h.elo ? ` <small>${h.elo > 0 ? '+' : ''}${h.elo}</small>` : ''}</td></tr>`).join('');
   showOverlay(`<h2>${esc(p.name || NET.name || 'Pilot')}</h2><p>${where}</p>
     <div class="grid stats6"><div><span class="label">Level</span><b class="num">${p.lv}</b></div><div><span class="label">XP</span><b class="num">${fmtN(p.xp)}</b></div><div><span class="label">Wins</span><b class="num">${p.wins} / ${p.matches}</b></div>
@@ -176,7 +176,7 @@ async function showAdmin() {
   if (!all.length) bl.innerHTML = '<p class="gempty">Nobody is banned.</p>';
   for (const [kind, x] of all) {
     const r = document.createElement('div'); r.className = 'grow';
-    const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = art ? 'Pilot ' + x.slice(0, 10) : x; const s = document.createElement('span'); s.textContent = kind === 'ip' ? 'address' : art ? 'claude.ai account' : 'account'; info.append(b, s);
+    const info = document.createElement('div'); const b = document.createElement('b'); b.textContent = art ? 'Pilot ' + x.slice(0, 10) : x; const s = document.createElement('span'); s.textContent = kind === 'ip' ? 'address' : art ? 'account' : 'account'; info.append(b, s);
     const u = document.createElement('button'); u.textContent = 'Unban'; u.onclick = async () => { try { await beAdmin('unban', { x }); showAdmin(); } catch (e) { toast(e.message); } };
     r.append(info, u); bl.appendChild(r);
   }
