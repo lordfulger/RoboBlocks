@@ -30,7 +30,7 @@ const MAP_GRADE = {
   rings: { sat: 1.1, con: 1.06, tS: [.98, .95, .98], tH: [1.06, 1.0, .9] },
 };
 function gradeFor(mapId, tod) {
-  const g = MAP_GRADE[mapId] || GRADE_NONE, out = { sat: g.sat, con: g.con, tS: g.tS.slice(), tH: g.tH.slice() };
+  const g = MAP_GRADE[mapKind(mapId)] || GRADE_NONE, out = { sat: g.sat, con: g.con, tS: g.tS.slice(), tH: g.tH.slice() };
   if (tod === 'night') { out.sat *= .85; out.tS = [out.tS[0] * .9, out.tS[1] * .96, out.tS[2] * 1.1]; }
   else if (tod === 'dusk' || tod === 'dawn') { out.sat *= 1.06; out.tH = [out.tH[0] * 1.05, out.tH[1], out.tH[2] * .94]; }
   return out;

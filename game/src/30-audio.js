@@ -331,7 +331,7 @@ const SFX = {
   beamStop() { const l = this.laser; if (!l) return; this.laser = null; const t = this.ctx.currentTime; l.g.gain.setTargetAtTime(0, t, .05); for (const n of l.nodes) n.stop(t + .3); },
   // ---- map ambience: a bed per map plus occasional events ----
   ambientStart(mapId) {
-    this.ambientStop(); if (!this.ctx) return;
+    this.ambientStop(); if (!this.ctx) return; mapId = mapKind(mapId);
     const c = this.ctx, a = this.amb = { mapId, nodes: [], evT: 2 };
     a.g = c.createGain(); a.g.gain.value = 0; a.g.connect(this.sfxBus); const wet = c.createGain(); wet.gain.value = .3; a.g.connect(wet); wet.connect(this.wet);
     const bed = (type, f, q, gain, lfoF, lfoD) => { const n = this.loopNoise(), fl = c.createBiquadFilter(), g = c.createGain(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; g.gain.value = gain; n.connect(fl); fl.connect(g); g.connect(a.g); a.nodes.push(n); if (lfoF) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = lfoF; lg.gain.value = lfoD; l.connect(lg); lg.connect(fl.frequency); l.start(); a.nodes.push(l); } };

@@ -478,7 +478,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
 #techTree .node.start{background:#fff}#techTree .node.start .in{background:#e9edf0;color:#111}#techTree .node.start b{font-size:16px;letter-spacing:.06em}
 #techTree .node.pulse{animation:ttPop .4s ease-out}
 @keyframes ttGlow{50%{background:#3a6b8a}}@keyframes ttPop{0%{transform:scale(1.25)}100%{transform:scale(1)}}
-#techTree .tti{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid #5b6b78}#techTree .tti.tcpu{color:#7ff0a0;border-color:#3f8a5a;background:#12261a}#evStrip{margin-top:10px;display:inline-block;padding:6px 12px;border-radius:6px;background:rgba(255,170,40,.16);border:1px solid rgba(255,170,40,.55);color:#ffd27a;font-weight:600;font-size:14px}.evline{padding:8px 12px;border-radius:6px;background:rgba(255,170,40,.14);border:1px solid rgba(255,170,40,.5);color:#ffd27a;font-weight:600;margin:6px 0 4px}#techTree .tti.tup{color:#ffd27a;border-color:#8a6a2f;background:#2a1f0e;font-size:17px;position:relative}#techTree .tti.tup sup{position:absolute;right:-4px;top:-6px;font-size:10px;background:#8a6a2f;color:#fff;border-radius:7px;padding:0 4px;line-height:14px}
+#techTree .tti{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:14px;border:2px solid #5b6b78}#techTree .tti.tcpu{color:#7ff0a0;border-color:#3f8a5a;background:#12261a}#mapMaker{position:fixed;inset:0;z-index:60;display:flex;background:#0d1116}#mapMaker[hidden]{display:none}#mapMaker .mm-view{flex:1;position:relative;min-width:0}#mmCanvas{position:absolute;inset:56px 12px 40px;width:calc(100% - 24px);height:calc(100% - 96px);cursor:crosshair;touch-action:none}#mapMaker .mm-tools{position:absolute;left:12px;right:12px;top:10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}#mapMaker .mm-tools button.sel,#mapMaker .mm-bases button.sel{background:var(--accent);color:#111}#mapMaker .mm-tools label{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:13px;margin-left:8px}#mapMaker .mm-hint{position:absolute;left:12px;right:12px;bottom:10px;color:var(--muted);font-size:13px}#mapMaker .mm-side{width:340px;max-width:44vw;overflow:auto;padding:14px 16px;border-radius:0}#mapMaker .mm-side .srow{display:grid;grid-template-columns:96px 1fr auto;gap:8px;align-items:center;margin:6px 0}#mapMaker .mm-side .srow input:not([type=range]),#mapMaker .mm-side select{width:100%;box-sizing:border-box}#mapMaker .mm-bases{display:flex;flex-wrap:wrap;gap:6px}#mapMaker .mm-bases button{font-size:12px;padding:6px 8px}#mapMaker .btns{display:flex;flex-wrap:wrap;gap:6px}#mapMaker .mm-side .tt-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}#mapMaker .mm-count{color:var(--muted);font-size:13px}@media (max-width:760px){#mapMaker{flex-direction:column}#mapMaker .mm-side{width:auto;max-width:none;max-height:45vh}}#evStrip{margin-top:10px;display:inline-block;padding:6px 12px;border-radius:6px;background:rgba(255,170,40,.16);border:1px solid rgba(255,170,40,.55);color:#ffd27a;font-weight:600;font-size:14px}.evline{padding:8px 12px;border-radius:6px;background:rgba(255,170,40,.14);border:1px solid rgba(255,170,40,.5);color:#ffd27a;font-weight:600;margin:6px 0 4px}#techTree .tti.tup{color:#ffd27a;border-color:#8a6a2f;background:#2a1f0e;font-size:17px;position:relative}#techTree .tti.tup sup{position:absolute;right:-4px;top:-6px;font-size:10px;background:#8a6a2f;color:#fff;border-radius:7px;padding:0 4px;line-height:14px}
 #techTree img.mat-light{filter:brightness(1.35) saturate(.4) hue-rotate(180deg)}#techTree img.mat-heavy{filter:brightness(.7) contrast(1.3) saturate(.2)}#techTree img.mat-reactive{filter:sepia(1) saturate(3) hue-rotate(-20deg)}#techTree img.mat-energy{filter:sepia(1) saturate(4) hue-rotate(140deg) brightness(1.2)}
 #techTree .tt-side{width:360px;flex-shrink:0;margin:14px;padding:16px;display:flex;flex-direction:column;gap:12px;overflow-y:auto;z-index:2}
 #techTree .tt-head{display:flex;justify-content:space-between;align-items:center;font-family:var(--display);letter-spacing:.12em;font-size:20px}#techTree .tt-head button{padding:4px 10px}
@@ -513,6 +513,7 @@ body.touch #heat{bottom:calc(112px + env(safe-area-inset-bottom,0px));width:150p
     <button id="mParty">Party</button>
     <button id="mFriends">Friends</button>
     <button id="mReplay">Replays</button>
+    <button id="mMaps">Map Maker</button>
     <button id="mLeader">Leaderboards</button>
     <button id="mShop">Robot Shop</button>
     <button id="mTut">Tutorial</button>
@@ -797,7 +798,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
-  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.', 'Quick Play looks across every RoboBlocks server and takes you to the busiest room at your level, even on another server.', 'Damage numbers are coloured by the weapon that dealt them, and every hit varies a little (90 to 110%).', 'A short guide explains Play online the first time you open it.', 'Tech Tree upgrades: Calibrated Barrels, Shaped Warheads, Overcharged Capacitors, Autoloaders, Heat Sinks, Fuel Cells and Module Chargers improve your own bot, rank by rank. Two more CPU Cores at levels 9 and 10.', 'Weekly challenges: three bigger goals every week, each worth up to 900 XP and 2 tech points, next to your daily quests.', 'Weekend events: every battle on Saturday and Sunday gives 1.5× XP (servers can change this with BC_WEEKEND_XP).', 'Shareable replays: Share replay on the end screen (or Replays on the main menu) uploads it to the server and gives you a link anyone can watch, or saves a .rbreplay file to send.', 'Ranked seasons: each month is a season with its own rating and divisions (Bronze to Diamond). Play the new Ranked Season room; Leaderboards, Season shows the ladder across every server on the hub, and your profile keeps your past seasons.', 'Clan battles: in the new Clan Wars room clanmates always fight on the same team. When each team is a single clan, the server records the battle: clans get a rating, a win–loss record and a battle history on the Clans screen.']],
+  ['2.8.6', ['Play online is reworked: clear room cards with one Join button, custom games on their own screen, and a new Party menu for your name, friend code, party and invites.', 'The official server is built in: the desktop app just has Play.', 'Much bigger legs, and leg sizes S, M, L and XL: bigger legs stand taller, step higher, walk faster and carry more.', 'Higher CPU limit: 220 at level 1 up to 850 at level 10, and CPU Cores give 25 each.', 'Better wings: a real wing model with moving ailerons, more lift, sharper planes, wings can be rotated for tail fins, and wings on any bot let it glide.', 'New rocks with real detail, and foliage on every map: grass that moves in the wind, shrubs, cacti, trees.', 'Weapons sound heavier: every gun has a punch, a crack and an echo.', 'Rail Lancers fire together as one volley.', 'Jets have a height limit.', 'Quick Play looks across every RoboBlocks server and takes you to the busiest room at your level, even on another server.', 'Damage numbers are coloured by the weapon that dealt them, and every hit varies a little (90 to 110%).', 'A short guide explains Play online the first time you open it.', 'Tech Tree upgrades: Calibrated Barrels, Shaped Warheads, Overcharged Capacitors, Autoloaders, Heat Sinks, Fuel Cells and Module Chargers improve your own bot, rank by rank. Two more CPU Cores at levels 9 and 10.', 'Weekly challenges: three bigger goals every week, each worth up to 900 XP and 2 tech points, next to your daily quests.', 'Weekend events: every battle on Saturday and Sunday gives 1.5× XP (servers can change this with BC_WEEKEND_XP).', 'Shareable replays: Share replay on the end screen (or Replays on the main menu) uploads it to the server and gives you a link anyone can watch, or saves a .rbreplay file to send.', 'Ranked seasons: each month is a season with its own rating and divisions (Bronze to Diamond). Play the new Ranked Season room; Leaderboards, Season shows the ladder across every server on the hub, and your profile keeps your past seasons.', 'Clan battles: in the new Clan Wars room clanmates always fight on the same team. When each team is a single clan, the server records the battle: clans get a rating, a win–loss record and a battle history on the Clans screen.', 'Map Maker (main menu): build your own map on any land map. Shape the ground with hills and craters, place mesas, boulders, towers and walls, set the plants and water, then play it in Battle setup or an online custom game (everyone gets your map). Share maps as a code.']],
   ['2.8.5', ['Guns can be rotated in the garage (R, T and F): mount them sideways, under the hull or facing back. Every gun now tracks your crosshair, whichever weapon is selected.', 'Guns are much tougher: twice their old health, rising with the best armor tier on your bot.', 'Mortars, plasma, flak and gravity mines hit a wider area and deal more splash damage.', 'Your base pad repairs your bot and rebuilds lost blocks when you have been out of combat for 5 seconds.', 'Losing wheels, treads, legs, hover pads, rotors or thrusters slows you down.', '10 garage bays, and bots can be built twice as tall.', 'Paint and Fill only change colour now; they no longer reset armor tier or material.', 'Friends show their names, and the Friends list shows which server and room each friend is in. The Server browser lists who is playing in each room.', 'Smoother multiplayer: positions are sent twice as often on RoboBlocks servers.', 'Steadier camera: ignores the odd mouse jump, uses raw mouse input, and no longer pops up over bumps.', 'Horde is easier: smaller waves, enemies at your level dealing 75% damage, more rebuilds, and a full squad repair after every wave.', 'New The Pit 24/7 free-for-all room, and players-only matches (no AI bots) for custom games and server rooms.', 'Better flying: Space climbs and C descends quickly, and letting go holds your height. Helicopters respond faster, planes climb and dive toward where you aim, and C drops jump-jet bots faster.']],
   ['2.8.4', ['On everything-unlocked servers, weapons now fire at Mk X like the armor they face, instead of at your pilot level\'s mark.']],
   ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
@@ -884,6 +885,9 @@ const MAPS = {
   },
 };
 const MAP_ORDER = ['dust', 'frost', 'ash', 'city', 'moon'];
+// custom maps (Map Maker) look and sound like the stock map they are built on
+const mapKind = id => (MAPS[id] && MAPS[id].base) || id;
+const isCustomMap = id => !!(MAPS[id] && MAPS[id].custom);
 // Space Battle has its own maps
 const SPACE_ORDER = ['space', 'nebula', 'shipyard', 'rings'];
 const pickMap = (list, r = Math.random) => list[r() * list.length | 0];
@@ -2454,7 +2458,7 @@ const SFX = {
   beamStop() { const l = this.laser; if (!l) return; this.laser = null; const t = this.ctx.currentTime; l.g.gain.setTargetAtTime(0, t, .05); for (const n of l.nodes) n.stop(t + .3); },
   // ---- map ambience: a bed per map plus occasional events ----
   ambientStart(mapId) {
-    this.ambientStop(); if (!this.ctx) return;
+    this.ambientStop(); if (!this.ctx) return; mapId = mapKind(mapId);
     const c = this.ctx, a = this.amb = { mapId, nodes: [], evT: 2 };
     a.g = c.createGain(); a.g.gain.value = 0; a.g.connect(this.sfxBus); const wet = c.createGain(); wet.gain.value = .3; a.g.connect(wet); wet.connect(this.wet);
     const bed = (type, f, q, gain, lfoF, lfoD) => { const n = this.loopNoise(), fl = c.createBiquadFilter(), g = c.createGain(); fl.type = type; fl.frequency.value = f; fl.Q.value = q; g.gain.value = gain; n.connect(fl); fl.connect(g); g.connect(a.g); a.nodes.push(n); if (lfoF) { const l = c.createOscillator(), lg = c.createGain(); l.frequency.value = lfoF; lg.gain.value = lfoD; l.connect(lg); lg.connect(fl.frequency); l.start(); a.nodes.push(l); } };
@@ -3363,7 +3367,7 @@ function buildHeights(M) {
   const R = M.size > 1000 ? 320 : 256, S = M.size, cell = S / R, half = S / 2, H = new Float32Array((R + 1) * (R + 1));
   const n = valueNoise(M.seed), n2 = valueNoise(M.seed + 7), n3 = valueNoise(M.seed + 13);
   const play = half - 50, spawnZ = half - 110;
-  const flats = [[0, -spawnZ, 60, 115], [0, spawnZ, 60, 115], ...capturePoints(half).map(p => [p.x, p.z, 20, 42])], craters = mapCraters(M);
+  const flats = [[0, -spawnZ, 60, 115], [0, spawnZ, 60, 115], ...capturePoints(half).map(p => [p.x, p.z, 20, 42])], craters = mapCraters(M), shapes = cmapTerrain(M, half);
   for (let j = 0; j <= R; j++) for (let i = 0; i <= R; i++) {
     const x = -half + i * cell, z = -half + j * cell;
     if (M.space) { H[j * (R + 1) + i] = -300; continue; } // open space: the 'ground' is far below everything
@@ -3373,6 +3377,7 @@ function buildHeights(M) {
     h += .7 * n3(x / 11, z / 11) * (M.city ? .3 : 1);
     if (craters) h += craterH(craters, x, z);
     if (M.city && cityStreet(x, z)) h -= .25;
+    if (shapes) h += cmapHeight(shapes, x, z);
     for (const [fx, fz, r0, r1] of flats) { const d = Math.hypot(x - fx, z - fz); if (d < r1) { const f = smoothstep(r0, r1, d); h = h * f + (1 - f) * 1.2; } }
     const e = Math.max(Math.abs(x), Math.abs(z));
     if (e > play) h += Math.min(95, Math.pow(e - play, 1.5) * .5);
@@ -3432,7 +3437,7 @@ function skyMaterial(M, sunDir) {
 }
 // size: 'small' | 'medium' | 'large' scales the arena; obstacle and decoration counts follow the area
 function setupArena(mapId, tod = 'day', size = 'medium') {
-  const M = todMap(MAPS[mapId], tod), sk = (MAP_SIZES[size] || MAP_SIZES.medium).k, area = sk * sk;
+  const kind = mapKind(mapId), M = todMap(MAPS[mapId], tod), sk = (MAP_SIZES[size] || MAP_SIZES.medium).k, area = sk * sk;
   M.size = Math.round(M.size * sk / 4) * 4; M.area = area; M.mesas = Math.round(M.mesas * area); M.rocks = Math.round(M.rocks * area);
   M.fogNear *= Math.sqrt(sk); M.fogFar *= Math.sqrt(sk); world.mapSize = MAP_SIZES[size] ? size : 'medium'; world.grade = gradeFor(mapId, tod);
   if (world.scene) clearMirrors(world.scene);
@@ -3498,14 +3503,14 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
     const x = (rnd() * 2 - 1) * (B - 40), z = (rnd() * 2 - 1) * (B - 40), r = 9 + rnd() * 13, h = 9 + rnd() * 16;
     if (!clearOf(x, z, r) || wet(x, z) || !free(x, z, r)) continue; i++;
     const gy = groundMin(x, z, r);
-    if (mapId === 'ash') { // basalt column clusters
+    if (kind === 'ash') { // basalt column clusters
       const cnt = 5 + (rnd() * 5 | 0);
       for (let k = 0; k < cnt; k++) { const a = rnd() * 6.28, d = rnd() * r * .6, cr = r * (.25 + rnd() * .2), ch = h * (.6 + rnd() * .6); const m = new T.Mesh(new T.CylinderGeometry(cr, cr * 1.04, ch, 6), rockMat[k % 2]); m.position.set(x + Math.cos(a) * d, gy + ch / 2 - 1, z + Math.sin(a) * d); m.castShadow = m.receiveShadow = true; m.userData.own = true; s.add(m); }
       addObstacle({ x, z, r, cr: r * .85, top: gy + h * 1.1 });
     } else {
       const m = new T.Mesh(MESAS[i % MESAS.length], rockMat[i % 2]); m.scale.set(r, h, r * (.85 + (i % 3) * .1));
       m.position.set(x, gy + h / 2 - 1, z); m.rotation.y = rnd() * 6.28; m.castShadow = m.receiveShadow = true; m.userData.own = true; s.add(m);
-      if (mapId === 'frost') { const cap = new T.Mesh(new T.CylinderGeometry(r * .8, r * .82, 1.2, 9), new T.MeshStandardMaterial({ color: 0xf4f8fb, roughness: .8 })); cap.position.set(x, gy + h - .6, z); cap.userData.own = true; s.add(cap); }
+      if (kind === 'frost') { const cap = new T.Mesh(new T.CylinderGeometry(r * .8, r * .82, 1.2, 9), new T.MeshStandardMaterial({ color: 0xf4f8fb, roughness: .8 })); cap.position.set(x, gy + h - .6, z); cap.userData.own = true; s.add(cap); }
       addObstacle({ x, z, r, cr: r * .92, top: gy + h - 1 });
     }
   }
@@ -3516,8 +3521,9 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
     const m = new T.Mesh(BOULDERS[i % BOULDERS.length], rockMat[i % 2]); m.scale.set(r, h, r * (.8 + rnd() * .4)); m.position.set(x, gy + h * .25, z); m.rotation.y = rnd() * 6.28; m.castShadow = m.receiveShadow = true; s.add(m);
     addObstacle({ x, z, r, cr: r * .85, top: gy + h * 1.2 });
   }
+  cmapBuildProps(s, M, rockMat, MESAS, BOULDERS, clearOf, groundMin);
   // wrecked hulks: old bots half-buried in the ground
-  const rust = new T.MeshStandardMaterial({ color: mapId === 'frost' ? 0x5a6066 : 0x6b4a36, roughness: .75, metalness: .5 });
+  const rust = new T.MeshStandardMaterial({ color: kind === 'frost' ? 0x5a6066 : 0x6b4a36, roughness: .75, metalness: .5 });
   for (let i = 0, tries = 0; i < (M.moon || M.space ? 0 : Math.round(12 * M.area)) && tries < 300 * M.area; tries++) {
     const x = (rnd() * 2 - 1) * (B - 30), z = (rnd() * 2 - 1) * (B - 60);
     if (!clearOf(x, z, 10) || wet(x, z) || !free(x, z, 7)) continue; i++;
@@ -3533,8 +3539,8 @@ function setupArena(mapId, tod = 'day', size = 'medium') {
   if (M.city) buildCity(s, M, rnd);
   if (M.moon) buildMoon(s, M, rnd);
   // trees on Frostline
-  if (mapId === 'frost') {
-    const N = Math.round(480 * M.area), trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
+  if (kind === 'frost') {
+    const N = Math.round(480 * M.area * (M.foliage == null ? 1 : M.foliage)), trunk = new T.InstancedMesh(new T.CylinderGeometry(.25, .35, 3, 6), new T.MeshStandardMaterial({ color: 0x4a3626, roughness: .9 }), N);
     const lo = new T.InstancedMesh(new T.ConeGeometry(2.4, 5, 7), new T.MeshStandardMaterial({ color: 0x2d4a3a, roughness: .85 }), N);
     const hi = new T.InstancedMesh(new T.ConeGeometry(1.6, 3.6, 7), new T.MeshStandardMaterial({ color: 0xdfe9ee, roughness: .8 }), N);
     let n = 0; const m4 = new T.Matrix4(), q = new T.Quaternion(), sv = new T.Vector3();
@@ -3809,7 +3815,7 @@ const MAP_GRADE = {
   rings: { sat: 1.1, con: 1.06, tS: [.98, .95, .98], tH: [1.06, 1.0, .9] },
 };
 function gradeFor(mapId, tod) {
-  const g = MAP_GRADE[mapId] || GRADE_NONE, out = { sat: g.sat, con: g.con, tS: g.tS.slice(), tH: g.tH.slice() };
+  const g = MAP_GRADE[mapKind(mapId)] || GRADE_NONE, out = { sat: g.sat, con: g.con, tS: g.tS.slice(), tH: g.tH.slice() };
   if (tod === 'night') { out.sat *= .85; out.tS = [out.tS[0] * .9, out.tS[1] * .96, out.tS[2] * 1.1]; }
   else if (tod === 'dusk' || tod === 'dawn') { out.sat *= 1.06; out.tH = [out.tH[0] * 1.05, out.tH[1], out.tH[2] * .94]; }
   return out;
@@ -4314,7 +4320,7 @@ const FOLIAGE = {
 // called from setupArena once rocks are placed; ok(x, z, r) says whether a spot is free
 function buildFoliage(s, M, B, ok) {
   const F = FOLIAGE[M.decor]; if (!F || M.space) return;
-  const A = M.area || 1, m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
+  const A = (M.area || 1) * (M.foliage == null ? 1 : M.foliage), m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
   const mat = () => new T.MeshStandardMaterial({ vertexColors: true, roughness: .9, metalness: 0 });
   // trees and cacti block movement and shots: their own random stream, the same everywhere
   const solid = (n, geo, rad, top) => {
@@ -4354,7 +4360,7 @@ function softDot() {
 function startWeather() {
   if (HEADLESS || !world.scene) return;
   if (FX.wx) { world.scene.remove(FX.wx.obj); FX.wx.obj.geometry.dispose(); FX.wx = null; }
-  const kind = MAP_WX[world.mapId] || 'none', k = world.wxK || 0, M = world.map;
+  const kind = MAP_WX[mapKind(world.mapId)] || 'none', k = world.wxK || 0, M = world.map;
   // weather thickens the air
   world.scene.fog.near = M.fogNear * (1 - .5 * k * (kind === 'sand' ? 1 : kind === 'none' ? 0 : .55)); world.scene.fog.far = M.fogFar * (1 - .45 * k * (kind === 'sand' ? 1 : kind === 'none' ? 0 : .5));
   if (kind === 'none' || k <= 0) return;
@@ -4468,7 +4474,7 @@ function updateGlow() {
 // ---------- grass tufts near the camera ----------
 function grassSetup(rnd) {
   FX.grass = [];
-  const GR = { dust: ['#b49a5a', 220], city: ['#5f6a3a', 70], frost: ['#9fb0a4', 110], ash: ['#4a3a2c', 60] }[world.mapId];
+  const GR = { dust: ['#b49a5a', 220], city: ['#5f6a3a', 70], frost: ['#9fb0a4', 110], ash: ['#4a3a2c', 60] }[mapKind(world.mapId)];
   if (HEADLESS || !GR) return;
   const blade = new T.PlaneGeometry(.9, .8); blade.translate(0, .4, 0);
   const tuft = new T.BufferGeometry(), parts = [0, Math.PI / 3, -Math.PI / 3].map(a => blade.clone().rotateY(a));
@@ -4486,7 +4492,7 @@ function grassSetup(rnd) {
     const cap = Math.round(GR[1] * (hiQ() ? 1 : .45)), im = new T.InstancedMesh(tuft, mat, cap); let n = 0;
     for (let i = 0; i < cap * 1.4 && n < cap; i++) {
       const x = cx + rnd() * CH, z = cz + rnd() * CH;
-      if (world.mapId === 'city' && cityStreet(x, z) && rnd() < .85) continue;
+      if (mapKind(world.mapId) === 'city' && cityStreet(x, z) && rnd() < .85) continue;
       if (rocksAt(x, z).some(o => Math.hypot(o.x - x, o.z - z) < o.cr + .5)) continue;
       if (world.liquid && bedH(x, z) < world.liquid.y + .5) continue; // not on lakes or lava
       const k = .6 + rnd() * .9; q.setFromEuler(e.set(0, rnd() * 6.28, 0));
@@ -6251,7 +6257,8 @@ function resolveMap(mode, map) { return mode === 'space' ? (MAPS[map] && MAPS[ma
 function freshInfo() {
   const g = NET.game, sv = g.server, s = g.setup || setupSel;
   const first = sv ? sv.rot[0] : [s.mode, s.mode === 'space' ? s.smap : s.map, s.size], n = sv ? sv.n : s.n;
-  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: resolveMap(first[0], first[1]), size: mapSizeOf(first[2], n), n, noAi: sv ? !!sv.noAi : s.ai === 'none', clan: !!(sv && sv.clan), roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
+  const map0 = resolveMap(first[0], first[1]);
+  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: map0, cmap: !sv && isCustomMap(map0) ? MAPS[map0].custom : null, size: mapSizeOf(first[2], n), n, noAi: sv ? !!sv.noAi : s.ai === 'none', clan: !!(sv && sv.clan), roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
 }
 function slowPresence(withDesign) {
   if (!NET.slow || !NET.game) return;
@@ -6374,7 +6381,7 @@ function serverTick() {
 }
 function launchMatch() {
   const g = NET.game, info = g.info;
-  if (g.server) { const [m, mp, sz] = g.server.rot[info.rot % g.server.rot.length]; info.mode = m; info.map = resolveMap(m, mp); info.n = g.server.n; info.size = mapSizeOf(sz, info.n); }
+  if (g.server) { const [m, mp, sz] = g.server.rot[info.rot % g.server.rot.length]; info.mode = m; info.map = resolveMap(m, mp); info.cmap = null; info.n = g.server.n; info.size = mapSizeOf(sz, info.n); }
   // rebalance: alternate pilots by seniority so teams stay even
   const pilots = NET.slowPeers.filter(p => p.presence && p.presence.since && !(HEADLESS && p.sameTab)).sort(senior).map(p => p.peer);
   if (!pilots.includes(NET.me) && !HEADLESS) pilots.unshift(NET.me);
@@ -6435,7 +6442,8 @@ function startNetBattle() {
     humans.push({ id: p.peer, team: t, name: pilotTag(p.presence), design: rd });
   }
   if (!$('#overlay').hidden) hideOverlay();
-  startBattle({ mode: info.mode, map: info.map, size: info.size, n: info.n, net: { isHost: g.isHost, spectator: HEADLESS || g.spec, me: NET.me, myTeam: info.roster[NET.me] | 0, seed: info.seed, lv: info.lv, ai: info.ai, brawl: info.brawl, humans } });
+  const mapId = info.cmap ? cmapRegister(info.cmap) || info.map : info.map; // a custom map travels with the game
+  startBattle({ mode: info.mode, map: mapId, size: info.size, n: info.n, net: { isHost: g.isHost, spectator: HEADLESS || g.spec, me: NET.me, myTeam: info.roster[NET.me] | 0, seed: info.seed, lv: info.lv, ai: info.ai, brawl: info.brawl, humans } });
   if (!match || !match.net) { g.inBattle = false; return; }
   ensureShards(Math.ceil((info.ai[0] + info.ai[1] + (info.mode === 'horde' ? HORDE.pool : 0)) / 13));
 }
@@ -7522,7 +7530,7 @@ function optButtons(id, items, sel) { return `<div class="opts" id="${id}">${ite
 // shared by Battle setup and Host custom game: mode, map (space maps for Space Battle), map size, team size
 function mapOptsHtml() {
   const sp = setupSel.mode === 'space', list = sp ? SPACE_ORDER : MAP_ORDER;
-  return optButtons('oMap', list.map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', sp ? 'Any space map.' : 'Pick one for me.']]), sp ? setupSel.smap : setupSel.map);
+  return optButtons('oMap', list.concat(sp ? [] : cmapIds()).map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', sp ? 'Any space map.' : 'Pick one for me.']]), sp ? setupSel.smap : setupSel.map);
 }
 function setupOptsHtml(net) {
   return `<h3>MODE</h3>${optButtons('oMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), setupSel.mode)}
@@ -8177,7 +8185,7 @@ function recStart() {
   if (HEADLESS || !match || match.mode === 'test') { REC.on = false; return; }
   REC.on = true; REC.t = 0; REC.acc = 0; REC.frames = []; REC.shots = [];
   REC.bots = world.bots.map(b => ({ design: b.design, team: b.team, name: b.isPlayer ? 'You' : b.name, me: b.isPlayer }));
-  REC.meta = { map: world.mapId, tod: world.tod, wx: world.wxK, mode: match.mode, n: match.n, size: world.mapSize };
+  REC.meta = { map: world.mapId, tod: world.tod, wx: world.wxK, mode: match.mode, n: match.n, size: world.mapSize, cmap: isCustomMap(world.mapId) ? MAPS[world.mapId].custom : undefined };
 }
 function recTick(dt) {
   if (!REC.on || !match) return;
@@ -8194,6 +8202,7 @@ async function replayPack(R) {
 }
 async function replayUnpack(buf) {
   let R; try { R = JSON.parse(await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text()); } catch (e) { throw new Error('That is not a RoboBlocks replay.'); }
+  if (R && R.meta && R.meta.cmap) R.meta.map = cmapRegister(R.meta.cmap) || R.meta.map;
   if (!R || !R.meta || !MAPS[R.meta.map] || !Array.isArray(R.bots) || !Array.isArray(R.frames) || R.frames.length < 2 || !Array.isArray(R.shots)) throw new Error('That is not a RoboBlocks replay.');
   R.bots = R.bots.slice(0, 64).map(b => ({ design: b.design, team: b.team | 0, name: cleanName(String(b.name || '')) || 'Pilot', me: false }));
   R.shots = R.shots.filter(x => Array.isArray(x) && WEAPONS[x[2]] && R.bots[x[1]]);
@@ -9520,6 +9529,233 @@ function drawLoadoutBar(force) {
 }
 Object.assign(window.__sfa, { LOADOUT, loadoutPick, loadoutList, deployDesign, deployBay, drawLoadoutBar, get bays() { return bays; } });
 Object.assign(window.__sfa, { post, cam, computeStats, mobility, isShape, encState, mirrorR, gPaintAt, get garage() { return garage; } });
+// ---- 79-mapmaker.js ----
+// ================= MAP MAKER =================
+// A custom map is a stock land map (its sky, ground, foliage and sounds) with your own terrain settings and
+// placed objects: hills and craters shape the ground; mesas, boulders, towers and walls block movement and shots.
+// Positions are stored relative to the map (-1..1), so a map works at every map size. Custom maps are registered
+// as extra MAPS entries ('c_' + a hash of the map), saved in this browser, shared as a text code, and sent with
+// the game info in custom online games so every pilot builds the same map.
+const CM_BASES = ['dust', 'frost', 'ash', 'city', 'moon'];
+const CM_TOOLS = { hill: 'Hill', crater: 'Crater', mesa: 'Mesa', rock: 'Boulder', tower: 'Tower', wall: 'Wall', erase: 'Erase' };
+const CM_MAX_PROPS = 150;
+let CMAPS = store.get('sfa.cmaps', []); if (!Array.isArray(CMAPS)) CMAPS = [];
+const cmHash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+function cmapClean(d) {
+  if (!d || typeof d !== 'object' || !CM_BASES.includes(d.base)) return null;
+  const num = (v, lo, hi, def) => { v = +v; return Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def; };
+  const B = MAPS[d.base], r3 = v => Math.round(v * 1000) / 1000;
+  const props = (Array.isArray(d.props) ? d.props : []).slice(0, CM_MAX_PROPS).filter(p => Array.isArray(p) && CM_TOOLS[p[0]] && p[0] !== 'erase')
+    .map(p => p[0] === 'wall' ? ['wall', r3(num(p[1], -1, 1, 0)), r3(num(p[2], -1, 1, 0)), r3(num(p[3], -1, 1, 0)), r3(num(p[4], -1, 1, 0))] : [p[0], r3(num(p[1], -1, 1, 0)), r3(num(p[2], -1, 1, 0)), r3(num(p[3], .5, 2.5, 1))]);
+  const c = { v: 1, base: d.base, name: String(d.name || '').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 24) || 'Custom map', seed: num(d.seed, 1, 99999, B.seed) | 0,
+    amp: num(d.amp, 0, 30, B.amp), mesas: num(d.mesas, 0, 60, B.mesas) | 0, rocks: num(d.rocks, 0, 400, B.rocks) | 0, fol: num(d.fol, 0, 2.5, 1),
+    liq: B.liquid ? (d.liq === 'none' ? 'none' : 'base') : 'none', tod: (MAP_TOD[d.base] || []).includes(d.tod) ? d.tod : '', props };
+  c.id = 'c_' + cmHash(JSON.stringify(c)).slice(0, 8);
+  return c;
+}
+// make a custom map playable: returns its map id
+function cmapRegister(d) {
+  const c = cmapClean(d); if (!c) return null;
+  if (MAPS[c.id] && MAPS[c.id].custom) return c.id;
+  const B = MAPS[c.base];
+  MAPS[c.id] = { ...B, name: c.name, blurb: `Custom map on ${B.name}${c.props.length ? `, ${c.props.length} objects` : ''}.`, seed: c.seed, amp: c.amp, mesas: c.mesas, rocks: c.rocks,
+    foliage: c.fol, liquid: c.liq === 'none' ? null : B.liquid, base: c.base, custom: c };
+  MAP_TOD[c.id] = c.tod ? [c.tod] : MAP_TOD[c.base];
+  return c.id;
+}
+for (const e of CMAPS) if (e && e.def) cmapRegister(e.def);
+const cmapIds = () => CMAPS.map(e => e && e.def ? cmapRegister(e.def) : null).filter(Boolean);
+function cmapSaveAll() { store.set('sfa.cmaps', CMAPS.slice(0, 40)); }
+// share codes: RBMAP1:<base64 of the JSON>
+const cmapCode = d => 'RBMAP1:' + btoa(unescape(encodeURIComponent(JSON.stringify(cmapClean(d)))));
+function cmapFromCode(s) { const m = /RBMAP1:([A-Za-z0-9+/=]+)/.exec(String(s || '')); if (!m) return null; try { return cmapClean(JSON.parse(decodeURIComponent(escape(atob(m[1]))))); } catch (e) { return null; } }
+
+// ---------- what the props do to the world (used by buildHeights and setupArena) ----------
+// world units per map unit: props scale with the map size
+function cmapTerrain(M, half) {
+  const c = M.custom; if (!c) return null; const u = half / 430, out = [];
+  for (const p of c.props) {
+    if (p[0] === 'hill') out.push({ x: p[1] * half, z: p[2] * half, r: 30 * p[3] * u, h: 13 * p[3] });
+    else if (p[0] === 'crater') out.push({ x: p[1] * half, z: p[2] * half, r: 22 * p[3] * u, h: -9 * p[3], rim: 2.5 * p[3] });
+  }
+  return out.length ? out : null;
+}
+function cmapHeight(list, x, z) {
+  let h = 0;
+  for (const t of list) {
+    const dx = x - t.x, dz = z - t.z, d2 = dx * dx + dz * dz, r2 = t.r * t.r; if (d2 > r2 * 4) continue;
+    h += t.h * Math.exp(-d2 / (r2 * .45));
+    if (t.rim) { const d = Math.sqrt(d2) / t.r; h += t.rim * Math.exp(-((d - 1.05) ** 2) / .06); }
+  }
+  return h;
+}
+function cmapBuildProps(s, M, rockMat, MESAS, BOULDERS, clearOf, groundMin) {
+  const c = M.custom; if (!c) return; const half = world.half, u = half / 430;
+  const conc = new T.MeshStandardMaterial({ color: 0x8c9196, roughness: .82, metalness: .15 }), trim = new T.MeshStandardMaterial({ color: 0xffa040, emissive: 0xff7a1a, emissiveIntensity: .6, roughness: .5 });
+  const own = m => { m.castShadow = m.receiveShadow = true; m.userData.own = true; s.add(m); return m; };
+  c.props.forEach((p, i) => {
+    if (p[0] === 'wall') {
+      const x1 = p[1] * half, z1 = p[2] * half, x2 = p[3] * half, z2 = p[4] * half, L = Math.hypot(x2 - x1, z2 - z1); if (L < 3) return;
+      const n = Math.max(1, Math.ceil(L / 2.5)), H = 7;
+      for (let k = 0; k <= n; k++) { const x = x1 + (x2 - x1) * k / n, z = z1 + (z2 - z1) * k / n; if (!clearOf(x, z, 1)) continue; addObstacle({ x, z, r: 1.6, cr: 1.5, top: bedH(x, z) + H }); }
+      // drawn as panels that follow the ground
+      const segs = Math.max(1, Math.ceil(L / 12));
+      for (let k = 0; k < segs; k++) {
+        const ax = x1 + (x2 - x1) * k / segs, az = z1 + (z2 - z1) * k / segs, bx = x1 + (x2 - x1) * (k + 1) / segs, bz = z1 + (z2 - z1) * (k + 1) / segs, mx = (ax + bx) / 2, mz = (az + bz) / 2;
+        if (!clearOf(mx, mz, 1)) continue;
+        const sl = Math.hypot(bx - ax, bz - az), gy = Math.min(bedH(ax, az), bedH(bx, bz), bedH(mx, mz));
+        const w = own(new T.Mesh(new T.BoxGeometry(2, H + 2, sl + .3), conc)); w.position.set(mx, gy + H / 2 - 1, mz); w.rotation.y = Math.atan2(bx - ax, bz - az);
+        const t = own(new T.Mesh(new T.BoxGeometry(2.2, .35, sl + .3), trim)); t.position.set(mx, gy + H + .9, mz); t.rotation.y = w.rotation.y;
+      }
+      return;
+    }
+    const x = p[1] * half, z = p[2] * half, sc = p[3];
+    if (p[0] === 'mesa') { const r = 13 * sc * u, h = 16 * sc; if (!clearOf(x, z, r)) return; const gy = groundMin(x, z, r); const m = own(new T.Mesh(MESAS[i % MESAS.length], rockMat[i % 2])); m.scale.set(r, h, r * .9); m.position.set(x, gy + h / 2 - 1, z); m.rotation.y = i * 1.7; addObstacle({ x, z, r, cr: r * .92, top: gy + h - 1 }); }
+    else if (p[0] === 'rock') { const r = 5 * sc, h = 4.5 * sc; if (!clearOf(x, z, 0)) return; const gy = groundMin(x, z, r); const m = own(new T.Mesh(BOULDERS[i % BOULDERS.length], rockMat[i % 2])); m.scale.set(r, h, r); m.position.set(x, gy + h * .25, z); m.rotation.y = i * 2.3; addObstacle({ x, z, r, cr: r * .85, top: gy + h * 1.2 }); }
+    else if (p[0] === 'tower') {
+      const r = 4 * sc, h = 20 * sc; if (!clearOf(x, z, r)) return; const gy = groundMin(x, z, r);
+      own(new T.Mesh(new T.CylinderGeometry(r * .8, r, h, 10), conc)).position.set(x, gy + h / 2 - 1, z);
+      own(new T.Mesh(new T.CylinderGeometry(r * 1.15, r * 1.15, 1.2, 10), conc)).position.set(x, gy + h - .4, z);
+      own(new T.Mesh(new T.CylinderGeometry(r * 1.17, r * 1.17, .3, 10), trim)).position.set(x, gy + h * .62, z);
+      addObstacle({ x, z, r, cr: r * .95, top: gy + h });
+    }
+  });
+}
+
+// ---------- the editor ----------
+const MM = { d: null, key: null, tool: 'hill', size: 1, drag: null, grid: null, gridFor: '', hover: null };
+const cmNew = base => ({ base: base || 'dust', name: 'My map', seed: 1 + (Math.random() * 99998 | 0), amp: MAPS[base || 'dust'].amp, mesas: Math.round(MAPS[base || 'dust'].mesas / 2), rocks: Math.round(MAPS[base || 'dust'].rocks / 2), fol: 1, liq: 'base', tod: '', props: [] });
+function showMapMaker() {
+  hideOverlay();
+  let el = $('#mapMaker');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'mapMaker'; el.hidden = true;
+    el.innerHTML = `<div class="mm-view"><canvas id="mmCanvas"></canvas><div class="mm-tools" id="mmTools"></div><div class="mm-hint" id="mmHint"></div></div>
+      <div class="mm-side panel"><div class="tt-head"><b>MAP MAKER</b><button id="mmClose" title="Close">✕</button></div><div id="mmSide"></div></div>`;
+    document.body.appendChild(el);
+    const cv = el.querySelector('#mmCanvas');
+    const toMap = e => { const r = cv.getBoundingClientRect(), s = Math.min(r.width, r.height), ox = (r.width - s) / 2, oy = (r.height - s) / 2; return [clamp(((e.clientX - r.left - ox) / s) * 2 - 1, -1, 1), clamp(((e.clientY - r.top - oy) / s) * 2 - 1, -1, 1)]; };
+    cv.addEventListener('pointerdown', e => { if (!MM.d) return; const [x, z] = toMap(e); cv.setPointerCapture(e.pointerId); MM.drag = { x, z, x2: x, z2: z }; if (MM.tool !== 'wall') { mmApply(x, z); MM.drag = MM.tool === 'erase' ? MM.drag : null; } mmDraw(); });
+    cv.addEventListener('pointermove', e => { if (!MM.d) return; const [x, z] = toMap(e); MM.hover = [x, z]; if (MM.drag) { MM.drag.x2 = x; MM.drag.z2 = z; if (MM.tool === 'erase') mmApply(x, z); } mmDraw(); });
+    cv.addEventListener('pointerup', () => { if (MM.drag && MM.tool === 'wall') { const D = MM.drag; if (Math.hypot(D.x2 - D.x, D.z2 - D.z) > .02) mmAdd(['wall', D.x, D.z, D.x2, D.z2]); } MM.drag = null; mmDraw(); });
+    cv.addEventListener('pointerleave', () => { MM.hover = null; mmDraw(); });
+    addEventListener('resize', () => { if (!el.hidden) mmDraw(); });
+    el.querySelector('#mmClose').onclick = hideMapMaker;
+    addEventListener('keydown', e => { if (el.hidden) return; if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); hideMapMaker(); } else if (/^Digit[1-7]$/.test(e.code) && !/INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName)) { MM.tool = Object.keys(CM_TOOLS)[+e.code.slice(5) - 1]; mmTools(); } }, true);
+  }
+  el.hidden = false; $('#menu').hidden = true;
+  if (!MM.d) mmOpen(CMAPS[0] ? CMAPS[0].key : null);
+  mmSide(); mmTools(); mmDraw(); SFX.ui();
+}
+function hideMapMaker() { const el = $('#mapMaker'); if (el) el.hidden = true; if (state === 'menu') { $('#menu').hidden = false; buildPilotCard(); } }
+function mmOpen(key) {
+  const e = key && CMAPS.find(x => x.key === key);
+  MM.key = e ? e.key : null; MM.d = e ? JSON.parse(JSON.stringify(cmapClean(e.def))) : cmNew('dust'); MM.gridFor = '';
+}
+function mmAdd(p) { if (MM.d.props.length >= CM_MAX_PROPS) { toast(`A map can hold ${CM_MAX_PROPS} objects.`); return; } MM.d.props.push(p); MM.dirty = true; if (p[0] === 'hill' || p[0] === 'crater') MM.gridFor = ''; mmSideCount(); }
+function mmApply(x, z) {
+  if (MM.tool === 'erase') {
+    let best = -1, bd = .045;
+    MM.d.props.forEach((p, i) => { const d = p[0] === 'wall' ? segDist(x, z, p[1], p[2], p[3], p[4]) : Math.hypot(p[1] - x, p[2] - z); if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) { const p = MM.d.props.splice(best, 1)[0]; MM.dirty = true; if (p[0] === 'hill' || p[0] === 'crater') MM.gridFor = ''; mmSideCount(); }
+    return;
+  }
+  mmAdd([MM.tool, Math.round(x * 1000) / 1000, Math.round(z * 1000) / 1000, MM.size]);
+}
+function segDist(px, pz, ax, az, bx, bz) { const dx = bx - ax, dz = bz - az, L = dx * dx + dz * dz || 1, t = clamp(((px - ax) * dx + (pz - az) * dz) / L, 0, 1); return Math.hypot(px - ax - dx * t, pz - az - dz * t); }
+function mmTools() {
+  const t = $('#mmTools'); if (!t) return;
+  t.innerHTML = Object.entries(CM_TOOLS).map(([k, n], i) => `<button data-t="${k}" class="${MM.tool === k ? 'sel' : ''}" title="${n} (${i + 1})">${n}</button>`).join('') + `<label>Size <input type="range" id="mmSize" min=".5" max="2.5" step=".1" value="${MM.size}"></label>`;
+  t.querySelectorAll('button').forEach(b => b.onclick = () => { MM.tool = b.dataset.t; mmTools(); SFX.ui(); });
+  $('#mmSize').oninput = e => { MM.size = +e.target.value; };
+  $('#mmHint').textContent = { hill: 'Click to raise a hill.', crater: 'Click to dig a crater.', mesa: 'Click to place a rock mesa.', rock: 'Click to place a boulder.', tower: 'Click to place a concrete tower.', wall: 'Drag to build a wall.', erase: 'Click or drag over objects to remove them.' }[MM.tool] + ' Nothing is built on the bases (blue and red) or the capture points (A, B, C).';
+}
+function mmSideCount() { const c = $('#mmCount'); if (c) c.textContent = `${MM.d.props.length} / ${CM_MAX_PROPS} objects`; }
+function mmSide() {
+  const d = MM.d, B = MAPS[d.base], el = $('#mmSide'); if (!el) return;
+  const rng = (id, label, min, max, step, v) => `<div class="srow"><label for="${id}">${label}</label><input type="range" id="${id}" min="${min}" max="${max}" step="${step}" value="${v}"><span class="num" id="${id}V">${v}</span></div>`;
+  el.innerHTML = `<div class="srow"><label for="mmName">Name</label><input id="mmName" maxlength="24" value="${esc(d.name)}"></div>
+    <div class="srow"><label for="mmMaps">Saved maps</label><select id="mmMaps"><option value="">New map</option>${CMAPS.map(e => `<option value="${esc(e.key)}"${e.key === MM.key ? ' selected' : ''}>${esc(e.def.name)}</option>`).join('')}</select></div>
+    <h3>WORLD</h3><div class="mm-bases">${CM_BASES.map(b => `<button data-b="${b}" class="${b === d.base ? 'sel' : ''}">${esc(MAPS[b].name)}</button>`).join('')}</div>
+    <div class="srow"><label for="mmTod">Time of day</label><select id="mmTod"><option value="">Varies</option>${(MAP_TOD[d.base] || []).map(t => `<option${t === d.tod ? ' selected' : ''}>${t}</option>`).join('')}</select></div>
+    ${B.liquid ? `<div class="srow"><label for="mmLiq">${B.liquid.type === 'lava' ? 'Lava' : B.liquid.type === 'ice' ? 'Ice' : 'Water'}</label><select id="mmLiq"><option value="base"${d.liq !== 'none' ? ' selected' : ''}>On</option><option value="none"${d.liq === 'none' ? ' selected' : ''}>Off</option></select></div>` : ''}
+    <h3>TERRAIN</h3>${rng('mmAmp', 'Hills', 0, 30, 1, d.amp)}${rng('mmMesas', 'Mesas', 0, 60, 1, d.mesas)}${rng('mmRocks', 'Boulders', 0, 400, 5, d.rocks)}${rng('mmFol', 'Plants', 0, 2.5, .1, d.fol)}
+    <div class="btns"><button id="mmSeed">New terrain</button><button id="mmClear">Clear objects</button></div><p class="mm-count" id="mmCount"></p>
+    <h3>PLAY AND SHARE</h3><div class="btns"><button class="primary" id="mmTest">Test battle</button><button id="mmSave">Save</button><button id="mmShare">Share code</button><button id="mmImport">Import code</button>${MM.key ? '<button id="mmDel">Delete</button>' : ''}</div>
+    <p class="tt-tip">Saved maps show up in Battle setup and Host game. In an online custom game everyone gets your map automatically.</p>`;
+  for (const id of ['#mmName']) $(id).addEventListener('keydown', e => e.stopPropagation());
+  $('#mmName').oninput = e => { d.name = e.target.value; MM.dirty = true; };
+  $('#mmMaps').onchange = e => { mmOpen(e.target.value || null); mmSide(); mmDraw(); };
+  el.querySelectorAll('.mm-bases button').forEach(b => b.onclick = () => { const nb = b.dataset.b; if (nb === d.base) return; d.base = nb; d.tod = ''; d.liq = 'base'; d.amp = MAPS[nb].amp; MM.gridFor = ''; MM.dirty = true; mmSide(); mmDraw(); });
+  $('#mmTod').onchange = e => { d.tod = e.target.value; MM.dirty = true; };
+  if ($('#mmLiq')) $('#mmLiq').onchange = e => { d.liq = e.target.value; MM.gridFor = ''; MM.dirty = true; mmDraw(); };
+  const slide = (id, key, regrid) => { $('#' + id).oninput = e => { d[key] = +e.target.value; $('#' + id + 'V').textContent = e.target.value; MM.dirty = true; if (regrid) { MM.gridFor = ''; clearTimeout(MM.rt); MM.rt = setTimeout(mmDraw, 120); } }; };
+  slide('mmAmp', 'amp', true); slide('mmMesas', 'mesas'); slide('mmRocks', 'rocks'); slide('mmFol', 'fol');
+  $('#mmSeed').onclick = () => { d.seed = 1 + (Math.random() * 99998 | 0); MM.gridFor = ''; MM.dirty = true; mmDraw(); };
+  $('#mmClear').onclick = e => { if (!armed(e.currentTarget)) return; d.props = []; MM.gridFor = ''; MM.dirty = true; mmSideCount(); mmDraw(); };
+  $('#mmSave').onclick = () => { mmSave(); toast(`${d.name} saved.`); mmSide(); };
+  $('#mmTest').onclick = () => { const id = mmSave(); if (!id) return; const v = validateDesign(); if (!v.ok) { toast(v.msg); return; } $('#mapMaker').hidden = true; startBattle({ mode: 'tdm', map: id, n: 5, size: 'medium' }); };
+  $('#mmShare').onclick = () => { const code = cmapCode(d); replayBox(`<b>Share ${esc(d.name)}</b><p>Send this code to a friend. They paste it into Map Maker, Import code.<input id="mmCode" readonly></p><div class="btns"><button class="primary" id="mmCopy">Copy code</button></div>`); $('#mmCode').value = code; $('#mmCode').onclick = e => e.target.select(); $('#mmCopy').onclick = async () => { try { await navigator.clipboard.writeText(code); $('#mmCopy').textContent = 'Copied'; } catch (e) { $('#mmCode').select(); document.execCommand('copy'); $('#mmCopy').textContent = 'Copied'; } }; };
+  $('#mmImport').onclick = () => {
+    replayBox(`<b>Import a map</b><p>Paste a map code (it starts with RBMAP1:).<textarea id="mmPaste" rows="4" style="width:100%;margin-top:8px;box-sizing:border-box"></textarea></p><div class="btns"><button class="primary" id="mmDoImport">Import</button></div>`);
+    $('#mmPaste').addEventListener('keydown', e => e.stopPropagation());
+    $('#mmDoImport').onclick = () => { const c = cmapFromCode($('#mmPaste').value); if (!c) { toast('That is not a map code.'); return; } MM.key = null; MM.d = c; MM.gridFor = ''; mmSave(); $('#shareBox').hidden = true; mmSide(); mmDraw(); toast(`${c.name} imported.`); };
+  };
+  if ($('#mmDel')) $('#mmDel').onclick = e => { if (!armed(e.currentTarget)) return; CMAPS = CMAPS.filter(x => x.key !== MM.key); cmapSaveAll(); mmOpen(CMAPS[0] ? CMAPS[0].key : null); mmSide(); mmDraw(); };
+  mmSideCount();
+}
+function mmSave() {
+  const c = cmapClean(MM.d); if (!c) return null;
+  if (!MM.key) { MM.key = 'm' + Date.now().toString(36); CMAPS.unshift({ key: MM.key, def: c }); } else { const e = CMAPS.find(x => x.key === MM.key); if (e) e.def = c; else CMAPS.unshift({ key: MM.key, def: c }); }
+  cmapSaveAll(); MM.dirty = false; return cmapRegister(c);
+}
+// top-down preview: the real height field of the map (medium size), coloured like its ground
+function mmGrid() {
+  const c = cmapClean(MM.d), sig = JSON.stringify([c.base, c.seed, c.amp, c.liq, c.props.filter(p => p[0] === 'hill' || p[0] === 'crater')]);
+  if (MM.gridFor === sig && MM.grid) return MM.grid;
+  const B = MAPS[c.base], M = { ...B, seed: c.seed, amp: c.amp, liquid: c.liq === 'none' ? null : B.liquid, custom: c, size: Math.round(B.size * MAP_SIZES.medium.k / 4) * 4 };
+  const T0 = buildHeights(M), N = 160, img = new ImageData(N, N), lo = new T.Color(B.ground[0]), hi = new T.Color(B.ground[1]), rk = new T.Color(B.ground[2]), lq = M.liquid ? new T.Color(M.liquid.type === 'lava' ? 0xff5a1a : M.liquid.color || 0x3a6a8a) : null, tc = new T.Color();
+  const at = (x, z) => { const fx = clamp((x + T0.half) / T0.cell, 0, T0.R), fz = clamp((z + T0.half) / T0.cell, 0, T0.R); return T0.H[Math.round(fz) * (T0.R + 1) + Math.round(fx)]; };
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const x = ((i + .5) / N * 2 - 1) * T0.half, z = ((j + .5) / N * 2 - 1) * T0.half, h = at(x, z), sl = Math.abs(at(x + 4, z) - at(x - 4, z)) + Math.abs(at(x, z + 4) - at(x, z - 4));
+    tc.copy(lo).lerp(hi, smoothstep(-6, 10, h)).lerp(rk, smoothstep(1.5, 5, sl) * .8);
+    if (lq && h < M.liquid.y) tc.copy(lq).multiplyScalar(.75);
+    const shade = clamp(1 + (at(x - 4, z - 4) - at(x + 4, z + 4)) * .03, .6, 1.35), k = (j * N + i) * 4;
+    img.data[k] = clamp(tc.r * 255 * shade, 0, 255); img.data[k + 1] = clamp(tc.g * 255 * shade, 0, 255); img.data[k + 2] = clamp(tc.b * 255 * shade, 0, 255); img.data[k + 3] = 255;
+  }
+  const off = document.createElement('canvas'); off.width = off.height = N; off.getContext('2d').putImageData(img, 0, 0);
+  MM.grid = { cv: off, half: T0.half, spawnZ: T0.spawnZ }; MM.gridFor = sig; return MM.grid;
+}
+function mmDraw() {
+  const cv = $('#mmCanvas'); if (!cv || !MM.d || $('#mapMaker').hidden) return;
+  const r = cv.getBoundingClientRect(), dpr = Math.min(2, devicePixelRatio || 1); cv.width = r.width * dpr; cv.height = r.height * dpr;
+  const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, r.width, r.height);
+  const s = Math.min(r.width, r.height), ox = (r.width - s) / 2, oy = (r.height - s) / 2, G = mmGrid(), P = (x, z) => [ox + (x + 1) / 2 * s, oy + (z + 1) / 2 * s], u = 1 / G.half;
+  g.imageSmoothingEnabled = true; g.drawImage(G.cv, ox, oy, s, s);
+  // edge cliffs, bases and capture points
+  const play = (G.half - 55) / G.half; g.strokeStyle = 'rgba(255,255,255,.25)'; g.setLineDash([6, 6]); g.strokeRect(...P(-play, -play), play * s, play * s); g.setLineDash([]);
+  for (const [sz, col] of [[-G.spawnZ, '#4fa3ff'], [G.spawnZ, '#ff5b4f']]) { const [x, y] = P(0, sz * u); g.beginPath(); g.arc(x, y, 50 * u * s / 2, 0, 7); g.fillStyle = col + '33'; g.fill(); g.strokeStyle = col; g.lineWidth = 2; g.stroke(); }
+  for (const cp of capturePoints(G.half)) { const [x, y] = P(cp.x * u, cp.z * u); g.beginPath(); g.arc(x, y, 30 * u * s / 2, 0, 7); g.strokeStyle = 'rgba(255,215,106,.8)'; g.lineWidth = 1.5; g.stroke(); g.fillStyle = '#ffd76a'; g.font = 'bold 12px sans-serif'; g.textAlign = 'center'; g.fillText(cp.name, x, y + 4); }
+  // objects
+  const drawProp = (p, ghost) => {
+    g.globalAlpha = ghost ? .55 : 1;
+    if (p[0] === 'wall') { const [a, b] = P(p[1], p[2]), [c, d] = P(p[3], p[4]); g.strokeStyle = '#d8dde2'; g.lineWidth = 4; g.lineCap = 'round'; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); g.strokeStyle = '#ffa040'; g.lineWidth = 1.5; g.stroke(); }
+    else {
+      const [x, y] = P(p[1], p[2]), u0 = G.half / 430, wr = { hill: 30 * u0, crater: 22 * u0, mesa: 13 * u0, rock: 5, tower: 4 }[p[0]] * p[3], rad = wr / G.half * s / 2;
+      g.beginPath(); g.arc(x, y, Math.max(3, rad), 0, 7);
+      if (p[0] === 'hill') { g.strokeStyle = 'rgba(255,255,255,.7)'; g.setLineDash([3, 3]); g.lineWidth = 1.5; g.stroke(); g.setLineDash([]); }
+      else if (p[0] === 'crater') { g.strokeStyle = 'rgba(30,20,10,.8)'; g.setLineDash([3, 3]); g.lineWidth = 1.5; g.stroke(); g.setLineDash([]); }
+      else { g.fillStyle = p[0] === 'tower' ? '#b8bec4' : p[0] === 'mesa' ? '#8a6f58' : '#9a8a78'; g.fill(); g.strokeStyle = 'rgba(0,0,0,.6)'; g.lineWidth = 1; g.stroke(); }
+    }
+    g.globalAlpha = 1;
+  };
+  for (const p of MM.d.props) drawProp(p);
+  if (MM.drag && MM.tool === 'wall') drawProp(['wall', MM.drag.x, MM.drag.z, MM.drag.x2, MM.drag.z2], true);
+  else if (MM.hover && MM.tool !== 'erase' && MM.tool !== 'wall') drawProp([MM.tool, MM.hover[0], MM.hover[1], MM.size], true);
+  else if (MM.hover && MM.tool === 'erase') { const [x, y] = P(MM.hover[0], MM.hover[1]); g.beginPath(); g.arc(x, y, .045 * s / 2, 0, 7); g.strokeStyle = '#ff6a5a'; g.lineWidth = 2; g.stroke(); }
+}
+$('#mMaps') && ($('#mMaps').onclick = () => { SFX.init(); SFX.ui(); showMapMaker(); });
+Object.assign(window.__sfa, { MM, CMAPS: () => CMAPS, cmapClean, cmapRegister, cmapCode, cmapFromCode, showMapMaker, mmSave, mmDraw });
 // ---- 99-end.js ----
 start();
 // end of RoboBlocks

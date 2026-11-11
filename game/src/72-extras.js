@@ -101,7 +101,7 @@ function recStart() {
   if (HEADLESS || !match || match.mode === 'test') { REC.on = false; return; }
   REC.on = true; REC.t = 0; REC.acc = 0; REC.frames = []; REC.shots = [];
   REC.bots = world.bots.map(b => ({ design: b.design, team: b.team, name: b.isPlayer ? 'You' : b.name, me: b.isPlayer }));
-  REC.meta = { map: world.mapId, tod: world.tod, wx: world.wxK, mode: match.mode, n: match.n, size: world.mapSize };
+  REC.meta = { map: world.mapId, tod: world.tod, wx: world.wxK, mode: match.mode, n: match.n, size: world.mapSize, cmap: isCustomMap(world.mapId) ? MAPS[world.mapId].custom : undefined };
 }
 function recTick(dt) {
   if (!REC.on || !match) return;
@@ -118,6 +118,7 @@ async function replayPack(R) {
 }
 async function replayUnpack(buf) {
   let R; try { R = JSON.parse(await new Response(new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'))).text()); } catch (e) { throw new Error('That is not a RoboBlocks replay.'); }
+  if (R && R.meta && R.meta.cmap) R.meta.map = cmapRegister(R.meta.cmap) || R.meta.map;
   if (!R || !R.meta || !MAPS[R.meta.map] || !Array.isArray(R.bots) || !Array.isArray(R.frames) || R.frames.length < 2 || !Array.isArray(R.shots)) throw new Error('That is not a RoboBlocks replay.');
   R.bots = R.bots.slice(0, 64).map(b => ({ design: b.design, team: b.team | 0, name: cleanName(String(b.name || '')) || 'Pilot', me: false }));
   R.shots = R.shots.filter(x => Array.isArray(x) && WEAPONS[x[2]] && R.bots[x[1]]);

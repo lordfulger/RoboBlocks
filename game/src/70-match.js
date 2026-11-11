@@ -267,7 +267,7 @@ function optButtons(id, items, sel) { return `<div class="opts" id="${id}">${ite
 // shared by Battle setup and Host custom game: mode, map (space maps for Space Battle), map size, team size
 function mapOptsHtml() {
   const sp = setupSel.mode === 'space', list = sp ? SPACE_ORDER : MAP_ORDER;
-  return optButtons('oMap', list.map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', sp ? 'Any space map.' : 'Pick one for me.']]), sp ? setupSel.smap : setupSel.map);
+  return optButtons('oMap', list.concat(sp ? [] : cmapIds()).map(k => [k, MAPS[k].name, MAPS[k].blurb]).concat([['random', 'Random', sp ? 'Any space map.' : 'Pick one for me.']]), sp ? setupSel.smap : setupSel.map);
 }
 function setupOptsHtml(net) {
   return `<h3>MODE</h3>${optButtons('oMode', Object.entries(MODES).map(([k, m]) => [k, m.name, m.desc]), setupSel.mode)}

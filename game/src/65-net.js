@@ -247,7 +247,8 @@ function resolveMap(mode, map) { return mode === 'space' ? (MAPS[map] && MAPS[ma
 function freshInfo() {
   const g = NET.game, sv = g.server, s = g.setup || setupSel;
   const first = sv ? sv.rot[0] : [s.mode, s.mode === 'space' ? s.smap : s.map, s.size], n = sv ? sv.n : s.n;
-  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: resolveMap(first[0], first[1]), size: mapSizeOf(first[2], n), n, noAi: sv ? !!sv.noAi : s.ai === 'none', clan: !!(sv && sv.clan), roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
+  const map0 = resolveMap(first[0], first[1]);
+  return { phase: sv ? 'warmup' : 'lobby', cd: WARMUP, matchId: 0, rot: 0, mode: first[0], map: map0, cmap: !sv && isCustomMap(map0) ? MAPS[map0].custom : null, size: mapSizeOf(first[2], n), n, noAi: sv ? !!sv.noAi : s.ai === 'none', clan: !!(sv && sv.clan), roster: {}, score: [0, 0], tl: 600, over: false, winner: null, pts: [], ai: [0, 0], seed: 0, lv: level() };
 }
 function slowPresence(withDesign) {
   if (!NET.slow || !NET.game) return;
@@ -370,7 +371,7 @@ function serverTick() {
 }
 function launchMatch() {
   const g = NET.game, info = g.info;
-  if (g.server) { const [m, mp, sz] = g.server.rot[info.rot % g.server.rot.length]; info.mode = m; info.map = resolveMap(m, mp); info.n = g.server.n; info.size = mapSizeOf(sz, info.n); }
+  if (g.server) { const [m, mp, sz] = g.server.rot[info.rot % g.server.rot.length]; info.mode = m; info.map = resolveMap(m, mp); info.cmap = null; info.n = g.server.n; info.size = mapSizeOf(sz, info.n); }
   // rebalance: alternate pilots by seniority so teams stay even
   const pilots = NET.slowPeers.filter(p => p.presence && p.presence.since && !(HEADLESS && p.sameTab)).sort(senior).map(p => p.peer);
   if (!pilots.includes(NET.me) && !HEADLESS) pilots.unshift(NET.me);
@@ -431,7 +432,8 @@ function startNetBattle() {
     humans.push({ id: p.peer, team: t, name: pilotTag(p.presence), design: rd });
   }
   if (!$('#overlay').hidden) hideOverlay();
-  startBattle({ mode: info.mode, map: info.map, size: info.size, n: info.n, net: { isHost: g.isHost, spectator: HEADLESS || g.spec, me: NET.me, myTeam: info.roster[NET.me] | 0, seed: info.seed, lv: info.lv, ai: info.ai, brawl: info.brawl, humans } });
+  const mapId = info.cmap ? cmapRegister(info.cmap) || info.map : info.map; // a custom map travels with the game
+  startBattle({ mode: info.mode, map: mapId, size: info.size, n: info.n, net: { isHost: g.isHost, spectator: HEADLESS || g.spec, me: NET.me, myTeam: info.roster[NET.me] | 0, seed: info.seed, lv: info.lv, ai: info.ai, brawl: info.brawl, humans } });
   if (!match || !match.net) { g.inBattle = false; return; }
   ensureShards(Math.ceil((info.ai[0] + info.ai[1] + (info.mode === 'horde' ? HORDE.pool : 0)) / 13));
 }

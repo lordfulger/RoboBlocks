@@ -99,7 +99,7 @@ const FOLIAGE = {
 // called from setupArena once rocks are placed; ok(x, z, r) says whether a spot is free
 function buildFoliage(s, M, B, ok) {
   const F = FOLIAGE[M.decor]; if (!F || M.space) return;
-  const A = M.area || 1, m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
+  const A = (M.area || 1) * (M.foliage == null ? 1 : M.foliage), m4 = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler(), v = new T.Vector3(), sc = new T.Vector3();
   const mat = () => new T.MeshStandardMaterial({ vertexColors: true, roughness: .9, metalness: 0 });
   // trees and cacti block movement and shots: their own random stream, the same everywhere
   const solid = (n, geo, rad, top) => {

@@ -9,7 +9,7 @@ function softDot() {
 function startWeather() {
   if (HEADLESS || !world.scene) return;
   if (FX.wx) { world.scene.remove(FX.wx.obj); FX.wx.obj.geometry.dispose(); FX.wx = null; }
-  const kind = MAP_WX[world.mapId] || 'none', k = world.wxK || 0, M = world.map;
+  const kind = MAP_WX[mapKind(world.mapId)] || 'none', k = world.wxK || 0, M = world.map;
   // weather thickens the air
   world.scene.fog.near = M.fogNear * (1 - .5 * k * (kind === 'sand' ? 1 : kind === 'none' ? 0 : .55)); world.scene.fog.far = M.fogFar * (1 - .45 * k * (kind === 'sand' ? 1 : kind === 'none' ? 0 : .5));
   if (kind === 'none' || k <= 0) return;
@@ -123,7 +123,7 @@ function updateGlow() {
 // ---------- grass tufts near the camera ----------
 function grassSetup(rnd) {
   FX.grass = [];
-  const GR = { dust: ['#b49a5a', 220], city: ['#5f6a3a', 70], frost: ['#9fb0a4', 110], ash: ['#4a3a2c', 60] }[world.mapId];
+  const GR = { dust: ['#b49a5a', 220], city: ['#5f6a3a', 70], frost: ['#9fb0a4', 110], ash: ['#4a3a2c', 60] }[mapKind(world.mapId)];
   if (HEADLESS || !GR) return;
   const blade = new T.PlaneGeometry(.9, .8); blade.translate(0, .4, 0);
   const tuft = new T.BufferGeometry(), parts = [0, Math.PI / 3, -Math.PI / 3].map(a => blade.clone().rotateY(a));
@@ -141,7 +141,7 @@ function grassSetup(rnd) {
     const cap = Math.round(GR[1] * (hiQ() ? 1 : .45)), im = new T.InstancedMesh(tuft, mat, cap); let n = 0;
     for (let i = 0; i < cap * 1.4 && n < cap; i++) {
       const x = cx + rnd() * CH, z = cz + rnd() * CH;
-      if (world.mapId === 'city' && cityStreet(x, z) && rnd() < .85) continue;
+      if (mapKind(world.mapId) === 'city' && cityStreet(x, z) && rnd() < .85) continue;
       if (rocksAt(x, z).some(o => Math.hypot(o.x - x, o.z - z) < o.cr + .5)) continue;
       if (world.liquid && bedH(x, z) < world.liquid.y + .5) continue; // not on lakes or lava
       const k = .6 + rnd() * .9; q.setFromEuler(e.set(0, rnd() * 6.28, 0));
