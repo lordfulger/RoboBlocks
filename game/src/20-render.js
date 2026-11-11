@@ -140,7 +140,7 @@ function studioEnv() {
 
 // ================= TEXTURES / MATERIALS / GEOMETRY =================
 function panelTexture(kind) {
-  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.scale(2, 2);
   const r = mulberry32(kind === 'burnt' ? 9 : 1);
   g.fillStyle = '#dcdcdc'; g.fillRect(0, 0, 128, 128);
   for (let i = 0; i < 600; i++) { const v = 205 + r() * 40 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(r() * 128, r() * 128, 2, 2); }
@@ -160,7 +160,7 @@ function panelTexture(kind) {
 const TEX = { panel: panelTexture('panel'), burnt: panelTexture('burnt') };
 const matCache = new Map();
 function tierTexture(k) {
-  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const r = mulberry32(20 + k);
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'); g.scale(2, 2); const r = mulberry32(20 + k);
   const dark = k === 7 || k === 10;
   g.fillStyle = dark ? (k === 10 ? '#4a4a4a' : '#7a7a7a') : '#dcdcdc'; g.fillRect(0, 0, 128, 128);
   for (let i = 0; i < 600; i++) { const v = (dark ? (k === 10 ? 60 : 100) : 205) + r() * 40 | 0; g.fillStyle = `rgb(${v},${v},${v})`; g.fillRect(r() * 128, r() * 128, 2, 2); }
@@ -197,6 +197,21 @@ function glowTexture(kind) {
   const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace; return t;
 }
 const TIER_TEX = [null, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(k => k && tierTexture(k));
+// surface wear shared by every block: rougher grime in the middle, polished edges and fine scratches (green channel = roughness)
+function wearTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 256; const g = c.getContext('2d'), r = mulberry32(77);
+  g.fillStyle = 'rgb(220,220,220)'; g.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 2600; i++) { const v = 170 + r() * 85 | 0; g.fillStyle = `rgba(${v},${v},${v},.55)`; g.fillRect(r() * 256, r() * 256, 1 + r() * 3, 1 + r() * 3); }
+  for (let i = 0; i < 26; i++) { const x = r() * 256, y = r() * 256, a = r() * 6.28, L = 10 + r() * 40; g.strokeStyle = `rgba(120,120,120,${.25 + r() * .35})`; g.lineWidth = .6 + r(); g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * L, y + Math.sin(a) * L); g.stroke(); }
+  for (let i = 0; i < 8; i++) { const x = r() * 256, y = r() * 256, rad = 20 + r() * 50, gr = g.createRadialGradient(x, y, 0, x, y, rad); gr.addColorStop(0, 'rgba(255,255,255,.35)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 256, 256); }
+  const ed = g.createLinearGradient(0, 0, 14, 0); ed.addColorStop(0, 'rgba(110,110,110,.75)'); ed.addColorStop(1, 'rgba(110,110,110,0)');
+  for (let s = 0; s < 4; s++) { g.save(); g.translate(128, 128); g.rotate(s * Math.PI / 2); g.translate(-128, -128); g.fillStyle = ed; g.fillRect(0, 0, 14, 256); g.restore(); }
+  const t = new T.CanvasTexture(c); t.anisotropy = 4; return t;
+}
+const WEAR_TEX = HEADLESS ? null : wearTexture();
+// block relief: the panel artwork doubles as a bump map, so seams, bolts and plating catch the light
+const BUMP = .9;
+const relief = (m, tex) => { if (HEADLESS || !tex) return m; m.bumpMap = tex; m.bumpScale = BUMP; m.roughnessMap = WEAR_TEX; return m; };
 const TIER_GLOW = { 7: [glowTexture(7), 0x35e6ff, 1.4], 8: [glowTexture(8), 0xff8a2a, 1.6], 9: [glowTexture(9), 0xb07dff, 1.6], 10: [glowTexture(10), 0xffc845, 1.8] };
 const TIER_LOOK = [null, [.62, .2], [.58, .3], [.48, .45], [.5, .3], [.45, .45], [.45, .4], [.35, .55], [.3, .2], [.28, .5], [.22, .75]];
 // paint finishes (per bot): adjust a material's surface; FIN is the finish of the part being built
@@ -227,6 +242,7 @@ function matTexture(kind) {
 }
 function applyMaterialLook(m, ci, mat) {
   const col = new T.Color(COLORS[ci]);
+  if (mat !== 'energy' && matTexture(mat)) m.bumpMap = matTexture(mat);
   if (mat === 'heavy') { m.map = matTexture('heavy'); m.color.copy(col).multiplyScalar(.78); m.metalness = Math.max(m.metalness, .65); m.roughness = Math.min(.6, m.roughness + .1); }
   else if (mat === 'light') { m.map = matTexture('light'); m.color.copy(col).lerp(new T.Color(0xffffff), .18); m.metalness = .35; m.roughness = .5; }
   else if (mat === 'reactive') { m.map = matTexture('reactive'); m.color.copy(col).multiplyScalar(.9); m.roughness = .75; m.metalness = .25; }
@@ -241,13 +257,14 @@ function tierMat(ci, k = 1, burnt = false, fin = FIN, mat = 'std') {
     const gl = TIER_GLOW[k];
     if (!burnt && fin !== 'standard') applyFinish(m, ci, fin);
     if (gl && !burnt) { m.emissive = new T.Color(gl[1]); m.emissiveMap = gl[0]; m.emissiveIntensity = gl[2]; }
+    relief(m, burnt ? TEX.burnt : TIER_TEX[k]);
     matCache.set(key, m);
   }
   return matCache.get(key);
 }
 function partMat(ci, kind = 'panel', fin = FIN) {
   const k = ci + kind + fin;
-  if (!matCache.has(k)) matCache.set(k, applyFinish(new T.MeshStandardMaterial({ color: COLORS[ci], map: TEX[kind], roughness: .58, metalness: .22 }), ci, fin));
+  if (!matCache.has(k)) matCache.set(k, relief(applyFinish(new T.MeshStandardMaterial({ color: COLORS[ci], map: TEX[kind], roughness: .58, metalness: .22 }), ci, fin), TEX[kind]));
   return matCache.get(k);
 }
 const M = {
