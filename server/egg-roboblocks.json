@@ -121,6 +121,16 @@
             "field_type": "text"
         },
         {
+            "name": "Everything unlocked",
+            "description": "1 gives everyone on this server every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements. Players' own progress is not changed and comes back when it is off.",
+            "env_variable": "BC_UNLOCK_ALL",
+            "default_value": "0",
+            "user_viewable": true,
+            "user_editable": true,
+            "rules": "required|string|in:0,1",
+            "field_type": "text"
+        },
+        {
             "name": "Discord webhook",
             "description": "Optional Discord channel webhook URL. Match results from the hosted servers are posted there.",
             "env_variable": "BC_DISCORD_WEBHOOK",

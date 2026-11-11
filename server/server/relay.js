@@ -10,8 +10,8 @@ const { levelFor } = require('./db');
 const ROOM_RE = /^[a-z0-9_][a-z0-9_.-]{0,47}$/;
 
 class Relay {
-  constructor({ servers, maxClients = 64, maxPresence = 16384, log = () => { }, db = null, api = null, requireAccount = false, version = '', balance = () => null }) {
-    this.version = version; this.balance = balance; this.requireAccount = requireAccount; this.servers = servers; this.maxClients = maxClients; this.maxPresence = maxPresence; this.log = log; this.db = db; this.api = api;
+  constructor({ servers, maxClients = 64, maxPresence = 16384, log = () => { }, db = null, api = null, requireAccount = false, unlockAll = false, version = '', balance = () => null }) {
+    this.version = version; this.balance = balance; this.requireAccount = requireAccount; this.unlockAll = unlockAll; this.servers = servers; this.maxClients = maxClients; this.maxPresence = maxPresence; this.log = log; this.db = db; this.api = api;
     this.peers = new Map(); // id -> { send, close, rooms: Set, local, budget, t, ip, acct, unlocked: Set }
     this.rooms = new Map(); // name -> Map(peerId -> presence)
   }
@@ -23,7 +23,7 @@ class Relay {
     const id = 'p' + crypto.randomBytes(8).toString('hex');
     const peer = { send, close, rooms: new Set(), local, budget: 120, t: Date.now(), ip, acct: null, unlocked: new Set(), apiT: [] };
     this.peers.set(id, peer);
-    send({ t: 'welcome', peer: id, servers: this.publicServers(), motd: this.db ? this.db.d.motd : '', accounts: !!this.db, requireAccount: this.requireAccount, version: this.version, balance: this.balance() });
+    send({ t: 'welcome', peer: id, servers: this.publicServers(), motd: this.db ? this.db.d.motd : '', accounts: !!this.db, requireAccount: this.requireAccount, unlockAll: this.unlockAll, version: this.version, balance: this.balance() });
     return { id, onMessage: raw => this.handle(id, raw), close: () => this.drop(id) };
   }
   handle(id, raw) {

@@ -18,9 +18,18 @@ function buildHangar() {
   // ceiling light bars
   for (const x of [-14, 0, 14]) { const bar = new T.Mesh(new T.BoxGeometry(2.2, .3, 40), strip); bar.position.set(x, 24.5, 0); s.add(bar); }
   // sign on the back wall
-  { const c = document.createElement('canvas'); c.width = 1024; c.height = 160; const g = c.getContext('2d'); g.font = '700 120px "Chakra Petch", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillStyle = '#e9edf0'; g.textAlign = 'right'; g.fillText('ROBO', 470, 84); g.fillStyle = '#ff8a1f'; g.textAlign = 'left'; g.fillText('BLOCKS', 478, 84);
+  { const c = document.createElement('canvas'); c.width = 1024; c.height = 160; const g = c.getContext('2d');
+    // measured and shrunk to fit, so a fallback font (before the web font loads, or offline) never runs off the edges
+    const draw = () => {
+      g.clearRect(0, 0, c.width, c.height); g.textBaseline = 'middle'; let px = 120;
+      const set = () => { g.font = `700 ${px}px "Chakra Petch", sans-serif`; return g.measureText('ROBO').width + 8 + g.measureText('BLOCKS').width; };
+      let w = set(); if (w > c.width - 48) { px = Math.floor(px * (c.width - 48) / w); w = set(); }
+      const x0 = (c.width - w) / 2, wr = g.measureText('ROBO').width;
+      g.textAlign = 'left'; g.fillStyle = '#e9edf0'; g.fillText('ROBO', x0, 84); g.fillStyle = '#ff8a1f'; g.fillText('BLOCKS', x0 + wr + 8, 84);
+    };
+    draw();
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { draw(); t.needsUpdate = true; });
     const sign = new T.Mesh(new T.PlaneGeometry(26, 4), new T.MeshBasicMaterial({ map: t, transparent: true, color: new T.Color(1.6, 1.6, 1.6), toneMapped: false })); sign.position.set(0, 17, -44.5); s.add(sign); }
   // props: crates, a parts rack and a tool cart near the walls
   const crate = new T.MeshStandardMaterial({ color: 0x5b4632, roughness: .8 }), steel = new T.MeshStandardMaterial({ color: 0x59636b, roughness: .4, metalness: .8 }), hazard = new T.MeshStandardMaterial({ color: 0xd8a21f, roughness: .6 });
@@ -122,7 +131,7 @@ function showPartCard(id, anchor) {
   const t = TIERS[garage.tier], shape = !!p.shape;
   const hp = shape ? Math.round(t.hp * p.hpF) : p.hp, cpu = shape ? t.cpu : p.cpu, mass = shape ? +(t.mass * (p.massF || 1)).toFixed(2) : p.mass;
   const W = WEAPONS[id], dps = W && W.dmg ? Math.round(W.dmg / W.cd * tierScale(level())) : 0;
-  const lock = partLocked(id) ? `Unlocked by ${unlockName(p.ach)}` : p.lvl > level() ? `Unlocks at pilot level ${p.lvl}` : !techHas(id) ? `Unlock it in the Tech Tree (${TECH[id] ? TECH[id].cost : '?'} points)` : '';
+  const lock = partLocked(id) ? `Unlocked by ${unlockName(p.ach)}` : p.lvl > unlockLv() ? `Unlocks at pilot level ${p.lvl}` : !techHas(id) ? `Unlock it in the Tech Tree (${TECH[id] ? TECH[id].cost : '?'} points)` : '';
   card.innerHTML = `<div class="ph"><img alt="" src="${ICONS[id] || BLANK}"><div><b>${esc(p.name)}</b><div class="label">${esc(p.cat)}${shape ? ' · ' + esc(t.name) : ''}</div></div></div>
     <div class="kv"><span>CPU</span><span>${cpu}</span><span>Health</span><span>${hp}</span><span>Mass</span><span>${mass}</span>${dps ? `<span>Damage per second</span><span>${dps}</span>` : ''}${W && W.range ? `<span>Range</span><span>${W.range} m</span>` : ''}${p.module ? `<span>Key</span><span>${keyLabel(KB('mod_' + p.module))}</span><span>Energy</span><span>${MODULES[p.module].cost}</span>` : ''}</div>
     <p style="margin:0">${esc(p.desc || '')}</p>${lock ? `<p style="margin:0;color:var(--warn)">${esc(lock)}</p>` : ''}`;

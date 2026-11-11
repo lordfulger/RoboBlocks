@@ -68,6 +68,7 @@ A release only installs when it is newer: either the game version (`BC_VERSION`)
 | `BC_DISCORD_INVITE` | empty | A Discord invite link shown on the tester page (`/join`). |
 | `AUTO_UPDATE` | `1` | Install a newer release on every restart (see Updates). |
 | `UPDATE_FROM` | empty | Another RoboBlocks server to copy updates from. |
+| `BC_UNLOCK_ALL` | `0` | `1` unlocks every part, armor tier, material, finish and CPU core for everyone on this server (players' own progress is untouched). |
 | `BC_UPDATE_CHECK_HOURS` | `1` | How often a running server checks for updates; `0` turns it off. |
 | `BC_AUTO_RESTART` | `1` | After installing an update while running, restart when nobody is playing. `0` waits for you. |
 | `BC_RESTART_MAX_HOURS` | `6` | Longest wait for an empty server before restarting anyway (with a warning). `0` waits until empty. |

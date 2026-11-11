@@ -150,7 +150,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.2';
+const BC_VERSION = '2.8.3';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -159,6 +159,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
   ['2.8.2', ['Servers keep themselves up to date: they check for new releases every hour, install them, and restart when nobody is playing.', 'The desktop app updates itself from each new release automatically.']],
   ['2.8.1', ['Online play now runs only on RoboBlocks servers. The main menu\'s Server browser lists this server\'s rooms live, other servers and favourites, and takes any server address.', 'Friend codes: every pilot has a code like RB-7K3Q-X9PD. Add friends by code, or straight from the pilot list in the Server browser.', 'Sound starts as soon as the game opens (on the first key or click in browsers that hold it back).', 'Garage: middle click picks the block under the cursor (part, color, armor). Mirror is now a simple on/off switch, with its own button for the direction.', 'Bigger, easier-to-read text in the Tech Tree.', 'The connection-lost banner no longer covers other messages.']],
   ['2.8.0', ['Loadouts: your garage bays are your loadout. Pick which bot to deploy, and while wrecked press 1–5 (LB/RB on a gamepad, or tap a card) to rebuild as a different bot. Works online.', 'Map sizes: Small, Medium and Large arenas, or Auto to match the team size. Obstacles, trees and craters scale with the map.', 'Three new space maps: Crimson Nebula (glowing gas and ice shards), Dry Dock (a half-built cruiser inside a scaffold) and Ring Belt (bands of rock with clear lanes). Choose one in Battle setup.', 'Painted nebula skies, ringed planets with glowing atmospheres, and work lights in space.', 'New Ultra graphics: full-resolution rendering, light shafts from the sun, film grain, and wider, sharper shadows.', 'Every map has its own colour grade on High and Ultra.', 'RoboBlocks is now on GitHub: servers install and update from the latest release.']],
@@ -256,6 +257,9 @@ const MAP_WX = { dust: 'sand', frost: 'snow', ash: 'ash', city: 'rain', moon: 'n
 let progress = Object.assign({ xp: 0, matches: 0, wins: 0, kills: 0 }, store.get('sfa.progress', {}));
 // HEADLESS: this copy runs inside the Node dedicated server (no screen, no audio); it hosts one official server.
 const HEADLESS = !!(typeof window !== 'undefined' && window.__BC_HEADLESS);
+// "everything unlocked" servers (BC_UNLOCK_ALL): every part, tier, material, finish and CPU core is open to everyone there
+let UNLOCK_ALL = !!(typeof window !== 'undefined' && window.__BC_SERVER && window.__BC_SERVER.unlockAll);
+const unlockLv = () => UNLOCK_ALL ? 10 : level();
 const level = () => HEADLESS ? clamp((window.__BC_SERVER && window.__BC_SERVER.aiLevel) | 0 || 5, 1, 10) : levelFromXp(progress.xp);
 
 // ================= STATS / MOBILITY =================
@@ -446,6 +450,7 @@ function genDesign(rnd, budget, arch, colors, tier = 1) {
 }
 // What stops a design from deploying at a given pilot level (null when it is fine). Hosts use it on other players' bots too.
 function designIssue(d, lv, own) {
+  if (UNLOCK_ALL) lv = 10;
   const list = d && Array.isArray(d.blocks) ? d.blocks : [];
   if (!list.length) return 'Your bot is empty. Place a Pilot Seat to start, or load the starter.';
   const s = computeStats(list);

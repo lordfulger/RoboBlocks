@@ -21,6 +21,8 @@ const IDLE_MATCHES = /^(1|true|yes)$/i.test(env.BC_IDLE_MATCHES || '');
 const HOSTED = (env.BC_SERVERS || 'all').split(',').map(s => s.trim()).filter(Boolean);
 const TRUST_PROXY = /^(1|true|yes)$/i.test(env.BC_TRUST_PROXY || '');
 const REQUIRE_ACCOUNT = /^(1|true|yes)$/i.test(env.BC_REQUIRE_ACCOUNT || '');
+// BC_UNLOCK_ALL=1: everyone on this server gets every part, tier, material and CPU core (players' own progress is untouched)
+const UNLOCK_ALL = /^(1|true|yes)$/i.test(env.BC_UNLOCK_ALL || '');
 
 const LOG = []; // recent lines for the admin page
 const log = (...a) => { const line = new Date().toISOString().slice(11, 19) + ' ' + a.map(x => typeof x === 'string' ? x : String(x)).join(' '); console.log(line); LOG.push(line); if (LOG.length > 300) LOG.shift(); };
@@ -191,7 +193,7 @@ function backup() {
   } catch (e) { log('backup failed:', e.message); }
 }
 setTimeout(backup, 60000); setInterval(backup, 6 * 3600 * 1000);
-const relay = new Relay({ servers: SERVERS, maxClients: MAX_CLIENTS, log, db, api, requireAccount: REQUIRE_ACCOUNT, version: VERSION, balance: () => BALANCE });
+const relay = new Relay({ servers: SERVERS, maxClients: MAX_CLIENTS, log, db, api, requireAccount: REQUIRE_ACCOUNT, unlockAll: UNLOCK_ALL, version: VERSION, balance: () => BALANCE });
 // a hosted match ended: award XP (and rating on ranked servers) to the signed-in pilots who played it
 function onMatchReport(server, r) {
   if (!r || !Array.isArray(r.humans)) return;
@@ -340,11 +342,11 @@ ws.attach(httpServer, '/ws', 64 * 1024, (sock, req) => {
 httpServer.on('error', e => { log('HTTP server error:', e.message); if (e.code === 'EADDRINUSE') process.exit(1); });
 httpServer.listen(PORT, BIND, () => {
   for (const s of SERVERS) {
-    const h = startHost({ code: gameCode, server: s, aiLevel: AI_LEVEL, idleMatches: IDLE_MATCHES, relay, log, report: r => onMatchReport(s, r) });
+    const h = startHost({ code: gameCode, server: s, aiLevel: AI_LEVEL, idleMatches: IDLE_MATCHES, unlockAll: UNLOCK_ALL, relay, log, report: r => onMatchReport(s, r) });
     if (h) { hosts.push(h); log(`hosting ${s.name} (${s.id}): ${s.n}v${s.n}, rotation ${s.rot.map(r => r.join('/')).join(' > ')}`); }
   }
   log(`AI level ${AI_LEVEL}, up to ${MAX_CLIENTS} players, ${IDLE_MATCHES ? 'matches keep running when empty' : 'servers idle until someone joins'}${REQUIRE_ACCOUNT ? ', accounts required to play' : ''}`);
-  log(`RoboBlocks ${VERSION}. Tester page: /join · admin page: /admin`);
+  log(`RoboBlocks ${VERSION}. Tester page: /join · admin page: /admin`); if (UNLOCK_ALL) log('Everything is unlocked for players on this server (BC_UNLOCK_ALL=1).');
   log(`RoboBlocks server ready on port ${PORT}. Open http://<your-server-ip>:${PORT}/ in a browser to play, and /admin for the admin page.`);
 });
 

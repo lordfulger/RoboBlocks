@@ -767,7 +767,7 @@ const levelFromXp = xp => { let l = 1; while (l < 10 && xp >= xpForLevel(l + 1))
 const cpuMax = l => 150 + 40 * (l - 1) + BAL.cpuBonus;
 // tuning a dedicated server can change live (balance.json); the defaults are the normal game
 const BAL = { weaponDamage: {}, xpRate: 1, cpuBonus: 0, reactorHealth: 1, respawnSeconds: 6 };
-const BC_VERSION = '2.8.2';
+const BC_VERSION = '2.8.3';
 // rebindable battle controls (Settings → Controls); weapons stay on the number keys
 const KEY_DEFAULTS = { forward: 'KeyW', back: 'KeyS', left: 'KeyA', right: 'KeyD', strafeL: 'KeyQ', strafeR: 'KeyE', up: 'Space', down: 'KeyC', boost: 'ShiftLeft',
   board: 'Tab', chat: 'Enter', callouts: 'KeyV', destruct: 'KeyX', mod_shield: 'KeyF', mod_cloak: 'KeyG', mod_blink: 'KeyR', mod_emp: 'KeyT', mod_power: 'KeyZ', mod_disrupt: 'KeyH', mod_fly: 'KeyB' };
@@ -776,6 +776,7 @@ const KEY_NAMES = { forward: 'Drive forward', back: 'Reverse', left: 'Turn left'
 const KB = a => (settings.keys && settings.keys[a]) || KEY_DEFAULTS[a];
 const keyLabel = c => !c ? '—' : c.replace(/^Key/, '').replace(/^Digit/, '').replace('ShiftLeft', 'Shift').replace('ShiftRight', 'R-Shift').replace('ControlLeft', 'Ctrl').replace('AltLeft', 'Alt').replace(/^Arrow/, 'Arrow ').replace('Backslash', '\\').replace('Semicolon', ';').replace('Comma', ',').replace('Period', '.').replace('Slash', '/');
 const CHANGELOG = [
+  ['2.8.3', ['Servers can unlock everything for their players (BC_UNLOCK_ALL): every part, armor tier, material, finish and CPU core, with no level or Tech Tree requirements.', 'Clearer messages when the updater or the desktop launcher cannot reach a server.']],
   ['2.8.2', ['Servers keep themselves up to date: they check for new releases every hour, install them, and restart when nobody is playing.', 'The desktop app updates itself from each new release automatically.']],
   ['2.8.1', ['Online play now runs only on RoboBlocks servers. The main menu\'s Server browser lists this server\'s rooms live, other servers and favourites, and takes any server address.', 'Friend codes: every pilot has a code like RB-7K3Q-X9PD. Add friends by code, or straight from the pilot list in the Server browser.', 'Sound starts as soon as the game opens (on the first key or click in browsers that hold it back).', 'Garage: middle click picks the block under the cursor (part, color, armor). Mirror is now a simple on/off switch, with its own button for the direction.', 'Bigger, easier-to-read text in the Tech Tree.', 'The connection-lost banner no longer covers other messages.']],
   ['2.8.0', ['Loadouts: your garage bays are your loadout. Pick which bot to deploy, and while wrecked press 1–5 (LB/RB on a gamepad, or tap a card) to rebuild as a different bot. Works online.', 'Map sizes: Small, Medium and Large arenas, or Auto to match the team size. Obstacles, trees and craters scale with the map.', 'Three new space maps: Crimson Nebula (glowing gas and ice shards), Dry Dock (a half-built cruiser inside a scaffold) and Ring Belt (bands of rock with clear lanes). Choose one in Battle setup.', 'Painted nebula skies, ringed planets with glowing atmospheres, and work lights in space.', 'New Ultra graphics: full-resolution rendering, light shafts from the sun, film grain, and wider, sharper shadows.', 'Every map has its own colour grade on High and Ultra.', 'RoboBlocks is now on GitHub: servers install and update from the latest release.']],
@@ -873,6 +874,9 @@ const MAP_WX = { dust: 'sand', frost: 'snow', ash: 'ash', city: 'rain', moon: 'n
 let progress = Object.assign({ xp: 0, matches: 0, wins: 0, kills: 0 }, store.get('sfa.progress', {}));
 // HEADLESS: this copy runs inside the Node dedicated server (no screen, no audio); it hosts one official server.
 const HEADLESS = !!(typeof window !== 'undefined' && window.__BC_HEADLESS);
+// "everything unlocked" servers (BC_UNLOCK_ALL): every part, tier, material, finish and CPU core is open to everyone there
+let UNLOCK_ALL = !!(typeof window !== 'undefined' && window.__BC_SERVER && window.__BC_SERVER.unlockAll);
+const unlockLv = () => UNLOCK_ALL ? 10 : level();
 const level = () => HEADLESS ? clamp((window.__BC_SERVER && window.__BC_SERVER.aiLevel) | 0 || 5, 1, 10) : levelFromXp(progress.xp);
 
 // ================= STATS / MOBILITY =================
@@ -1063,6 +1067,7 @@ function genDesign(rnd, budget, arch, colors, tier = 1) {
 }
 // What stops a design from deploying at a given pilot level (null when it is fine). Hosts use it on other players' bots too.
 function designIssue(d, lv, own) {
+  if (UNLOCK_ALL) lv = 10;
   const list = d && Array.isArray(d.blocks) ? d.blocks : [];
   if (!list.length) return 'Your bot is empty. Place a Pilot Seat to start, or load the starter.';
   const s = computeStats(list);
@@ -2573,16 +2578,16 @@ function placementPlan(p) {
   const t = garage.tool, P = PARTS[t];
   if (!inBounds(p)) return { ok: false, why: 'Outside the build area.' };
   if (garage.blocks.has(ckey(p.x, p.y, p.z))) return { ok: false, why: 'That cell is taken.' };
-  if (P.lvl > level()) return { ok: false, why: `${P.name} unlocks at pilot level ${P.lvl}.` };
+  if (P.lvl > unlockLv()) return { ok: false, why: `${P.name} unlocks at pilot level ${P.lvl}.` };
   if (partLocked(t)) return { ok: false, why: `${P.name} is earned with an achievement.` };
   if (!techHas(t)) return { ok: false, why: `${P.name}: unlock it in the Tech Tree.` };
   if (P.shape && !techHas('T' + garage.tier)) return { ok: false, why: `T${garage.tier} armor: unlock it in the Tech Tree.` };
-  if (P.shape && TIERS[garage.tier].lvl > level()) return { ok: false, why: `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` };
+  if (P.shape && TIERS[garage.tier].lvl > unlockLv()) return { ok: false, why: `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` };
   if (garage.blocks.size && !hasNeighbor(p.x, p.y, p.z)) return { ok: false, why: 'Blocks must touch your bot.' };
   const r0 = toolRot(t, garage.rot);
   const list = [{ x: p.x, y: p.y, z: p.z, t, c: garage.color, r: r0 }];
   if (P.shape) { list[0].k = garage.tier; if (garage.mat !== 'std') list[0].m = garage.mat; }
-  if (P.shape && MATERIALS[garage.mat].lvl > level()) return { ok: false, why: `${MATERIALS[garage.mat].name} unlocks at pilot level ${MATERIALS[garage.mat].lvl}.` };
+  if (P.shape && MATERIALS[garage.mat].lvl > unlockLv()) return { ok: false, why: `${MATERIALS[garage.mat].name} unlocks at pilot level ${MATERIALS[garage.mat].lvl}.` };
   if (P.shape && !matOpen(garage.mat)) return { ok: false, why: `${MATERIALS[garage.mat].name}: unlock it in the Tech Tree.` };
   if (garage.mirror && mirOff(p)) {
     const m = mirPos(p);
@@ -2648,7 +2653,7 @@ function setGhostShape(g, t, r) {
 }
 function refreshGhost() { if (garage.last) updateGhost(garage.last.x, garage.last.y); }
 function gPaintAt(b) {
-  if (isShape(b.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > level() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
+  if (isShape(b.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > unlockLv() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
   const ks = [ckey(b.x, b.y, b.z)]; if (garage.mirror && mirOff(b)) { const m = mirPos(b); ks.push(ckey(m.x, m.y, m.z)); }
   const changes = []; let delta = 0;
   for (const k of ks) {
@@ -2720,14 +2725,14 @@ function buildTiersUI() {
     const b = document.createElement('button'); b.className = 'tier' + (garage.tier === k ? ' sel' : '') + (locked ? ' locked' : ''); b.id = 'tier' + k;
     b.title = `${TI.name}: ${TI.hp} HP and ${TI.cpu} CPU per cube` + (locked ? `. Unlocks at pilot level ${TI.lvl}.` : '');
     b.innerHTML = `<img alt="" src="${TIER_ICONS[k] || BLANK}"><span>T${k}</span>`;
-    b.onclick = () => { if (locked) { toast(TI.lvl > level() ? `${TI.name} armor unlocks at pilot level ${TI.lvl}.` : `T${k} ${TI.name} armor: unlock it in the Tech Tree.`); return; } garage.tier = k; buildPartsUI(); refreshGhost(); };
+    b.onclick = () => { if (locked) { toast(TI.lvl > unlockLv() ? `${TI.name} armor unlocks at pilot level ${TI.lvl}.` : `T${k} ${TI.name} armor: unlock it in the Tech Tree.`); return; } garage.tier = k; buildPartsUI(); refreshGhost(); };
     el.appendChild(b);
   }
   $('#tierName').textContent = TIERS[garage.tier].name;
   // material picker
   const mel = $('#mats'); if (mel) { mel.innerHTML = '';
     if (!MATERIALS[garage.mat] || !matOpen(garage.mat)) garage.mat = 'std';
-    for (const id of MAT_CODES) { const M0 = MATERIALS[id], locked = !matOpen(id); const b = document.createElement('button'); b.className = 'mat' + (garage.mat === id ? ' sel' : '') + (locked ? ' locked' : ''); b.textContent = M0.name.split(' ')[0]; b.title = `${M0.name}: ${M0.desc} Health ×${M0.hp}, mass ×${M0.mass}, CPU ×${M0.cpu}.` + (locked ? (M0.lvl > level() ? ` Unlocks at pilot level ${M0.lvl}.` : ' Unlock it in the Tech Tree.') : ''); b.onclick = () => { if (locked) { toast(`${M0.name} unlocks at pilot level ${M0.lvl}.`); return; } garage.mat = id; buildTiersUI(); refreshGhost(); SFX.ui(); }; mel.appendChild(b); }
+    for (const id of MAT_CODES) { const M0 = MATERIALS[id], locked = !matOpen(id); const b = document.createElement('button'); b.className = 'mat' + (garage.mat === id ? ' sel' : '') + (locked ? ' locked' : ''); b.textContent = M0.name.split(' ')[0]; b.title = `${M0.name}: ${M0.desc} Health ×${M0.hp}, mass ×${M0.mass}, CPU ×${M0.cpu}.` + (locked ? (M0.lvl > unlockLv() ? ` Unlocks at pilot level ${M0.lvl}.` : ' Unlock it in the Tech Tree.') : ''); b.onclick = () => { if (locked) { toast(`${M0.name} unlocks at pilot level ${M0.lvl}.`); return; } garage.mat = id; buildTiersUI(); refreshGhost(); SFX.ui(); }; mel.appendChild(b); }
     $('#matName').textContent = MATERIALS[garage.mat].name; }
 }
 function buildPartsUI() {
@@ -2736,7 +2741,7 @@ function buildPartsUI() {
   for (const id of PART_ORDER) {
     const p = PARTS[id];
     if (p.cat !== cat) { cat = p.cat; const c = document.createElement('div'); c.className = 'cat'; c.textContent = cat; el.appendChild(c); }
-    const achLock = partLocked(id), techLock = !achLock && p.lvl <= level() && !techHas(id), locked = p.lvl > level() || achLock || techLock;
+    const achLock = partLocked(id), techLock = !achLock && p.lvl <= unlockLv() && !techHas(id), locked = p.lvl > unlockLv() || achLock || techLock;
     const btn = document.createElement('button');
     btn.className = 'part' + (garage.tool === id ? ' sel' : '') + (locked ? ' locked' : '');
     btn.id = 'part-' + id; btn.title = p.desc;
@@ -2915,11 +2920,11 @@ $('#botName').addEventListener('keydown', e => { e.stopPropagation(); if (e.key 
 function buildFinishUI() {
   const sel = $('#finishSel'); if (!sel) return;
   sel.innerHTML = '';
-  for (const f of FINISHES) { const o = document.createElement('option'); o.value = f.id; const al = finishLocked(f); o.textContent = al ? `${f.name} (${/^bp_/.test(f.ach) ? 'battle pass' : 'achievement'})` : f.lvl > level() ? `${f.name} (Lv ${f.lvl})` : f.name; o.disabled = f.lvl > level() || al; sel.appendChild(o); }
+  for (const f of FINISHES) { const o = document.createElement('option'); o.value = f.id; const al = finishLocked(f); o.textContent = al ? `${f.name} (${/^bp_/.test(f.ach) ? 'battle pass' : 'achievement'})` : f.lvl > unlockLv() ? `${f.name} (Lv ${f.lvl})` : f.name; o.disabled = f.lvl > unlockLv() || al; sel.appendChild(o); }
   sel.value = design.f || 'standard';
 }
 $('#finishSel').onchange = () => {
-  const f = FINISHES.find(x => x.id === $('#finishSel').value); if (!f || f.lvl > level() || finishLocked(f)) return;
+  const f = FINISHES.find(x => x.id === $('#finishSel').value); if (!f || f.lvl > unlockLv() || finishLocked(f)) return;
   pushUndo(); design.f = f.id; const d = gSerialize(); d.f = f.id; gLoad(d); SFX.click();
 };
 // ---- 45-garage2.js ----
@@ -2999,7 +3004,7 @@ function garageToolClick(pk) {
   return false;
 }
 function fillPaint(start) {
-  if (isShape(start.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > level() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
+  if (isShape(start.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > unlockLv() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
   const c0 = start.c, seen = new Set([ckey(start.x, start.y, start.z)]), q = [start], hit = [];
   while (q.length) { const b = q.pop(); hit.push(b); for (const [dx, dy, dz] of NB) { const k = ckey(b.x + dx, b.y + dy, b.z + dz), n = garage.blocks.get(k); if (n && !seen.has(k) && n.c === c0) { seen.add(k); q.push(n); } } }
   pushUndo();
@@ -3079,9 +3084,18 @@ function buildHangar() {
   // ceiling light bars
   for (const x of [-14, 0, 14]) { const bar = new T.Mesh(new T.BoxGeometry(2.2, .3, 40), strip); bar.position.set(x, 24.5, 0); s.add(bar); }
   // sign on the back wall
-  { const c = document.createElement('canvas'); c.width = 1024; c.height = 160; const g = c.getContext('2d'); g.font = '700 120px "Chakra Petch", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillStyle = '#e9edf0'; g.textAlign = 'right'; g.fillText('ROBO', 470, 84); g.fillStyle = '#ff8a1f'; g.textAlign = 'left'; g.fillText('BLOCKS', 478, 84);
+  { const c = document.createElement('canvas'); c.width = 1024; c.height = 160; const g = c.getContext('2d');
+    // measured and shrunk to fit, so a fallback font (before the web font loads, or offline) never runs off the edges
+    const draw = () => {
+      g.clearRect(0, 0, c.width, c.height); g.textBaseline = 'middle'; let px = 120;
+      const set = () => { g.font = `700 ${px}px "Chakra Petch", sans-serif`; return g.measureText('ROBO').width + 8 + g.measureText('BLOCKS').width; };
+      let w = set(); if (w > c.width - 48) { px = Math.floor(px * (c.width - 48) / w); w = set(); }
+      const x0 = (c.width - w) / 2, wr = g.measureText('ROBO').width;
+      g.textAlign = 'left'; g.fillStyle = '#e9edf0'; g.fillText('ROBO', x0, 84); g.fillStyle = '#ff8a1f'; g.fillText('BLOCKS', x0 + wr + 8, 84);
+    };
+    draw();
     const t = new T.CanvasTexture(c); t.colorSpace = T.SRGBColorSpace;
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { draw(); t.needsUpdate = true; });
     const sign = new T.Mesh(new T.PlaneGeometry(26, 4), new T.MeshBasicMaterial({ map: t, transparent: true, color: new T.Color(1.6, 1.6, 1.6), toneMapped: false })); sign.position.set(0, 17, -44.5); s.add(sign); }
   // props: crates, a parts rack and a tool cart near the walls
   const crate = new T.MeshStandardMaterial({ color: 0x5b4632, roughness: .8 }), steel = new T.MeshStandardMaterial({ color: 0x59636b, roughness: .4, metalness: .8 }), hazard = new T.MeshStandardMaterial({ color: 0xd8a21f, roughness: .6 });
@@ -3183,7 +3197,7 @@ function showPartCard(id, anchor) {
   const t = TIERS[garage.tier], shape = !!p.shape;
   const hp = shape ? Math.round(t.hp * p.hpF) : p.hp, cpu = shape ? t.cpu : p.cpu, mass = shape ? +(t.mass * (p.massF || 1)).toFixed(2) : p.mass;
   const W = WEAPONS[id], dps = W && W.dmg ? Math.round(W.dmg / W.cd * tierScale(level())) : 0;
-  const lock = partLocked(id) ? `Unlocked by ${unlockName(p.ach)}` : p.lvl > level() ? `Unlocks at pilot level ${p.lvl}` : !techHas(id) ? `Unlock it in the Tech Tree (${TECH[id] ? TECH[id].cost : '?'} points)` : '';
+  const lock = partLocked(id) ? `Unlocked by ${unlockName(p.ach)}` : p.lvl > unlockLv() ? `Unlocks at pilot level ${p.lvl}` : !techHas(id) ? `Unlock it in the Tech Tree (${TECH[id] ? TECH[id].cost : '?'} points)` : '';
   card.innerHTML = `<div class="ph"><img alt="" src="${ICONS[id] || BLANK}"><div><b>${esc(p.name)}</b><div class="label">${esc(p.cat)}${shape ? ' · ' + esc(t.name) : ''}</div></div></div>
     <div class="kv"><span>CPU</span><span>${cpu}</span><span>Health</span><span>${hp}</span><span>Mass</span><span>${mass}</span>${dps ? `<span>Damage per second</span><span>${dps}</span>` : ''}${W && W.range ? `<span>Range</span><span>${W.range} m</span>` : ''}${p.module ? `<span>Key</span><span>${keyLabel(KB('mod_' + p.module))}</span><span>Energy</span><span>${MODULES[p.module].cost}</span>` : ''}</div>
     <p style="margin:0">${esc(p.desc || '')}</p>${lock ? `<p style="margin:0;color:var(--warn)">${esc(lock)}</p>` : ''}`;
@@ -5620,8 +5634,8 @@ function questsToday() {
 }
 const achDone = id => !!PROG.ach[id];
 const unlockName = id => /^bp_/.test(id) ? 'battle pass' : 'the ' + ((ACH.find(a => a.id === id) || {}).name || 'matching') + ' achievement';
-const partLocked = t => { const p = PARTS[t]; return !!(p && p.ach && !achDone(p.ach)); };
-const finishLocked = f => !!(f && f.ach && !achDone(f.ach));
+const partLocked = t => { const p = PARTS[t]; return !UNLOCK_ALL && !!(p && p.ach && !achDone(p.ach)); };
+const finishLocked = f => !UNLOCK_ALL && !!(f && f.ach && !achDone(f.ach));
 const myBadge = () => PROG.badge && (ACH.some(a => a.badge === PROG.badge && achDone(a.id)) || passBadges().some(r => r.v === PROG.badge && achDone(r.id))) ? PROG.badge : '';
 // per-match counters on the player's bot
 function statInit(b) { b.qs = { kills: 0, dmg: 0, heal: 0, caps: 0, mods: 0, dmgW: {}, killsW: {} }; }
@@ -5900,6 +5914,12 @@ function slowPresence(withDesign) {
   if (withDesign) { const d = presenceDesign(); patch.d = NET.sentD = encodeDesign(d); patch.dn = cleanName(d.name || ''); }
   patch.g = g.isHost ? g.info : null;
   NET.slow.presence(patch).catch(e => { if (e && e.code === 'invalid_argument') toast('Your bot is too large to send online. Remove some blocks.'); });
+}
+// a server with BC_UNLOCK_ALL: open everything while connected to it, and refresh the garage to match
+function setUnlockAll(on) {
+  if (HEADLESS || on === UNLOCK_ALL) return; UNLOCK_ALL = on;
+  try { buildPartsUI(); buildFinishUI(); updateStats(); if (typeof techBadge === 'function') techBadge(); if (state === 'menu') buildPilotCard(); } catch (e) { }
+  if (on) toast('Everything is unlocked on this server: every part, armor tier, material and CPU core.');
 }
 // loadouts: send just the design you will respawn with
 function slowPresenceDesign(d) { if (!NET.slow || !NET.game) return; const code = encodeDesign(d); if (code === NET.sentD) return; NET.sentD = code; NET.slow.presence({ d: code, dn: cleanName(d.name || '') }).catch(e => { if (e && e.code === 'invalid_argument') toast('That bot is too large to send online.'); }); }
@@ -6301,7 +6321,7 @@ function relayRoom() {
       if (m.t === 'kicked') { NET.kicked = String(m.reason || 'Removed from the server.'); if (NET.game) netLeave(); if (state === 'battle') toMenu(); showOverlay(`<h2>Disconnected</h2><p>${esc(NET.kicked)}</p><div class="btns"><button class="primary" id="ovDone">OK</button></div>`); $('#ovDone').onclick = () => { hideOverlay(); buildPilotCard(); }; return; }
       if (m.t === 'denied') { const w = waits.get(m.room); rooms.delete(m.room); if (w) { waits.delete(m.room); w.reject(Object.assign(new Error(String(m.reason || 'Not allowed.')), { denied: true })); } return; }
       if (m.t === 'welcome') {
-        me = m.peer; open = true; NET.motd = String(m.motd || ''); NET.accounts = !!m.accounts; NET.requireAccount = !!m.requireAccount; serverVersion(m.version); applyBalance(m.balance); const recon = done;
+        me = m.peer; open = true; NET.motd = String(m.motd || ''); NET.accounts = !!m.accounts; NET.requireAccount = !!m.requireAccount; setUnlockAll(!!m.unlockAll); serverVersion(m.version); applyBalance(m.balance); const recon = done;
         if (BE.kind === 'server' && BE.token) api('resume', { token: BE.token }).then(r => BE.onSignedIn(r && r.me, BE.token)).catch(() => BE.onSignedOut());
         if (Array.isArray(m.servers) && m.servers.length) SERVERS.splice(0, SERVERS.length, ...m.servers.filter(s => s && s.id && Array.isArray(s.rot) && s.rot.length));
         for (const [name, r] of rooms) { r.peers.clear(); r.peers.set(me, { presence: r.mine, t: Date.now() }); send({ t: 'join', room: name, pw: r.pw }); if (Object.keys(r.mine).length) send({ t: 'pres', room: name, p: r.mine }); }
@@ -7584,6 +7604,8 @@ function frame(now) {
   if (!HEADLESS) { tutTick(dt); chatTick(dt); perfTick(dt); padTick(dt); }
   if (HEADLESS) { if (state === 'battle' && match) updateBattle(dt); return; }
   if (state === 'garage' || state === 'menu') {
+    // the placement / paint / erase highlight only belongs on the garage with nothing open over it
+    if ((state !== 'garage' || !$('#overlay').hidden || ($('#techTree') && !$('#techTree').hidden)) && (garage.ghost.visible || garage.mirrorGhost.visible)) garage.ghost.visible = garage.mirrorGhost.visible = false;
     if (state === 'menu') { garage.orbit.theta += dt * .12; garage.orbit.phi = 1.18; garage.orbit.r = lerp(garage.orbit.r, 17, dt * 2); }
     const off = state === 'menu' && innerWidth > 820;
     if (off) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * .16, 0, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
@@ -8710,20 +8732,20 @@ function techEarned(xp) {
 const techRank = () => level() >= 10 ? Math.floor(Math.max(0, (progress.xp || 0) - xpForLevel(10)) / TECH_RANK_XP) : 0;
 function techSpent() { const g = techState().got; let s = 0; for (const id in g) if (g[id] === 'B' && TECH[id]) s += TECH[id].cost; return s; }
 const techAvail = () => techEarned() - techSpent();
-function techHas(id) { if (HEADLESS) return true; if (TECH_START.includes(id) || !TECH[id]) return true; return !!techState().got[id]; }
-const techCpu = () => HEADLESS ? 0 : TECH_CPU * TECH_CPU_LV.filter((_, i) => techHas('cpu' + (i + 1))).length;
-const ownCpuMax = () => cpuMax(level()) + techCpu();
-const partOpen = t => !!PARTS[t] && PARTS[t].lvl <= level() && !partLocked(t) && techHas(t);
-const tierOpen = k => !!TIERS[k] && TIERS[k].lvl <= level() && techHas('T' + k);
-const matOpen = m => !!MATERIALS[m] && MATERIALS[m].lvl <= level() && techHas('mat_' + m);
+function techHas(id) { if (HEADLESS || UNLOCK_ALL) return true; if (TECH_START.includes(id) || !TECH[id]) return true; return !!techState().got[id]; }
+const techCpu = () => HEADLESS ? 0 : UNLOCK_ALL ? TECH_CPU_MAX : TECH_CPU * TECH_CPU_LV.filter((_, i) => techHas('cpu' + (i + 1))).length;
+const ownCpuMax = () => cpuMax(unlockLv()) + techCpu();
+const partOpen = t => !!PARTS[t] && PARTS[t].lvl <= unlockLv() && !partLocked(t) && techHas(t);
+const tierOpen = k => !!TIERS[k] && TIERS[k].lvl <= unlockLv() && techHas('T' + k);
+const matOpen = m => !!MATERIALS[m] && MATERIALS[m].lvl <= unlockLv() && techHas('mat_' + m);
 const ownMaxTier = () => { let k = 1; for (let i = 1; i < TIERS.length; i++) if (tierOpen(i)) k = i; return k; };
 // why a part can't be used yet, or ''
-function partWhy(t) { const P = PARTS[t]; if (!P) return 'Unknown part.'; if (P.lvl > level()) return `${P.name} unlocks at pilot level ${P.lvl}.`; if (partLocked(t)) return `${P.name}: unlock it with ${unlockName(P.ach)}.`; if (!techHas(t)) return `${P.name}: unlock it in the Tech Tree.`; return ''; }
+function partWhy(t) { const P = PARTS[t]; if (!P) return 'Unknown part.'; if (P.lvl > unlockLv()) return `${P.name} unlocks at pilot level ${P.lvl}.`; if (partLocked(t)) return `${P.name}: unlock it with ${unlockName(P.ach)}.`; if (!techHas(t)) return `${P.name}: unlock it in the Tech Tree.`; return ''; }
 function techStatus(id) {
   if (id === 'start') return 'own'; const n = TECH[id];
   if (techHas(id)) return 'own';
   if (!techHas(n.parent) && n.parent !== 'start') return 'far';
-  if (n.lvl > level()) return 'level';
+  if (n.lvl > unlockLv()) return 'level';
   return techAvail() >= n.cost ? 'ready' : 'poor';
 }
 function techBuy(id) {

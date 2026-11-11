@@ -62,20 +62,20 @@ function techEarned(xp) {
 const techRank = () => level() >= 10 ? Math.floor(Math.max(0, (progress.xp || 0) - xpForLevel(10)) / TECH_RANK_XP) : 0;
 function techSpent() { const g = techState().got; let s = 0; for (const id in g) if (g[id] === 'B' && TECH[id]) s += TECH[id].cost; return s; }
 const techAvail = () => techEarned() - techSpent();
-function techHas(id) { if (HEADLESS) return true; if (TECH_START.includes(id) || !TECH[id]) return true; return !!techState().got[id]; }
-const techCpu = () => HEADLESS ? 0 : TECH_CPU * TECH_CPU_LV.filter((_, i) => techHas('cpu' + (i + 1))).length;
-const ownCpuMax = () => cpuMax(level()) + techCpu();
-const partOpen = t => !!PARTS[t] && PARTS[t].lvl <= level() && !partLocked(t) && techHas(t);
-const tierOpen = k => !!TIERS[k] && TIERS[k].lvl <= level() && techHas('T' + k);
-const matOpen = m => !!MATERIALS[m] && MATERIALS[m].lvl <= level() && techHas('mat_' + m);
+function techHas(id) { if (HEADLESS || UNLOCK_ALL) return true; if (TECH_START.includes(id) || !TECH[id]) return true; return !!techState().got[id]; }
+const techCpu = () => HEADLESS ? 0 : UNLOCK_ALL ? TECH_CPU_MAX : TECH_CPU * TECH_CPU_LV.filter((_, i) => techHas('cpu' + (i + 1))).length;
+const ownCpuMax = () => cpuMax(unlockLv()) + techCpu();
+const partOpen = t => !!PARTS[t] && PARTS[t].lvl <= unlockLv() && !partLocked(t) && techHas(t);
+const tierOpen = k => !!TIERS[k] && TIERS[k].lvl <= unlockLv() && techHas('T' + k);
+const matOpen = m => !!MATERIALS[m] && MATERIALS[m].lvl <= unlockLv() && techHas('mat_' + m);
 const ownMaxTier = () => { let k = 1; for (let i = 1; i < TIERS.length; i++) if (tierOpen(i)) k = i; return k; };
 // why a part can't be used yet, or ''
-function partWhy(t) { const P = PARTS[t]; if (!P) return 'Unknown part.'; if (P.lvl > level()) return `${P.name} unlocks at pilot level ${P.lvl}.`; if (partLocked(t)) return `${P.name}: unlock it with ${unlockName(P.ach)}.`; if (!techHas(t)) return `${P.name}: unlock it in the Tech Tree.`; return ''; }
+function partWhy(t) { const P = PARTS[t]; if (!P) return 'Unknown part.'; if (P.lvl > unlockLv()) return `${P.name} unlocks at pilot level ${P.lvl}.`; if (partLocked(t)) return `${P.name}: unlock it with ${unlockName(P.ach)}.`; if (!techHas(t)) return `${P.name}: unlock it in the Tech Tree.`; return ''; }
 function techStatus(id) {
   if (id === 'start') return 'own'; const n = TECH[id];
   if (techHas(id)) return 'own';
   if (!techHas(n.parent) && n.parent !== 'start') return 'far';
-  if (n.lvl > level()) return 'level';
+  if (n.lvl > unlockLv()) return 'level';
   return techAvail() >= n.cost ? 'ready' : 'poor';
 }
 function techBuy(id) {

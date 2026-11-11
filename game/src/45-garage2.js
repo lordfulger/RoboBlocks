@@ -74,7 +74,7 @@ function garageToolClick(pk) {
   return false;
 }
 function fillPaint(start) {
-  if (isShape(start.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > level() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
+  if (isShape(start.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > unlockLv() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
   const c0 = start.c, seen = new Set([ckey(start.x, start.y, start.z)]), q = [start], hit = [];
   while (q.length) { const b = q.pop(); hit.push(b); for (const [dx, dy, dz] of NB) { const k = ckey(b.x + dx, b.y + dy, b.z + dz), n = garage.blocks.get(k); if (n && !seen.has(k) && n.c === c0) { seen.add(k); q.push(n); } } }
   pushUndo();

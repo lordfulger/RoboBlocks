@@ -41,8 +41,8 @@ function questsToday() {
 }
 const achDone = id => !!PROG.ach[id];
 const unlockName = id => /^bp_/.test(id) ? 'battle pass' : 'the ' + ((ACH.find(a => a.id === id) || {}).name || 'matching') + ' achievement';
-const partLocked = t => { const p = PARTS[t]; return !!(p && p.ach && !achDone(p.ach)); };
-const finishLocked = f => !!(f && f.ach && !achDone(f.ach));
+const partLocked = t => { const p = PARTS[t]; return !UNLOCK_ALL && !!(p && p.ach && !achDone(p.ach)); };
+const finishLocked = f => !UNLOCK_ALL && !!(f && f.ach && !achDone(f.ach));
 const myBadge = () => PROG.badge && (ACH.some(a => a.badge === PROG.badge && achDone(a.id)) || passBadges().some(r => r.v === PROG.badge && achDone(r.id))) ? PROG.badge : '';
 // per-match counters on the player's bot
 function statInit(b) { b.qs = { kills: 0, dmg: 0, heal: 0, caps: 0, mods: 0, dmgW: {}, killsW: {} }; }

@@ -238,6 +238,12 @@ function slowPresence(withDesign) {
   patch.g = g.isHost ? g.info : null;
   NET.slow.presence(patch).catch(e => { if (e && e.code === 'invalid_argument') toast('Your bot is too large to send online. Remove some blocks.'); });
 }
+// a server with BC_UNLOCK_ALL: open everything while connected to it, and refresh the garage to match
+function setUnlockAll(on) {
+  if (HEADLESS || on === UNLOCK_ALL) return; UNLOCK_ALL = on;
+  try { buildPartsUI(); buildFinishUI(); updateStats(); if (typeof techBadge === 'function') techBadge(); if (state === 'menu') buildPilotCard(); } catch (e) { }
+  if (on) toast('Everything is unlocked on this server: every part, armor tier, material and CPU core.');
+}
 // loadouts: send just the design you will respawn with
 function slowPresenceDesign(d) { if (!NET.slow || !NET.game) return; const code = encodeDesign(d); if (code === NET.sentD) return; NET.sentD = code; NET.slow.presence({ d: code, dn: cleanName(d.name || '') }).catch(e => { if (e && e.code === 'invalid_argument') toast('That bot is too large to send online.'); }); }
 // a remote pilot picked another bay: rebuild them with the design in their presence (checked like any other)
@@ -638,7 +644,7 @@ function relayRoom() {
       if (m.t === 'kicked') { NET.kicked = String(m.reason || 'Removed from the server.'); if (NET.game) netLeave(); if (state === 'battle') toMenu(); showOverlay(`<h2>Disconnected</h2><p>${esc(NET.kicked)}</p><div class="btns"><button class="primary" id="ovDone">OK</button></div>`); $('#ovDone').onclick = () => { hideOverlay(); buildPilotCard(); }; return; }
       if (m.t === 'denied') { const w = waits.get(m.room); rooms.delete(m.room); if (w) { waits.delete(m.room); w.reject(Object.assign(new Error(String(m.reason || 'Not allowed.')), { denied: true })); } return; }
       if (m.t === 'welcome') {
-        me = m.peer; open = true; NET.motd = String(m.motd || ''); NET.accounts = !!m.accounts; NET.requireAccount = !!m.requireAccount; serverVersion(m.version); applyBalance(m.balance); const recon = done;
+        me = m.peer; open = true; NET.motd = String(m.motd || ''); NET.accounts = !!m.accounts; NET.requireAccount = !!m.requireAccount; setUnlockAll(!!m.unlockAll); serverVersion(m.version); applyBalance(m.balance); const recon = done;
         if (BE.kind === 'server' && BE.token) api('resume', { token: BE.token }).then(r => BE.onSignedIn(r && r.me, BE.token)).catch(() => BE.onSignedOut());
         if (Array.isArray(m.servers) && m.servers.length) SERVERS.splice(0, SERVERS.length, ...m.servers.filter(s => s && s.id && Array.isArray(s.rot) && s.rot.length));
         for (const [name, r] of rooms) { r.peers.clear(); r.peers.set(me, { presence: r.mine, t: Date.now() }); send({ t: 'join', room: name, pw: r.pw }); if (Object.keys(r.mine).length) send({ t: 'pres', room: name, p: r.mine }); }

@@ -68,16 +68,16 @@ function placementPlan(p) {
   const t = garage.tool, P = PARTS[t];
   if (!inBounds(p)) return { ok: false, why: 'Outside the build area.' };
   if (garage.blocks.has(ckey(p.x, p.y, p.z))) return { ok: false, why: 'That cell is taken.' };
-  if (P.lvl > level()) return { ok: false, why: `${P.name} unlocks at pilot level ${P.lvl}.` };
+  if (P.lvl > unlockLv()) return { ok: false, why: `${P.name} unlocks at pilot level ${P.lvl}.` };
   if (partLocked(t)) return { ok: false, why: `${P.name} is earned with an achievement.` };
   if (!techHas(t)) return { ok: false, why: `${P.name}: unlock it in the Tech Tree.` };
   if (P.shape && !techHas('T' + garage.tier)) return { ok: false, why: `T${garage.tier} armor: unlock it in the Tech Tree.` };
-  if (P.shape && TIERS[garage.tier].lvl > level()) return { ok: false, why: `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` };
+  if (P.shape && TIERS[garage.tier].lvl > unlockLv()) return { ok: false, why: `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` };
   if (garage.blocks.size && !hasNeighbor(p.x, p.y, p.z)) return { ok: false, why: 'Blocks must touch your bot.' };
   const r0 = toolRot(t, garage.rot);
   const list = [{ x: p.x, y: p.y, z: p.z, t, c: garage.color, r: r0 }];
   if (P.shape) { list[0].k = garage.tier; if (garage.mat !== 'std') list[0].m = garage.mat; }
-  if (P.shape && MATERIALS[garage.mat].lvl > level()) return { ok: false, why: `${MATERIALS[garage.mat].name} unlocks at pilot level ${MATERIALS[garage.mat].lvl}.` };
+  if (P.shape && MATERIALS[garage.mat].lvl > unlockLv()) return { ok: false, why: `${MATERIALS[garage.mat].name} unlocks at pilot level ${MATERIALS[garage.mat].lvl}.` };
   if (P.shape && !matOpen(garage.mat)) return { ok: false, why: `${MATERIALS[garage.mat].name}: unlock it in the Tech Tree.` };
   if (garage.mirror && mirOff(p)) {
     const m = mirPos(p);
@@ -143,7 +143,7 @@ function setGhostShape(g, t, r) {
 }
 function refreshGhost() { if (garage.last) updateGhost(garage.last.x, garage.last.y); }
 function gPaintAt(b) {
-  if (isShape(b.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > level() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
+  if (isShape(b.t) && !tierOpen(garage.tier)) { toast(TIERS[garage.tier].lvl > unlockLv() ? `${TIERS[garage.tier].name} armor unlocks at pilot level ${TIERS[garage.tier].lvl}.` : `T${garage.tier} armor: unlock it in the Tech Tree.`); return; }
   const ks = [ckey(b.x, b.y, b.z)]; if (garage.mirror && mirOff(b)) { const m = mirPos(b); ks.push(ckey(m.x, m.y, m.z)); }
   const changes = []; let delta = 0;
   for (const k of ks) {
@@ -215,14 +215,14 @@ function buildTiersUI() {
     const b = document.createElement('button'); b.className = 'tier' + (garage.tier === k ? ' sel' : '') + (locked ? ' locked' : ''); b.id = 'tier' + k;
     b.title = `${TI.name}: ${TI.hp} HP and ${TI.cpu} CPU per cube` + (locked ? `. Unlocks at pilot level ${TI.lvl}.` : '');
     b.innerHTML = `<img alt="" src="${TIER_ICONS[k] || BLANK}"><span>T${k}</span>`;
-    b.onclick = () => { if (locked) { toast(TI.lvl > level() ? `${TI.name} armor unlocks at pilot level ${TI.lvl}.` : `T${k} ${TI.name} armor: unlock it in the Tech Tree.`); return; } garage.tier = k; buildPartsUI(); refreshGhost(); };
+    b.onclick = () => { if (locked) { toast(TI.lvl > unlockLv() ? `${TI.name} armor unlocks at pilot level ${TI.lvl}.` : `T${k} ${TI.name} armor: unlock it in the Tech Tree.`); return; } garage.tier = k; buildPartsUI(); refreshGhost(); };
     el.appendChild(b);
   }
   $('#tierName').textContent = TIERS[garage.tier].name;
   // material picker
   const mel = $('#mats'); if (mel) { mel.innerHTML = '';
     if (!MATERIALS[garage.mat] || !matOpen(garage.mat)) garage.mat = 'std';
-    for (const id of MAT_CODES) { const M0 = MATERIALS[id], locked = !matOpen(id); const b = document.createElement('button'); b.className = 'mat' + (garage.mat === id ? ' sel' : '') + (locked ? ' locked' : ''); b.textContent = M0.name.split(' ')[0]; b.title = `${M0.name}: ${M0.desc} Health ×${M0.hp}, mass ×${M0.mass}, CPU ×${M0.cpu}.` + (locked ? (M0.lvl > level() ? ` Unlocks at pilot level ${M0.lvl}.` : ' Unlock it in the Tech Tree.') : ''); b.onclick = () => { if (locked) { toast(`${M0.name} unlocks at pilot level ${M0.lvl}.`); return; } garage.mat = id; buildTiersUI(); refreshGhost(); SFX.ui(); }; mel.appendChild(b); }
+    for (const id of MAT_CODES) { const M0 = MATERIALS[id], locked = !matOpen(id); const b = document.createElement('button'); b.className = 'mat' + (garage.mat === id ? ' sel' : '') + (locked ? ' locked' : ''); b.textContent = M0.name.split(' ')[0]; b.title = `${M0.name}: ${M0.desc} Health ×${M0.hp}, mass ×${M0.mass}, CPU ×${M0.cpu}.` + (locked ? (M0.lvl > unlockLv() ? ` Unlocks at pilot level ${M0.lvl}.` : ' Unlock it in the Tech Tree.') : ''); b.onclick = () => { if (locked) { toast(`${M0.name} unlocks at pilot level ${M0.lvl}.`); return; } garage.mat = id; buildTiersUI(); refreshGhost(); SFX.ui(); }; mel.appendChild(b); }
     $('#matName').textContent = MATERIALS[garage.mat].name; }
 }
 function buildPartsUI() {
@@ -231,7 +231,7 @@ function buildPartsUI() {
   for (const id of PART_ORDER) {
     const p = PARTS[id];
     if (p.cat !== cat) { cat = p.cat; const c = document.createElement('div'); c.className = 'cat'; c.textContent = cat; el.appendChild(c); }
-    const achLock = partLocked(id), techLock = !achLock && p.lvl <= level() && !techHas(id), locked = p.lvl > level() || achLock || techLock;
+    const achLock = partLocked(id), techLock = !achLock && p.lvl <= unlockLv() && !techHas(id), locked = p.lvl > unlockLv() || achLock || techLock;
     const btn = document.createElement('button');
     btn.className = 'part' + (garage.tool === id ? ' sel' : '') + (locked ? ' locked' : '');
     btn.id = 'part-' + id; btn.title = p.desc;
@@ -410,10 +410,10 @@ $('#botName').addEventListener('keydown', e => { e.stopPropagation(); if (e.key 
 function buildFinishUI() {
   const sel = $('#finishSel'); if (!sel) return;
   sel.innerHTML = '';
-  for (const f of FINISHES) { const o = document.createElement('option'); o.value = f.id; const al = finishLocked(f); o.textContent = al ? `${f.name} (${/^bp_/.test(f.ach) ? 'battle pass' : 'achievement'})` : f.lvl > level() ? `${f.name} (Lv ${f.lvl})` : f.name; o.disabled = f.lvl > level() || al; sel.appendChild(o); }
+  for (const f of FINISHES) { const o = document.createElement('option'); o.value = f.id; const al = finishLocked(f); o.textContent = al ? `${f.name} (${/^bp_/.test(f.ach) ? 'battle pass' : 'achievement'})` : f.lvl > unlockLv() ? `${f.name} (Lv ${f.lvl})` : f.name; o.disabled = f.lvl > unlockLv() || al; sel.appendChild(o); }
   sel.value = design.f || 'standard';
 }
 $('#finishSel').onchange = () => {
-  const f = FINISHES.find(x => x.id === $('#finishSel').value); if (!f || f.lvl > level() || finishLocked(f)) return;
+  const f = FINISHES.find(x => x.id === $('#finishSel').value); if (!f || f.lvl > unlockLv() || finishLocked(f)) return;
   pushUndo(); design.f = f.id; const d = gSerialize(); d.f = f.id; gLoad(d); SFX.click();
 };

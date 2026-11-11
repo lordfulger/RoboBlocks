@@ -61,7 +61,7 @@ function makeDocument() {
   return new Proxy(doc, { get(t, k) { if (k in t) return t[k]; return typeof k === 'string' ? stub() : undefined; } });
 }
 
-function startHost({ code, server, aiLevel, idleMatches, relay, log, report }) {
+function startHost({ code, server, aiLevel, idleMatches, unlockAll, relay, log, report }) {
   const ls = new Map();
   const ctx = {
     THREE, console: { log() { }, info() { }, warn() { }, debug() { }, error: (...a) => log(`[${server.id}] ${a.map(String).join(' ').slice(0, 300)}`) },
@@ -72,7 +72,7 @@ function startHost({ code, server, aiLevel, idleMatches, relay, log, report }) {
     location: { protocol: 'node:', host: 'localhost', href: 'node://roboblocks' }, navigator: { userAgent: 'RoboBlocks dedicated server' },
     localStorage: { getItem: k => (ls.has(k) ? ls.get(k) : null), setItem: (k, v) => ls.set(k, String(v)), removeItem: k => ls.delete(k) },
     __BC_HEADLESS: true,
-    __BC_SERVER: { id: server.id, aiLevel, idleMatches },
+    __BC_SERVER: { id: server.id, aiLevel, idleMatches, unlockAll: !!unlockAll },
     __BC_REPORT: r => { try { report && report(JSON.parse(JSON.stringify(r))); } catch (e) { log(`[${server.id}] report failed: ${e.message}`); } },
     __BC_LOCAL_CONN: () => {
       const sock = { readyState: 1, onopen: null, onmessage: null, onclose: null, onerror: null, send: text => conn.onMessage(text), close() { conn.close(); } };

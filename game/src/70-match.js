@@ -745,6 +745,8 @@ function frame(now) {
   if (!HEADLESS) { tutTick(dt); chatTick(dt); perfTick(dt); padTick(dt); }
   if (HEADLESS) { if (state === 'battle' && match) updateBattle(dt); return; }
   if (state === 'garage' || state === 'menu') {
+    // the placement / paint / erase highlight only belongs on the garage with nothing open over it
+    if ((state !== 'garage' || !$('#overlay').hidden || ($('#techTree') && !$('#techTree').hidden)) && (garage.ghost.visible || garage.mirrorGhost.visible)) garage.ghost.visible = garage.mirrorGhost.visible = false;
     if (state === 'menu') { garage.orbit.theta += dt * .12; garage.orbit.phi = 1.18; garage.orbit.r = lerp(garage.orbit.r, 17, dt * 2); }
     const off = state === 'menu' && innerWidth > 820;
     if (off) camera.setViewOffset(innerWidth, innerHeight, -innerWidth * .16, 0, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
